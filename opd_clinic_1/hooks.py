@@ -253,14 +253,29 @@ app_license = "mit"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 fixtures = [
-    {"dt": "Role", "filters": [["name", "in", ["My Role"]]]},
-    {"dt": "Custom Field", "filters": [["module", "=", "My Customizations"]]},
+    {
+        "dt": "Custom Field",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    "Batch-gst_rate",
+                    "Batch-hsn_code",
+                    "Batch-mrp",
+                    "Batch-net_rate",
+                    "Batch-purchase_rate",
+                    "Batch-units_per_pack",
+                ],
+            ],
+        ],
+    },
+    {
+        "dt": "Custom Field",
+        "filters": [["dt", "=", "Healthcare Practitioner"]],
+    },
     "Property Setter",
     "Custom DocPerm",
-    {"dt": "Workflow State", "filters": [["name", "in", ["..."]]]},
-    {"dt": "Workflow", "filters": [["name", "in", ["..."]]]},
-    {"dt": "Client Script", "filters": [["module", "=", "My Customizations"]]},
-    {"dt": "Server Script", "filters": [["module", "=", "My Customizations"]]},
     {"dt": "Web Page", "filters": [["name", "in", ["home", "about-us"]]]},
     "Web Template",
     "Notification",
