@@ -1,7 +1,7 @@
 app_name = "opd_clinic_1"
-app_title = "ood_clinic_1"
+app_title = "opd_clinic_1"
 app_publisher = "Naresh"
-app_description = "ood"
+app_description = "opd"
 app_email = "naresh@nkhub.in"
 app_license = "mit"
 
