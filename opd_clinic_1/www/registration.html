@@ -1,0 +1,226 @@
+<!-- title: Patitent Registration -->
+<div id="apt">
+<style>
+#apt{--ink:#16324a;--mute:#5d7184;--line:#c9d6d0;--bg:#f3f8f5;--ok:#1d7a5f;--err:#b3261e;max-width:560px;margin:0 auto;padding:16px 4px 48px;color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#apt *{box-sizing:border-box}
+#apt h1{font-size:1.7rem;margin:0 0 4px;letter-spacing:-.01em}
+#apt .lead{color:var(--mute);margin:0 0 20px}
+#apt .seg{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--ink);border-radius:10px;overflow:hidden;margin-bottom:20px}
+#apt .seg button{padding:12px 8px;border:0;background:#fff;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+#apt .seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+#apt fieldset{border:0;padding:0;margin:0 0 22px}
+#apt legend{font-weight:700;font-size:1.05rem;padding:0;margin-bottom:10px}
+#apt label{display:block;font-size:.92rem;font-weight:600;margin:12px 0 4px}
+#apt input,#apt select,#apt textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);background:#fff}
+#apt input:focus,#apt select:focus,#apt textarea:focus,#apt button:focus-visible{outline:3px solid #8cc9b5;outline-offset:1px}
+#apt .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#apt .go{width:100%;margin-top:16px;padding:13px;border:0;border-radius:10px;background:var(--ok);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+#apt .go:disabled{opacity:.55;cursor:wait}
+#apt .ghost{margin-top:10px;padding:9px 14px;border:1.5px solid var(--ink);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+#apt .note{margin-top:12px;padding:12px 14px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok)}
+#apt .note.bad{border-color:var(--err);background:#fdf0ef}
+#apt .slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+#apt .slots button{padding:9px 13px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:inherit;cursor:pointer}
+#apt .slots button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+#apt .res{display:grid;gap:8px;margin-top:12px}
+#apt .res button{display:flex;flex-wrap:wrap;gap:2px 16px;align-items:baseline;text-align:left;width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:inherit;cursor:pointer}
+#apt .res button strong{flex:1 1 100%}
+#apt .res button span{color:var(--mute);font-size:.92rem}
+#apt .res button[aria-pressed=true]{border-color:var(--ok);background:var(--bg)}
+#apt .up{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+#apt .up:first-of-type{border-top:0}
+#apt [hidden]{display:none!important}
+#apt .done h2{margin:0 0 6px;color:var(--ok)}
+@media(max-width:420px){#apt .row{grid-template-columns:1fr}}
+</style>
+
+<h1>Book an appointment</h1>
+<p class="lead">Registered with us before? Look up your record. First visit? Register and book in one step.</p>
+
+<div class="seg">
+  <button type="button" id="m-exist" aria-pressed="true">I'm an existing patient</button>
+  <button type="button" id="m-new" aria-pressed="false">I'm a new patient</button>
+</div>
+
+<form id="f" novalidate>
+  <fieldset id="s-exist">
+    <legend>Find the patient</legend>
+    <div class="row">
+      <div><label for="e-name">Name</label><input id="e-name" autocomplete="off" placeholder="First or last name"></div>
+      <div><label for="e-mobile">Mobile number (optional)</label><input id="e-mobile" type="tel" autocomplete="off"></div>
+    </div>
+    <button type="button" class="ghost" id="find">Search patients</button>
+    <div id="found" hidden></div>
+    <div id="upc"></div>
+  </fieldset>
+
+  <fieldset id="s-new" hidden>
+    <legend>Register as a new patient</legend>
+    <div class="row">
+      <div><label for="n-first">First name</label><input id="n-first" autocomplete="given-name"></div>
+      <div><label for="n-last">Last name</label><input id="n-last" autocomplete="family-name"></div>
+    </div>
+    <div class="row">
+      <div><label for="n-sex">Gender</label>
+        <select id="n-sex"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+      <div><label for="n-dob">Date of birth (optional)</label><input id="n-dob" type="date"></div>
+    </div>
+    <div class="row">
+      <div><label for="n-age">Age (years)</label><input id="n-age" type="number" min="0" max="120" inputmode="numeric" placeholder="If date of birth is unknown"></div>
+      <p class="lead" style="margin:0;align-self:end;font-size:.9rem">Typing an age fills an approximate date of birth.</p>
+    </div>
+    <div class="row">
+      <div><label for="n-mobile">Mobile number (optional)</label><input id="n-mobile" type="tel" autocomplete="tel"></div>
+      <div><label for="n-email">Email (optional)</label><input id="n-email" type="email" autocomplete="email"></div>
+    </div>
+  </fieldset>
+
+  <fieldset id="s-appt" hidden>
+    <legend>Choose your appointment</legend>
+    <div id="edit-banner" class="note" hidden><span></span> <button type="button" class="ghost" id="edit-cancel">Stop editing</button></div>
+    <label for="a-prac">Doctor</label><select id="a-prac"><option value="">Select a doctor</option></select>
+    <label for="a-type">Visit type</label><select id="a-type"><option value="">Select a visit type</option></select>
+    <label for="a-date">Date</label><input id="a-date" type="date">
+    <label for="a-slot">Time</label>
+    <select id="a-slot" disabled><option value="">Pick a doctor and date first</option></select>
+    <p class="lead" id="slot-note" aria-live="polite" style="margin:6px 0 0;font-size:.92rem"></p>
+    <input id="a-time" type="time" hidden aria-label="Preferred time">
+    <label for="a-notes">Reason for visit (optional)</label><textarea id="a-notes" rows="2"></textarea>
+    <button type="submit" class="go" id="book">Book appointment</button>
+  </fieldset>
+  <div id="err" class="note bad" role="alert" hidden></div>
+</form>
+
+<div id="done" class="note done" hidden></div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector('#apt '+s)};
+var mode='existing',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',upc=[];
+
+function call(method,data,post){
+  var p=new URLSearchParams(data||{}),o={headers:{Accept:'application/json'}};
+  if(post){o.method='POST';o.body=p;var t=csrf||(window.frappe&&frappe.csrf_token)||window.csrf_token;if(t)o.headers['X-Frappe-CSRF-Token']=t}
+  return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){var t='Something went wrong. Please try again.';
+        try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message.replace(/<[^>]+>/g,'')}catch(e){}
+        if(/invalid request/i.test(t))t='Your session expired. Refresh the page and try again.';throw new Error(t)}
+      return j.message})})
+}
+function showErr(t){var e=$('#err');e.textContent=t||'';e.hidden=!t}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function setMode(m){
+  mode=m;showErr('');
+  $('#m-exist').setAttribute('aria-pressed',m==='existing');
+  $('#m-new').setAttribute('aria-pressed',m==='new');
+  $('#s-exist').hidden=m!=='existing';
+  $('#s-new').hidden=m!=='new';
+  $('#s-appt').hidden=m==='existing'?!patientId:false;
+}
+$('#m-exist').onclick=function(){setMode('existing')};
+$('#m-new').onclick=function(){setMode('new')};
+
+function dlabel(d){return new Date(d+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}
+function endEdit(){editId='';pendingSlot='';$('#edit-banner').hidden=true;$('#book').textContent='Book appointment'}
+function loadUpcoming(){
+  var box=$('#upc');box.innerHTML='';upc=[];
+  call('appt_upcoming',{patient:patientId}).then(function(r){
+    if(r.guest){box.innerHTML='<p class="hint">Log in with a staff account to edit this patient\'s existing appointments.</p>';return}
+    upc=r.appointments||[];if(!upc.length)return;
+    box.innerHTML='<div class="note"><b>Upcoming appointments</b>'+upc.map(function(a,i){
+      return '<div class="up"><span><b>'+esc(dlabel(a.date))+', '+esc(fmt(a.time))+'</b><br>'+esc(a.practitioner_name)+', '+esc(a.type)+'</span><button type="button" class="ghost" data-i="'+i+'">Edit</button></div>'}).join('')+'</div>'
+  }).catch(function(e){
+    if(/not permitted|permission|log in/i.test(e.message))box.innerHTML='<p class="hint">Log in with a staff account to edit this patient\'s existing appointments.</p>';
+    else showErr(e.message)})
+}
+function startEdit(a){
+  editId=a.id;pendingSlot=a.time;showErr('');
+  $('#a-prac').value=a.practitioner;$('#a-type').value=a.type;$('#a-date').value=a.date;$('#a-notes').value=a.notes||'';
+  $('#edit-banner span').textContent='Editing '+a.id+'. Change anything, then press Update appointment.';
+  $('#edit-banner').hidden=false;$('#book').textContent='Update appointment';loadSlots();
+  $('#s-appt').scrollIntoView({behavior:'smooth',block:'start'})
+}
+$('#upc').onclick=function(e){var b=e.target.closest('button[data-i]');if(b)startEdit(upc[+b.dataset.i])};
+$('#edit-cancel').onclick=endEdit;
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+$('#n-age').oninput=function(){
+  var a=parseInt(this.value,10);if(isNaN(a)||a<0||a>120)return;
+  var t=new Date();$('#n-dob').value=iso(new Date(t.getFullYear()-a,t.getMonth(),t.getDate()))
+};
+$('#n-dob').onchange=function(){
+  if(!this.value)return;
+  var d=new Date(this.value+'T12:00:00'),t=new Date(),a=t.getFullYear()-d.getFullYear();
+  if(t.getMonth()<d.getMonth()||(t.getMonth()===d.getMonth()&&t.getDate()<d.getDate()))a--;
+  $('#n-age').value=a>=0?a:''
+};
+$('#find').onclick=function(){
+  var nm=$('#e-name').value.trim(),mob=$('#e-mobile').value.trim(),box=$('#found');
+  showErr('');box.hidden=true;patientId='';$('#s-appt').hidden=true;endEdit();$('#upc').innerHTML='';
+  if(nm.length<2&&mob.length<4){showErr('Enter at least 2 letters of the name or 4 digits of the mobile number.');return}
+  this.disabled=true;var b=this;
+  call('appt_search',{name:nm,mobile:mob}).then(function(r){
+    var list=r.patients||[];box.hidden=false;
+    if(!list.length){box.className='note bad';
+      box.innerHTML='No patient matches that search.<br><button type="button" class="ghost" id="to-new">Register as a new patient</button>';
+      $('#to-new').onclick=function(){var p=nm.split(/\s+/);$('#n-first').value=p.shift()||'';$('#n-last').value=p.join(' ');$('#n-mobile').value=mob;setMode('new')};
+      return}
+    box.className='res';box.innerHTML='';
+    list.forEach(function(p){
+      var c=document.createElement('button');c.type='button';c.setAttribute('aria-pressed','false');
+      c.innerHTML='<strong>'+esc(p.name)+'</strong><span>Age '+(p.age==null?'not recorded':esc(String(p.age)))+'</span><span>Mobile '+(p.mobile?esc(p.mobile):'not on file')+'</span>';
+      c.onclick=function(){patientId=p.id;box.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===c)});$('#s-appt').hidden=false;endEdit();loadUpcoming()};
+      box.appendChild(c)})
+  }).catch(function(e){showErr(e.message)}).then(function(){b.disabled=false})
+};
+
+function fmt(t){var p=t.split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
+function loadSlots(){
+  var pr=$('#a-prac').value,d=$('#a-date').value,sel=$('#a-slot'),note=$('#slot-note');
+  slot='';manual=false;$('#a-time').hidden=true;note.textContent='';
+  sel.innerHTML='<option value="">Pick a doctor and date first</option>';sel.disabled=true;
+  if(!pr||!d)return;
+  sel.innerHTML='<option value="">Checking availability…</option>';
+  call('appt_slots',{practitioner:pr,date:d,exclude:editId}).then(function(r){
+    var s=r.slots||[];
+    if(!s.length){sel.innerHTML='<option value="">No free times on this date</option>';return}
+    sel.innerHTML='<option value="">Select a time ('+s.length+' available)</option>';
+    s.forEach(function(t){sel.add(new Option(fmt(t),t))});
+    sel.disabled=false;
+    if(pendingSlot){sel.value=pendingSlot;slot=sel.value;pendingSlot=''}
+    note.textContent=r.source==='default'?'Showing clinic hours, since this doctor has no schedule for this day.':''
+  }).catch(function(e){
+    sel.innerHTML='<option value="">Times unavailable</option>';
+    note.textContent='Times couldn\'t be loaded ('+e.message+'). Enter your preferred time and the clinic will confirm it.';
+    manual=true;$('#a-time').hidden=false;if(pendingSlot){$('#a-time').value=pendingSlot;pendingSlot=''}})
+}
+$('#a-slot').onchange=function(){slot=this.value};
+$('#a-prac').onchange=loadSlots;$('#a-date').onchange=loadSlots;
+$('#a-date').min=new Date().toISOString().slice(0,10);
+
+call('appt_meta').then(function(m){csrf=m.csrf||'';
+  m.practitioners.forEach(function(p){var o=new Option(p.practitioner_name+(p.department?' ('+p.department+')':''),p.name);$('#a-prac').add(o)});
+  m.types.forEach(function(t){$('#a-type').add(new Option(t,t))})
+}).catch(function(){showErr('The booking form couldn\'t load. Please refresh or contact the clinic.')});
+
+$('#f').onsubmit=function(ev){
+  ev.preventDefault();showErr('');
+  var isNew=mode==='new',time=manual?$('#a-time').value:slot;
+  var d={mode:mode,practitioner:$('#a-prac').value,appointment_type:$('#a-type').value,date:$('#a-date').value,time:time,notes:$('#a-notes').value};
+  if(isNew){d.first_name=$('#n-first').value.trim();d.last_name=$('#n-last').value.trim();d.sex=$('#n-sex').value;
+    d.dob=$('#n-dob').value;d.mobile=$('#n-mobile').value.trim();d.email=$('#n-email').value.trim();
+    if(!d.first_name||!d.sex){showErr('Enter the first name and gender.');return}}
+  else{if(!patientId){showErr('Search for the patient and select them first.');return}d.patient=patientId}
+  if(!d.practitioner||!d.appointment_type||!d.date||!d.time){showErr('Choose a doctor, visit type, date and time.');return}
+  var b=$('#book');b.disabled=true;b.textContent=editId?'Updating…':'Booking…';
+  var req=editId?call('appt_update',{patient:patientId,appointment:editId,practitioner:d.practitioner,appointment_type:d.appointment_type,date:d.date,time:d.time,notes:d.notes},true):call('appt_book',d,true);
+  req.then(function(r){
+    $('#f').hidden=true;var n=$('#done');n.hidden=false;
+    n.innerHTML='<h2>'+(editId?'Appointment updated':'Appointment booked')+'</h2>Reference <strong>'+esc(r.appointment)+'</strong><br>'+esc(d.date)+' at '+esc(manual?d.time:fmt(d.time))+(manual?' (the clinic will confirm this time)':'')+'.'
+  }).catch(function(e){showErr(e.message);b.disabled=false;b.textContent=editId?'Update appointment':'Book appointment';if(/already booked/i.test(e.message))loadSlots()})
+};
+})();
+</script>
+</div>
+

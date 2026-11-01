@@ -1,0 +1,415 @@
+<!-- title: Sale Return -->
+<div id="sr">
+<script>
+  function s(t){var d=document.createElement('div');d.style.cssText='padding:10px;margin:8px 0;background:#fdf0ef;color:#b3261e;border-left:4px solid #b3261e;font:14px system-ui;word-break:break-word';d.textContent=t;var p=document.getElementById('sr');p.insertBefore(d,p.firstChild)}
+  window.addEventListener('error',function(e){if(e.filename&&e.filename.indexOf('bundle')<0&&e.filename.indexOf('website_script')<0)s('Error: '+e.message+' (line '+e.lineno+':'+e.colno+')')});
+</script>
+<style>
+  #sr *{box-sizing:border-box;margin:0;padding:0}
+  #sr{font:15px/1.5 system-ui,sans-serif;color:#1c1b1f;max-width:680px;margin:0 auto;padding:14px 10px 80px}
+  #sr h1{font-size:1.4rem;font-weight:700;margin-bottom:14px}
+  #sr h2{font-size:1.05rem;font-weight:700;margin-bottom:10px}
+  #sr .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:16px;margin-bottom:14px}
+  #sr label{display:block;font-size:.82rem;font-weight:600;color:#555;margin-top:10px;margin-bottom:3px}
+  #sr label:first-child{margin-top:0}
+  #sr input,#sr select{width:100%;border:1px solid #c4c7c5;border-radius:8px;padding:9px 11px;font:15px system-ui;background:#fff;color:#1c1b1f}
+  #sr input:focus,#sr select:focus{outline:2px solid #1a73e8;border-color:transparent}
+  #sr .btn{background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:10px 20px;font:600 15px system-ui;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block;text-align:center}
+  #sr .btn:disabled{opacity:.5;cursor:default}
+  #sr .btn.go{background:#188038}
+  #sr .btn.red{background:#b3261e}
+  #sr .link{background:none;border:none;color:#1a73e8;font:15px system-ui;cursor:pointer;padding:0;text-decoration:underline}
+  #sr .back-link{color:#1a73e8;font-size:.9rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px}
+  #sr .hint{font-size:.82rem;color:#777;margin-top:6px}
+  #sr .mute{color:#777}
+  #sr #toast{padding:10px 14px;border-radius:8px;font-size:.9rem;margin:8px 0;background:#e6f4ea;color:#1e8e3e}
+  #sr #toast.bad{background:#fdf0ef;color:#b3261e}
+  #sr .tabs{display:flex;gap:0;border-bottom:2px solid #e0e0e0;margin-bottom:16px}
+  #sr .tabs button{flex:1;background:none;border:none;border-bottom:3px solid transparent;padding:10px 8px;font:600 14px system-ui;color:#777;cursor:pointer;margin-bottom:-2px}
+  #sr .tabs button[aria-selected=true]{color:#1a73e8;border-bottom-color:#1a73e8}
+  #sr .inv-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:8px;cursor:pointer;background:#fafafa;gap:8px}
+  #sr .inv-row:hover{background:#e8f0fe;border-color:#1a73e8}
+  #sr .inv-row b{display:block;font-size:.95rem}
+  #sr .inv-row span{font-size:.8rem;color:#777}
+  #sr .inv-row .inv-total{font-weight:700;color:#188038;white-space:nowrap}
+  #sr .badge-return{background:#fdf0ef;color:#b3261e;font-size:0.75rem;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600}
+  #sr .rtable{width:100%;border-collapse:collapse;font-size:.88rem}
+  #sr .rtable th{text-align:left;font-weight:600;padding:6px 8px;border-bottom:2px solid #e0e0e0;background:#f8f9fa;color:#555}
+  #sr .rtable td{padding:7px 8px;border-bottom:1px solid #eee;vertical-align:middle}
+  #sr .rtable td.n{text-align:right}
+  #sr .rtable th.n{text-align:right}
+  #sr .rtable input[type=number]{width:70px;padding:5px 7px;font-size:.88rem}
+  #sr .sum{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #eee;margin-top:6px;font-size:.92rem}
+  #sr .sum.total{font-weight:700;font-size:1rem;border-top:2px solid #ccc;margin-top:8px;padding-top:10px}
+  #sr .info-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  #sr .info-row span{background:#f1f3f4;border-radius:6px;padding:4px 10px;font-size:.83rem;color:#3c4043}
+  #sr .scroll{overflow-x:auto}
+</style>
+
+<a href="/pharmacy" class="back-link">&#8592; Back to Pharmacy</a>
+
+<h1>Sale Return</h1>
+<div id="toast" role="status" hidden></div>
+
+<!-- Step 1: Find invoice -->
+<div class="card" id="step-find">
+  <h2>Find invoice or return</h2>
+
+  <div class="tabs" role="tablist">
+    <button type="button" data-tab="date" aria-selected="true">By date</button>
+    <button type="button" data-tab="num" aria-selected="false">By invoice number</button>
+  </div>
+
+  <!-- By date -->
+  <div id="tab-date">
+    <label for="inv-date">Sale date</label>
+    <div style="display:flex;gap:6px;margin-top:4px;align-items:center">
+      <button type="button" id="date-prev" style="background:#f1f3f4;border:1px solid #c4c7c5;border-radius:8px;padding:9px 14px;font:700 18px system-ui;cursor:pointer;line-height:1;color:#1c1b1f;flex-shrink:0">&#8249;</button>
+      <input id="inv-date" type="date" style="flex:1;min-width:0">
+      <button type="button" id="date-next" style="background:#f1f3f4;border:1px solid #c4c7c5;border-radius:8px;padding:9px 14px;font:700 18px system-ui;cursor:pointer;line-height:1;color:#1c1b1f;flex-shrink:0">&#8250;</button>
+    </div>
+    <p class="hint" id="inv-date-fmt" style="font-size:.9rem;color:#1a73e8;font-weight:600;margin-top:5px"></p>
+    <p style="margin-top:10px"><button type="button" class="btn" id="date-search" style="width:100%">List invoices</button></p>
+    <div id="inv-list" style="margin-top:12px"></div>
+  </div>
+
+  <!-- By invoice number -->
+  <div id="tab-num" hidden>
+    <label for="inv-q">Invoice number</label>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <input id="inv-q" autocomplete="off" placeholder="e.g. ACC-SINV-2025-00001" style="flex:1">
+      <button type="button" class="btn" id="inv-search">Search</button>
+    </div>
+    <p class="hint">Type the invoice number or return note number.</p>
+  </div>
+</div>
+
+<!-- Step 2A: New Return Form (for regular invoices) -->
+<div class="card" id="step-inv" hidden>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 id="inv-title" style="margin:0"></h2>
+    <button type="button" class="link" id="inv-clear">&#8592; Back</button>
+  </div>
+  <div class="info-row" id="inv-info"></div>
+  <p class="hint" id="inv-hint"></p>
+  <div class="scroll" style="margin-top:12px">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Batch</th>
+          <th class="n">Sold qty</th>
+          <th class="n">Return qty</th>
+        </tr>
+      </thead>
+      <tbody id="ret-lines"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" id="step-submit" hidden>
+  <h2>Return details</h2>
+  <label for="ret-reason">Reason for return</label>
+  <select id="ret-reason">
+    <option value="Wrong Medicine">Wrong Medicine</option>
+    <option value="Damaged">Damaged</option>
+    <option value="Expired">Expired</option>
+    <option value="Patient refused">Patient refused</option>
+    <option value="Excess quantity">Excess quantity</option>
+    <option value="Other">Other</option>
+  </select>
+  <label for="ret-mode">Refund payment mode</label>
+  <select id="ret-mode"></select>
+  <div class="sum total" style="margin-top:16px">
+    <span>Refund amount</span>
+    <b id="ret-total">&#8377;0.00</b>
+  </div>
+  <p style="margin-top:14px">
+    <button type="button" class="btn go" id="ret-submit" style="width:100%">Submit return</button>
+  </p>
+</div>
+
+<!-- Step 2B: View / Edit / Cancel an Existing Return Note -->
+<div class="card" id="step-view-return" hidden>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 id="vr-title" style="margin:0;color:#b3261e"></h2>
+    <button type="button" class="link" id="vr-back">&#8592; Back</button>
+  </div>
+  <div class="info-row" id="vr-info"></div>
+  <div class="scroll" style="margin-top:12px">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Batch</th>
+          <th class="n">Returned qty</th>
+          <th class="n">Rate</th>
+        </tr>
+      </thead>
+      <tbody id="vr-lines"></tbody>
+    </table>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+    <button type="button" class="btn" id="vr-edit" style="flex:1">Edit return (Cancel & redo)</button>
+    <button type="button" class="btn red" id="vr-cancel" style="flex:1">Cancel return</button>
+  </div>
+</div>
+
+<!-- Step 4: Success -->
+<div class="card" id="step-done" hidden>
+  <h2>Action complete</h2>
+  <p id="done-msg" style="margin:10px 0"></p>
+  <p style="margin-top:12px">
+    <button type="button" class="btn" id="done-new">Done / Search again</button>
+  </p>
+</div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector('#sr '+s)};
+var csrf='',inv=null;
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function n(v){v=parseFloat(v);return isNaN(v)?0:v}
+function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function mmyy(d){if(!d)return '-';var p=d.split('-');return p[1]+'/'+p[0].slice(2)}
+function fmtDate(d){if(!d)return '-';var p=(d||'').slice(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function toast(t,bad){var e=$('#toast');e.textContent=t||'';e.className=bad?'bad':'';e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
+
+function call(method,params,post){
+  var p=new URLSearchParams(params||{}),o={headers:{Accept:'application/json'}};
+  if(post){o.method='POST';o.body=p;var t=csrf||(window.frappe&&frappe.csrf_token)||window.csrf_token;if(t)o.headers['X-Frappe-CSRF-Token']=t}
+  return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){
+        var t='Something went wrong. Please try again.';
+        try{var msgs=JSON.parse(j._server_messages);var last=JSON.parse(msgs[msgs.length-1]);t=(last.message||last).replace(/<[^>]+>/g,'')}catch(e){}
+        if(/invalid request|not logged in/i.test(t)){window.location.replace('/login?redirect-to='+encodeURIComponent(window.location.pathname));return}
+        throw new Error(t)
+      }
+      return j.message})})
+}
+
+call('ph_meta').then(function(m){
+  csrf=m.csrf||'';
+  $('#ret-mode').innerHTML=m.modes.map(function(x){return '<option>'+esc(x)+'</option>'}).join('');
+  var cm=m.modes.filter(function(x){return /^cash$/i.test(x)})[0];
+  if(cm)$('#ret-mode').value=cm;
+}).catch(function(e){toast(e.message,1)});
+
+$('#inv-date').value=new Date().toISOString().slice(0,10);
+
+function updateDateDisplay(){
+  var v=$('#inv-date').value;
+  var el=$('#inv-date-fmt');
+  if(v){var p=v.split('-');el.textContent='Selected: '+p[2]+'/'+p[1]+'/'+p[0]}
+  else{el.textContent=''}
+}
+$('#inv-date').oninput=updateDateDisplay;
+$('#inv-date').onchange=updateDateDisplay;
+updateDateDisplay();
+
+function shiftDate(days){
+  var v=$('#inv-date').value;
+  var d=v?new Date(v+'T12:00:00'):new Date();
+  d.setDate(d.getDate()+days);
+  $('#inv-date').value=d.toISOString().slice(0,10);
+  updateDateDisplay();
+}
+$('#date-prev').onclick=function(){shiftDate(-1)};
+$('#date-next').onclick=function(){shiftDate(1)};
+
+document.querySelectorAll('#sr .tabs button').forEach(function(btn){
+  btn.onclick=function(){
+    document.querySelectorAll('#sr .tabs button').forEach(function(b){b.setAttribute('aria-selected','false')});
+    btn.setAttribute('aria-selected','true');
+    $('#tab-date').hidden=btn.dataset.tab!=='date';
+    $('#tab-num').hidden=btn.dataset.tab!=='num';
+    toast('');
+  }
+});
+
+$('#date-search').onclick=function(){
+  var d=$('#inv-date').value;
+  if(!d){toast('Pick a date first.',1);return}
+  var b=this;b.disabled=true;
+  $('#inv-list').innerHTML='<p class="hint">Loading...</p>';
+  toast('');
+  call('sr_list',{date:d}).then(function(r){
+    if(!r.invoices.length){
+      $('#inv-list').innerHTML='<p class="hint">No pharmacy invoices or returns on this date.</p>';
+      return
+    }
+    $('#inv-list').innerHTML=r.invoices.map(function(iv){
+      var badge=iv.is_return?'<span class="badge-return">Return Note</span>':'';
+      return '<div class="inv-row" data-inv="'+esc(iv.name)+'">'+
+        '<div>'+
+          '<b>'+esc(iv.name)+badge+'</b>'+
+          '<span>'+esc(iv.customer)+(iv.time?' &nbsp;&middot;&nbsp; '+esc(iv.time):'')+' </span>'+
+        '</div>'+
+        '<div class="inv-total">'+inr(iv.total)+'</div>'+
+      '</div>'
+    }).join('')
+  }).catch(function(e){toast(e.message,1);$('#inv-list').innerHTML=''}).then(function(){b.disabled=false})
+};
+
+$('#inv-list').onclick=function(e){
+  var row=e.target.closest('.inv-row');
+  if(!row)return;
+  loadInvoice(row.dataset.inv)
+};
+
+$('#inv-search').onclick=function(){
+  var q=$('#inv-q').value.trim();
+  if(!q){toast('Enter an invoice number.',1);return}
+  loadInvoice(q)
+};
+$('#inv-q').onkeydown=function(e){if(e.key==='Enter')$('#inv-search').click()};
+
+function loadInvoice(name){
+  toast('');
+  call('sr_load',{invoice:name}).then(function(r){
+    inv=r;
+    if(inv.is_return){
+      showReturnView();
+    }else{
+      showInvoice();
+    }
+  }).catch(function(e){toast(e.message,1)})
+}
+
+function showReturnView(){
+  $('#step-find').hidden=true;
+  $('#step-inv').hidden=true;
+  $('#step-submit').hidden=true;
+  $('#step-view-return').hidden=false;
+
+  $('#vr-title').textContent='Return Note: '+inv.invoice;
+  $('#vr-info').innerHTML=
+    '<span>Date: '+esc(fmtDate(inv.date))+'</span>'+
+    '<span>Customer: '+esc(inv.customer)+'</span>'+
+    '<span>Against: '+esc(inv.return_against)+'</span>'+
+    '<span>Refund: '+inr(inv.total)+'</span>';
+
+  $('#vr-lines').innerHTML=inv.items.map(function(it){
+    return '<tr>'+
+      '<td>'+esc(it.item_name)+'</td>'+
+      '<td>'+esc(it.batch_no||'-')+'<br><span class="mute" style="font-size:.78rem">Exp '+mmyy(it.expiry)+'</span></td>'+
+      '<td class="n">'+it.qty+'</td>'+
+      '<td class="n">'+inr(it.rate)+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+// Cancel return note
+$('#vr-cancel').onclick=function(){
+  if(!confirm('Cancel this return note? Returned stock will be deducted back.')) return;
+  var b=this;b.disabled=true;
+  call('sr_cancel',{invoice:inv.invoice},true).then(function(r){
+    $('#step-view-return').hidden=true;
+    $('#step-done').hidden=false;
+    $('#done-msg').innerHTML='Return note <b>'+esc(r.invoice)+'</b> has been cancelled successfully.';
+    toast('');
+  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false});
+};
+
+// Edit return note
+$('#vr-edit').onclick=function(){
+  if(!confirm('This will cancel the current return note and let you enter new return quantities. Continue?')) return;
+  var orig=inv.return_against;
+  var b=this;b.disabled=true;
+  call('sr_cancel',{invoice:inv.invoice},true).then(function(){
+    $('#step-view-return').hidden=true;
+    loadInvoice(orig);
+  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false});
+};
+
+$('#vr-back').onclick=$('#inv-clear').onclick=function(){
+  inv=null;
+  $('#step-inv').hidden=true;
+  $('#step-submit').hidden=true;
+  $('#step-view-return').hidden=true;
+  $('#step-done').hidden=true;
+  $('#step-find').hidden=false;
+  toast('')
+};
+
+$('#done-new').onclick=function(){
+  inv=null;
+  $('#step-inv').hidden=true;
+  $('#step-submit').hidden=true;
+  $('#step-view-return').hidden=true;
+  $('#step-done').hidden=true;
+  $('#step-find').hidden=false;
+  $('#date-search').click();
+  toast('')
+};
+
+function showInvoice(){
+  $('#step-find').hidden=true;
+  $('#step-view-return').hidden=true;
+  $('#inv-title').textContent='Invoice: '+inv.invoice;
+  var d=fmtDate(inv.date);
+  $('#inv-info').innerHTML=
+    '<span>Date: '+esc(d)+'</span>'+
+    '<span>Customer: '+esc(inv.customer)+'</span>'+
+    '<span>Total: '+inr(inv.total)+'</span>'+
+    (inv.already_returned?'<span style="background:#fdf0ef;color:#b3261e">Partial return exists</span>':'');
+  $('#inv-hint').textContent='Enter return quantity for each item (0 to skip). Max is the sold quantity.';
+  $('#ret-lines').innerHTML=inv.items.map(function(it,i){
+    return '<tr>'+
+      '<td>'+esc(it.item_name)+'</td>'+
+      '<td>'+esc(it.batch_no||'-')+'<br><span class="mute" style="font-size:.78rem">Exp '+mmyy(it.expiry)+'</span></td>'+
+      '<td class="n">'+it.sold_qty+'</td>'+
+      '<td class="n"><input type="number" min="0" max="'+it.max_qty+'" step="1" inputmode="numeric" value="0" data-i="'+i+'" class="rq"></td>'+
+      '</tr>'
+  }).join('');
+  $('#step-inv').hidden=false;
+  $('#step-submit').hidden=false;
+  calcTotal();
+  $('#step-inv').scrollIntoView({block:'start',behavior:'smooth'})
+}
+
+function calcTotal(){
+  if(!inv)return 0;
+  var total=0;
+  document.querySelectorAll('#sr .rq').forEach(function(inp,i){
+    var it=inv.items[i];
+    var qty=Math.min(Math.max(0,n(inp.value)),it.max_qty);
+    inp.value=qty;
+    total+=qty*it.rate;
+  });
+  $('#ret-total').textContent=inr(total);
+  return total;
+}
+
+$('#ret-lines').oninput=calcTotal;
+
+$('#ret-submit').onclick=function(){
+  if(!inv){toast('Search an invoice first.',1);return}
+  var lines=[];
+  document.querySelectorAll('#sr .rq').forEach(function(inp,i){
+    var it=inv.items[i];
+    var qty=Math.min(Math.max(0,n(inp.value)),it.max_qty);
+    if(qty>0) lines.push({item_code:it.item_code,batch_no:it.batch_no,qty:qty,rate:it.rate,warehouse:it.warehouse});
+  });
+  if(!lines.length){toast('Enter at least one item quantity to return.',1);return}
+  var b=this;b.disabled=true;toast('');
+  call('sr_save',{
+    invoice:inv.invoice,
+    lines:JSON.stringify(lines),
+    reason:$('#ret-reason').value,
+    mode:$('#ret-mode').value
+  },true).then(function(r){
+    $('#step-done').hidden=false;
+    $('#done-msg').innerHTML='Return note <b>'+esc(r.return_invoice)+'</b> created. Refund amount: <b>'+inr(r.total)+'</b>. Stock has been added back.';
+    $('#step-inv').hidden=true;
+    $('#step-submit').hidden=true;
+    $('#step-done').scrollIntoView({block:'start',behavior:'smooth'});
+    toast('')
+  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false})
+};
+
+})();
+</script>
+</div>

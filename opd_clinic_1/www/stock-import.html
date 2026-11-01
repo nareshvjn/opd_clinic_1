@@ -1,0 +1,178 @@
+<!-- title: Stock Import -->
+<div id="si">
+<style>
+#si{--ink:#16324a;--mute:#5d7184;--line:#cfdad5;--bg:#f3f8f5;--ok:#1d7a5f;--err:#b3261e;max-width:900px;margin:0 auto;padding:16px 4px 40px;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#si *{box-sizing:border-box}
+#si h1{font-size:1.5rem;margin:0 0 12px}
+#si h2{font-size:1.05rem;margin:0 0 8px}
+#si .card{padding:14px;margin-bottom:14px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
+#si label{display:block;font-size:.9rem;font-weight:600;margin:12px 0 4px}
+#si input,#si select,#si textarea{width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);background:#fff}
+#si textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
+#si .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#si .hint{color:var(--mute);font-size:.88rem;margin:6px 0 0}
+#si .btn{padding:11px 20px;border:0;border-radius:10px;background:var(--ink);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+#si .btn.go{background:var(--ok)}
+#si .btn:disabled{opacity:.55;cursor:wait}
+#si .note{padding:11px 14px;margin-bottom:12px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok)}
+#si .note.bad{border-color:var(--err);background:#fdf0ef}
+#si .scroll{overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:8px}
+#si table{width:100%;border-collapse:collapse;font-size:.88rem}
+#si th,#si td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+#si th{position:sticky;top:0;background:var(--bg)}
+#si tr.bad td{background:#fdf0ef}
+#si .okt{color:var(--ok);font-weight:700}
+#si .bdt{color:var(--err);font-weight:700}
+#si [hidden]{display:none!important}
+@media(max-width:560px){#si .g2{grid-template-columns:1fr}}
+</style>
+<h1>Stock import</h1>
+<div id="msg" class="note" hidden></div>
+<div class="card">
+<div class="g2">
+<div><label for="wh" style="margin-top:0">Store</label><select id="wh"></select></div>
+<div><label for="basis" style="margin-top:0">Rates in the file are</label><select id="basis"><option value="excl">Excluding GST</option><option value="incl">Including GST</option></select></div>
+</div>
+<p class="hint">The first row must be a header. Columns: <b>product, batch, expiry, hsn, gst, mrp, rate, upp, packs, units</b>. MRP and rate are per pack. Expiry can be 2028-03, 03/2028 or 03/28.</p>
+<p class="hint"><a id="tpl" download="stock-import-template.csv" href="#">Download a template</a></p>
+<label for="file">CSV file</label>
+<input id="file" type="file" accept=".csv,.txt,text/csv">
+<label for="txt">Or paste rows (copied from Excel works too)</label>
+<textarea id="txt" rows="7" placeholder="product,batch,expiry,hsn,gst,mrp,rate,upp,packs,units"></textarea>
+<p style="margin:14px 0 0"><button type="button" class="btn" id="check">Check rows</button></p>
+</div>
+<div class="card" id="pv" hidden>
+<h2 id="pv-h"></h2>
+<div class="scroll"><table><thead><tr><th>#</th><th>Product</th><th>Batch</th><th>Expiry</th><th>GST</th><th>MRP</th><th>Rate</th><th>Per pack</th><th>Packs</th><th>Units</th><th>Check</th></tr></thead><tbody id="pv-b"></tbody></table></div>
+<p class="hint">Importing sets each batch to the quantity in the file. A batch that already exists is corrected to that quantity, and new products are created.</p>
+<p style="margin:14px 0 0"><button type="button" class="btn go" id="run">Import</button> <button type="button" class="btn" id="stop" hidden>Stop</button></p>
+</div>
+<div class="card" id="lg" hidden>
+<h2 id="lg-h"></h2>
+<div class="scroll"><table><tbody id="lg-b"></tbody></table></div>
+</div>
+<script>
+(function(){
+var $=function(s){return document.querySelector('#si '+s)};
+var csrf='',wh='',rows=[],stopFlag=false;
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function n(v){v=parseFloat(String(v==null?'':v).replace(/,/g,''));return isNaN(v)?0:v}
+function note(t,bad){var e=$('#msg');e.textContent=t||'';e.className='note'+(bad?' bad':'');e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
+function wait(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function call(method,params,post){
+  var p=new URLSearchParams(params||{}),o={headers:{Accept:'application/json'}};
+  if(post){o.method='POST';o.body=p;var t=csrf||(window.frappe&&frappe.csrf_token);if(t)o.headers['X-Frappe-CSRF-Token']=t}
+  return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){var t='Something went wrong.';
+        try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message.replace(/<[^>]+>/g,'')}catch(e){}
+        if(r.status===429)t='RATE';
+        throw new Error(t)}
+      return j.message})})
+}
+$('#tpl').href='data:text/csv;charset=utf-8,'+encodeURIComponent('product,batch,expiry,hsn,gst,mrp,rate,upp,packs,units\nParacetamol 500mg,PST260406,2028-03,3004,5,244.25,180.00,15,10,0\nZyrtec Drops 10ml,ZD1123,03/2028,3004,12,95.50,70.00,1,24,0\n');
+
+/* csv parsing (comma or tab, quotes allowed) */
+function parse(text){
+  text=String(text||'').replace(/^\uFEFF/,'');
+  var first=text.split('\n')[0]||'',d=first.indexOf('\t')>-1?'\t':',';
+  var out=[],row=[],cur='',q=false,i,c;
+  for(i=0;i<text.length;i++){
+    c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}
+    else if(c==='"')q=true;
+    else if(c===d){row.push(cur);cur=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cur);cur='';out.push(row);row=[]}
+    else cur+=c
+  }
+  if(cur!==''||row.length){row.push(cur);out.push(row)}
+  return out.filter(function(r){return r.some(function(x){return String(x).trim()!==''})})
+}
+var ALIAS={product:['product','item','item name','name','medicine','product name'],batch:['batch','batch no','batch id','batchno'],expiry:['expiry','exp','expiry date','expiry month'],hsn:['hsn','hsn code'],gst:['gst','gst rate','gst %','tax'],mrp:['mrp','mrp per pack','mrp incl gst'],rate:['rate','purchase rate','purchase rate per pack','prate','cost'],upp:['upp','units per pack','unit per pack','pack size','pack'],packs:['packs','number of packs','no of packs','qty packs'],units:['units','loose units','loose','loose qty']};
+function norm(h){return String(h).toLowerCase().replace(/[^a-z0-9% ]/g,' ').replace(/\s+/g,' ').trim()}
+function expiry(v){
+  v=String(v||'').trim();var m,y,mo;
+  if(m=v.match(/^(\d{4})[-\/](\d{1,2})(?:[-\/]\d{1,2})?$/)){y=+m[1];mo=+m[2]}
+  else if(m=v.match(/^(\d{1,2})[-\/](\d{2}|\d{4})$/)){mo=+m[1];y=+m[2];if(y<100)y+=2000}
+  else return '';
+  if(mo<1||mo>12)return '';
+  return y+'-'+String(mo).padStart(2,'0')+'-'+String(new Date(y,mo,0).getDate()).padStart(2,'0')
+}
+function build(table){
+  var head=table[0].map(norm),idx={};
+  Object.keys(ALIAS).forEach(function(k){head.forEach(function(h,i){if(idx[k]==null&&ALIAS[k].indexOf(h)>-1)idx[k]=i})});
+  var miss=['product','batch','expiry','mrp','rate','packs'].filter(function(k){return idx[k]==null});
+  if(miss.length)throw new Error('The header row is missing: '+miss.join(', ')+'.');
+  return table.slice(1).map(function(r,i){
+    var g=function(k){return idx[k]==null?'':String(r[idx[k]]==null?'':r[idx[k]]).trim()};
+    var d={no:i+2,product:g('product'),batch:g('batch'),expiryRaw:g('expiry'),hsn:g('hsn'),gst:g('gst')===''?'5':String(n(g('gst'))),mrp:n(g('mrp')),rate:n(g('rate')),upp:g('upp')===''?1:Math.floor(n(g('upp'))),packs:n(g('packs')),units:n(g('units'))};
+    d.expiry=expiry(d.expiryRaw);
+    var e=[];
+    if(!d.product)e.push('product missing');
+    if(!d.batch)e.push('batch missing');
+    if(!d.expiry)e.push('expiry not understood');
+    if(d.mrp<=0)e.push('MRP missing');
+    if(d.rate<=0)e.push('rate missing');
+    if(d.upp<1)e.push('units per pack must be 1 or more');
+    if(d.packs<0||d.units<0)e.push('negative quantity');
+    if(d.packs*Math.max(1,d.upp)+d.units<=0)e.push('quantity is zero');
+    d.err=e.join(', ');return d
+  })
+}
+function show(){
+  var bad=rows.filter(function(r){return r.err}).length;
+  $('#pv').hidden=false;
+  $('#pv-h').textContent=rows.length+' row(s): '+(rows.length-bad)+' ready'+(bad?', '+bad+' with problems (they will be skipped)':'');
+  $('#pv-b').innerHTML=rows.map(function(r){
+    return '<tr'+(r.err?' class="bad"':'')+'><td>'+r.no+'</td><td>'+esc(r.product)+'</td><td>'+esc(r.batch)+'</td><td>'+esc(r.expiryRaw)+'</td><td>'+esc(r.gst)+'</td><td>'+esc(r.mrp)+'</td><td>'+esc(r.rate)+'</td><td>'+esc(r.upp)+'</td><td>'+esc(r.packs)+'</td><td>'+esc(r.units)+'</td><td>'+(r.err?'<span class="bdt">'+esc(r.err)+'</span>':'<span class="okt">OK</span>')+'</td></tr>'}).join('');
+  $('#run').disabled=rows.length===bad
+}
+$('#file').onchange=function(){
+  var f=this.files[0];if(!f)return;
+  var rd=new FileReader();rd.onload=function(){$('#txt').value=rd.result;note('')};rd.readAsText(f)
+};
+$('#check').onclick=function(){
+  note('');$('#lg').hidden=true;
+  try{
+    var t=parse($('#txt').value);
+    if(t.length<2){note('Add a header row and at least one stock row.',1);$('#pv').hidden=true;return}
+    rows=build(t);show()
+  }catch(e){note(e.message,1);$('#pv').hidden=true}
+};
+$('#stop').onclick=function(){stopFlag=true;this.disabled=true};
+$('#run').onclick=async function(){
+  var todo=rows.filter(function(r){return !r.err});
+  if(!todo.length||!wh){note('Choose a store and check the rows first.',1);return}
+  if(!window.confirm('Import '+todo.length+' batch(es) into '+wh+'?'))return;
+  stopFlag=false;var run=this;run.disabled=true;$('#check').disabled=true;$('#stop').hidden=false;$('#stop').disabled=false;
+  $('#lg').hidden=false;$('#lg-b').innerHTML='';
+  var ok=0,fail=0,i,r,tries,done;
+  for(i=0;i<todo.length&&!stopFlag;i++){
+    r=todo[i];$('#lg-h').textContent='Importing '+(i+1)+' of '+todo.length+'...';
+    tries=0;done=false;
+    while(!done){
+      try{
+        var res=await call('ph_stock_save',{product:r.product,batch:r.batch,expiry:r.expiry,hsn:r.hsn,gst:r.gst,mrp:r.mrp,rate:r.rate,basis:$('#basis').value,upp:r.upp,packs:r.packs,units:r.units,disc:'0',warehouse:wh},true);
+        ok++;done=true;
+        $('#lg-b').insertAdjacentHTML('afterbegin','<tr><td>'+r.no+'</td><td>'+esc(r.product)+'</td><td>'+esc(r.batch)+'</td><td class="okt">Saved</td></tr>')
+      }catch(e){
+        if(e.message==='RATE'&&tries<4){tries++;$('#lg-h').textContent='The server asked to slow down. Waiting 15 seconds...';await wait(15000);continue}
+        fail++;done=true;
+        $('#lg-b').insertAdjacentHTML('afterbegin','<tr class="bad"><td>'+r.no+'</td><td>'+esc(r.product)+'</td><td>'+esc(r.batch)+'</td><td class="bdt">'+esc(e.message==='RATE'?'Too many requests. Try again later.':e.message)+'</td></tr>')
+      }
+    }
+    await wait(600)
+  }
+  $('#lg-h').textContent=(stopFlag?'Stopped. ':'Finished. ')+ok+' saved, '+fail+' failed'+(stopFlag?', '+(todo.length-ok-fail)+' not started':'')+'.';
+  $('#stop').hidden=true;run.disabled=false;$('#check').disabled=false
+};
+$('#wh').onchange=function(){wh=this.value};
+call('ph_meta').then(function(m){
+  csrf=m.csrf||'';wh=m.warehouse||'';
+  $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
+  if(!m.warehouses.length)note('No store (warehouse) found. Create one in Desk first.',1)
+}).catch(function(e){note(e.message,1)});
+})();
+</script>
+</div>
+
