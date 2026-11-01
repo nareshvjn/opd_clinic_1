@@ -1,6 +1,6 @@
-### ood_clinic_1
+### opd_clinic_1
 
-ood
+opd
 
 ### Installation
 
