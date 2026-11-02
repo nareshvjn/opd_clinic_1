@@ -30,6 +30,14 @@ def names(dt):
 
 appt_id = frappe.form_dict.get("appointment")
 patient_id = frappe.form_dict.get("patient")
+enc_id = (frappe.form_dict.get("encounter") or "").strip()
+
+if enc_id and frappe.db.exists("Patient Encounter", enc_id):
+    curr_enc = frappe.get_doc("Patient Encounter", enc_id)
+    if not patient_id:
+        patient_id = curr_enc.patient
+    if not appt_id and curr_enc.appointment:
+        appt_id = curr_enc.appointment
 appt = None
 if appt_id:
     appt = frappe.get_doc("Patient Appointment", appt_id)
@@ -50,7 +58,20 @@ if pat.dob:
 
 enc = None
 vit = None
-if appt_id:
+if enc_id and frappe.db.exists("Patient Encounter", enc_id):
+    e = frappe.get_doc("Patient Encounter", enc_id)
+    enc = {
+        "name": e.name,
+        "docstatus": e.docstatus,
+        "amended_from": e.amended_from or "",
+        "comment": e.encounter_comment or "",
+        "symptoms": [x.complaint for x in e.symptoms],
+        "diagnosis": [x.diagnosis for x in e.diagnosis],
+        "drugs": [{"drug": x.drug_code, "form": x.dosage_form or "", "dosage": x.dosage or "",
+                   "period": x.period or "", "comment": x.comment or ""} for x in e.drug_prescription],
+        "labs": [x.lab_test_code for x in e.lab_test_prescription],
+    }
+elif appt_id:
     found = frappe.get_all("Patient Encounter",
         filters={"appointment": appt_id, "docstatus": ["<", 2]}, fields=["name"], limit=1)
     if found:
@@ -72,12 +93,27 @@ if appt_id:
     if v:
         vit = v[0]
 
+current_enc_name = enc.get("name") if enc else ""
+current_appt_name = appt_id or ""
+
 history = []
-for h in frappe.get_all("Patient Encounter", filters={"patient": patient_id, "docstatus": 1},
+hx_filters = {"patient": patient_id, "docstatus": 1}
+if current_enc_name:
+    hx_filters["name"] = ["!=", current_enc_name]
+elif current_appt_name:
+    hx_filters["appointment"] = ["!=", current_appt_name]
+
+for h in frappe.get_all("Patient Encounter", filters=hx_filters,
         fields=["name", "appointment", "encounter_date", "encounter_comment"],
         order_by="encounter_date desc", limit=5):
+    if current_enc_name and h.name == current_enc_name:
+        continue
+    if current_appt_name and h.appointment == current_appt_name:
+        continue
     hd = frappe.get_doc("Patient Encounter", h.name)
     history.append({
+        "encounter": h.name,
+        "name": h.name,
         "date": str(h.encounter_date),
         "appointment": h.appointment or "",
         "diagnosis": [x.diagnosis for x in hd.diagnosis],

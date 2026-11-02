@@ -1,0 +1,321 @@
+/* ── design tokens ────────────────────────────────────────────── */
+:root {
+  --jh-green:      #1a6e57;
+  --jh-green-d:    #134f3e;
+  --jh-green-l:    #e8f5f0;
+  --jh-green-m:    #d0ece4;
+  --jh-gold:       #c9960c;
+  --jh-gold-l:     #f6c90e;
+  --jh-gold-bg:    #fffbea;
+  --jh-gold-brd:   #e8b80d;
+  --jh-dark:       #0f2e25;
+  --jh-text:       #1d2228;
+  --jh-muted:      #5a6672;
+  --jh-border:     #d6e6df;
+  --jh-radius:     14px;
+  --jh-radius-sm:  8px;
+  --jh-shadow:     0 6px 32px rgba(26,110,87,.13);
+  --jh-shadow-sm:  0 2px 12px rgba(26,110,87,.09);
+  --jh-tr:         .2s ease;
+}
+
+/* ── page shell ───────────────────────────────────────────────── */
+#jh {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: var(--jh-text);
+  font-size: 15px;
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0 1.1rem 4rem;
+}
+
+/* ── hero ─────────────────────────────────────────────────────── */
+.jh-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  padding: 3.2rem 3rem;
+  margin-bottom: 2.5rem;
+  background: linear-gradient(135deg, #134f3e 0%, #1a6e57 55%, #22896b 100%);
+  border-radius: 14px;
+  box-shadow: 0 6px 32px rgba(26,110,87,.13);
+  position: relative;
+  overflow: hidden;
+}
+.jh-hero::before,
+.jh-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(201,150,12,.18);
+  pointer-events: none;
+}
+.jh-hero::before { width: 320px; height: 320px; top: -80px; right: -60px; }
+.jh-hero::after  { width: 200px; height: 200px; bottom: -70px; right: 60px; }
+
+.jh-hero-left { flex: 1 1 340px; z-index: 1; }
+
+.jh-hero h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 .45rem;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+.jh-hero h1 span { color: #f6c90e; }
+
+.jh-tagline {
+  color: rgba(255,255,255,.82);
+  font-size: .98rem;
+  margin: 0 0 1.6rem;
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+/* ── hero buttons ────────────────────────────────────────────── */
+.jh-hero-btns { display: flex; gap: .75rem; flex-wrap: wrap; }
+
+.jh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .65rem 1.45rem;
+  border-radius: 8px;
+  font-size: .95rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .2s ease, box-shadow .2s ease, transform .2s ease;
+  cursor: pointer;
+  border: none;
+}
+.jh-btn:hover { transform: translateY(-1px); }
+
+.jh-btn-gold {
+  background: linear-gradient(135deg, #f6c90e, #c9960c);
+  color: #2a1800;
+  box-shadow: 0 3px 14px rgba(201,150,12,.45);
+}
+.jh-btn-gold:hover {
+  box-shadow: 0 5px 20px rgba(201,150,12,.6);
+  color: #1a1000;
+  text-decoration: none;
+}
+.jh-btn-ghost {
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  border: 1.5px solid rgba(255,255,255,.35);
+}
+.jh-btn-ghost:hover {
+  background: rgba(255,255,255,.22);
+  color: #fff;
+  text-decoration: none;
+}
+
+/* ── timing card ─────────────────────────────────────────────── */
+.jh-hero-right { z-index: 1; flex-shrink: 0; }
+
+.jh-timing {
+  background: rgba(255,255,255,.10);
+  border: 1.5px solid rgba(201,150,12,.35);
+  border-radius: 14px;
+  padding: 1.5rem 1.8rem;
+  text-align: center;
+  min-width: 220px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.18);
+}
+.jh-timing-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #f6c90e, #c9960c);
+  color: #2a1800;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border-radius: 20px;
+  padding: .22rem .8rem;
+  margin-bottom: .9rem;
+}
+.jh-timing h4 {
+  color: #fff;
+  font-size: .85rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin: 0 0 .5rem;
+  opacity: .75;
+}
+.jh-time-val {
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0 0 .15rem;
+}
+.jh-time-days {
+  color: #f6c90e;
+  font-size: .82rem;
+  font-weight: 600;
+  margin: 0 0 1rem;
+}
+.jh-timing-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,.15);
+  margin: .9rem 0;
+}
+.jh-timing-phone { color: rgba(255,255,255,.7); font-size: .78rem; }
+.jh-timing-phone a { color: #f6c90e; font-weight: 700; text-decoration: none; font-size: .84rem; }
+.jh-timing-phone a:hover { text-decoration: underline; }
+
+/* ── section header ──────────────────────────────────────────── */
+.jh-section-hd { text-align: center; margin-bottom: 1.6rem; }
+.jh-section-hd h2 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #1a6e57;
+  margin: 0 0 .35rem;
+}
+.jh-section-hd p { color: #5a6672; font-size: .93rem; margin: 0; }
+.jh-section-hd h2::after {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #f6c90e, #c9960c);
+  margin: .45rem auto 0;
+}
+
+/* ── service cards ───────────────────────────────────────────── */
+.jh-services {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.1rem;
+  margin-bottom: 2.5rem;
+}
+@media (max-width: 680px) {
+  .jh-services { grid-template-columns: 1fr; }
+  .jh-hero { padding: 2rem 1.4rem; }
+  .jh-hero h1 { font-size: 1.55rem; }
+}
+@media (min-width: 481px) and (max-width: 680px) {
+  .jh-services { grid-template-columns: 1fr 1fr; }
+}
+
+.jh-svc {
+  background: #fff;
+  border: 1.5px solid #d6e6df;
+  border-radius: 14px;
+  padding: 1.6rem 1.4rem 1.5rem;
+  box-shadow: 0 2px 12px rgba(26,110,87,.09);
+  transition: box-shadow .2s ease, border-color .2s ease, transform .2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.jh-svc:hover {
+  box-shadow: 0 6px 32px rgba(26,110,87,.13);
+  border-color: #1a6e57;
+  transform: translateY(-2px);
+}
+.jh-svc::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f6c90e, #c9960c);
+  border-radius: 14px 14px 0 0;
+}
+.jh-svc-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  background: #e8f5f0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  border: 1.5px solid #d0ece4;
+}
+.jh-svc h3 { font-size: 1rem; font-weight: 700; color: #134f3e; margin: 0 0 .5rem; }
+.jh-svc p  { font-size: .86rem; color: #5a6672; margin: 0; line-height: 1.6; }
+
+/* ── info strip ──────────────────────────────────────────────── */
+.jh-strip {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, #fffbea, #fff8d6);
+  border: 1.5px solid #e8b80d;
+  border-radius: 14px;
+  padding: 1.3rem 1.6rem;
+  margin-bottom: 2.5rem;
+  align-items: center;
+}
+.jh-strip-icon { font-size: 1.8rem; flex-shrink: 0; }
+.jh-strip-text { flex: 1 1 200px; }
+.jh-strip-text strong {
+  display: block;
+  color: #c9960c;
+  font-size: .78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .2rem;
+}
+.jh-strip-text p { color: #1d2228; font-size: .9rem; margin: 0; line-height: 1.5; }
+
+/* ── why-us grid ─────────────────────────────────────────────── */
+.jh-why {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+@media (max-width: 480px) { .jh-why { grid-template-columns: 1fr; } }
+
+.jh-why-item {
+  display: flex;
+  gap: .85rem;
+  align-items: flex-start;
+  background: #fff;
+  border: 1.5px solid #d6e6df;
+  border-radius: 8px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 2px 12px rgba(26,110,87,.09);
+}
+.jh-why-dot {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: #e8f5f0;
+  border: 2px solid #d0ece4;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.jh-why-item h4 { font-size: .92rem; font-weight: 700; color: #134f3e; margin: 0 0 .25rem; }
+.jh-why-item p  { font-size: .82rem; color: #5a6672; margin: 0; line-height: 1.55; }
+
+/* ── CTA banner ──────────────────────────────────────────────── */
+.jh-cta {
+  background: linear-gradient(135deg, #0f2e25 0%, #134f3e 100%);
+  border-radius: 14px;
+  padding: 2.2rem 2.4rem;
+  text-align: center;
+  box-shadow: 0 6px 32px rgba(26,110,87,.13);
+  position: relative;
+  overflow: hidden;
+}
+.jh-cta::before {
+  content: "";
+  position: absolute;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  background: rgba(201,150,12,.08);
+  top: -100px; left: -60px;
+  pointer-events: none;
+}
+.jh-cta h2 { color: #fff; font-size: 1.35rem; font-weight: 800; margin: 0 0 .5rem; }
+.jh-cta p  { color: rgba(255,255,255,.72); font-size: .93rem; margin: 0 0 1.4rem; }
+.jh-cta-btns {
+  display: flex; gap: .75rem;
+  justify-content: center; flex-wrap: wrap;
+}

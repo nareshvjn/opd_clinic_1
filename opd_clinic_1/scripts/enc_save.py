@@ -19,8 +19,7 @@ f = frappe.form_dict
 appt_id = f.get("appointment")
 patient = f.get("patient")
 prac = f.get("practitioner")
-amend = f.get("amend") == "1"
-complete = f.get("complete") == "1" or amend
+complete = f.get("complete") == "1" or f.get("complete") is True
 if not patient or not prac:
     frappe.throw("Open this page from the doctor desk so the patient and doctor are known.")
 
@@ -44,7 +43,7 @@ has_vitals = False
 for k in vitals:
     if vitals.get(k):
         has_vitals = True
-if has_vitals and not amend:
+if has_vitals:
     old = []
     if appt_id:
         old = frappe.get_all("Vital Signs", filters={"appointment": appt_id, "docstatus": 0},
@@ -75,15 +74,7 @@ if appt_id:
         enc = frappe.get_doc("Patient Encounter", found[0].name)
         fresh = False
         if enc.docstatus == 1:
-            if not amend:
-                frappe.throw("This consultation is already completed. Use Edit consultation to change it.")
-            # Editing a completed consultation: cancel the original, then save the corrected one as a new document.
-            # Everything is one request, so if anything below fails, the cancel is undone too.
-            old_name = enc.name
-            enc.flags.ignore_permissions = True
-            enc.cancel()
-            enc = None
-            fresh = True
+            frappe.throw("This consultation is already completed. Use enc_amend to edit it.")
 if not enc:
     enc = frappe.new_doc("Patient Encounter")
     enc.patient = patient
