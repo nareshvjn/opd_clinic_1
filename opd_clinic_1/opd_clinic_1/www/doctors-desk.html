@@ -1,0 +1,276 @@
+<!-- title: Doctor's Desk -->
+<style>
+  /* Force clean contrast and visibility regardless of dark/light theme */
+  .clinic-card {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+  }
+  .clinic-card-header {
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+    border-bottom: 1px solid #dee2e6 !important;
+  }
+  .clinic-input {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    border: 1px solid #ced4da !important;
+  }
+  .clinic-input:focus {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+  }
+  .clinic-table th {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+  }
+  .clinic-table td {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+  }
+</style>
+
+<div class="container-fluid py-3" style="max-width: 1200px;">
+  <!-- Header Bar -->
+  <div class="d-flex justify-content-between align-items-center pb-2 mb-3 border-bottom">
+    <div>
+      <h3 class="mb-0 fw-bold text-primary">Dr. Naresh Kumar — OPD Desk</h3>
+      <span class="text-secondary small">Jeevan Healthcare & Medicals | Evening Session (6:00 PM – 9:00 PM)</span>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="/app/point-of-sale" target="_blank" class="btn btn-success btn-sm px-3 fw-bold">Open Pharmacy POS</a>
+      <a href="/app" class="btn btn-outline-secondary btn-sm">Full Desk</a>
+    </div>
+  </div>
+
+  <div id="desk-alert" class="alert d-none" role="alert"></div>
+
+  <div class="row g-3">
+    <!-- Left Column: Patient Queue -->
+    <div class="col-lg-4 col-md-5">
+      <div class="clinic-card shadow-sm">
+        <div class="clinic-card-header py-2 px-3 fw-bold d-flex justify-content-between align-items-center">
+          <span>Today's OPD Queue</span>
+          <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold" onclick="loadAppointments()">Refresh</button>
+        </div>
+        <div class="p-2 border-bottom">
+          <input type="text" id="queue-search" class="form-control form-control-sm clinic-input" placeholder="Search patient by name / phone..." onkeyup="filterQueue()">
+        </div>
+        <div class="list-group list-group-flush" id="appointment-queue" style="max-height: 520px; overflow-y: auto;">
+          <div class="p-3 text-center text-muted small">Loading today's queue...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Active Consultation, Vitals & Rx -->
+    <div class="col-lg-8 col-md-7">
+      <div class="clinic-card shadow-sm">
+        <div class="clinic-card-header py-2 px-3 fw-bold d-flex justify-content-between align-items-center">
+          <span>Consultation & Prescription Pad</span>
+          <span id="active-patient-id" class="badge bg-secondary">No Patient Selected</span>
+        </div>
+        <div class="p-3">
+          
+          <!-- Vitals Summary Strip -->
+          <div class="row g-2 mb-3 p-2 rounded border" style="background-color: #f8f9fa;">
+            <div class="col-3">
+              <label class="small text-muted mb-0 fw-semibold">BP (mmHg)</label>
+              <input type="text" class="form-control form-control-sm clinic-input" id="vitals-bp" placeholder="120/80">
+            </div>
+            <div class="col-3">
+              <label class="small text-muted mb-0 fw-semibold">Pulse (bpm)</label>
+              <input type="number" class="form-control form-control-sm clinic-input" id="vitals-pulse" placeholder="72">
+            </div>
+            <div class="col-3">
+              <label class="small text-muted mb-0 fw-semibold">Sugar (mg/dL)</label>
+              <input type="number" class="form-control form-control-sm clinic-input" id="vitals-sugar" placeholder="RBS/FBS">
+            </div>
+            <div class="col-3">
+              <label class="small text-muted mb-0 fw-semibold">Weight (kg)</label>
+              <input type="number" class="form-control form-control-sm clinic-input" id="vitals-weight" placeholder="65">
+            </div>
+          </div>
+
+          <!-- Clinical History & Diagnosis -->
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-dark mb-1">Chief Complaints / Symptoms</label>
+              <textarea class="form-control form-control-sm clinic-input" id="chief-complaints" rows="2" placeholder="e.g. Cough, high fever for 3 days..."></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-dark mb-1">Diagnosis / Clinical Impression</label>
+              <textarea class="form-control form-control-sm clinic-input" id="clinical-impression" rows="2" placeholder="e.g. Type 2 Diabetes, Acute Bronchitis..."></textarea>
+            </div>
+          </div>
+
+          <!-- Prescription Section (Rx) -->
+          <div class="border rounded mb-3 overflow-hidden">
+            <div class="clinic-card-header py-2 px-3 d-flex justify-content-between align-items-center">
+              <span class="fw-bold text-primary small">Prescription (Rx)</span>
+              <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold" onclick="addMedicationRow()">+ Add Medicine</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered clinic-table mb-0 align-middle text-center" style="font-size: 13px;">
+                <thead>
+                  <tr>
+                    <th style="width: 35%;" class="text-start ps-2">Medicine / Brand Name</th>
+                    <th style="width: 20%;">Dosage</th>
+                    <th style="width: 15%;">Period</th>
+                    <th style="width: 20%;">Instruction</th>
+                    <th style="width: 10%;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="prescription-table-body">
+                  <tr>
+                    <td>
+                      <input type="text" class="form-control form-control-sm clinic-input rx-drug text-start" placeholder="e.g. Tab Metformin 500mg">
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm clinic-input rx-dosage" placeholder="1-0-1">
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm clinic-input rx-period" placeholder="5 Days">
+                    </td>
+                    <td>
+                      <select class="form-select form-select-sm clinic-input rx-instruction">
+                        <option value="After Food">After Food</option>
+                        <option value="Before Food">Before Food</option>
+                        <option value="With Food">With Food</option>
+                        <option value="At Bedtime">At Bedtime</option>
+                      </select>
+                    </td>
+                    <td>
+                      <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeMedicationRow(this)">×</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearDesk()">Clear Desk</button>
+            <button type="button" class="btn btn-primary btn-sm px-4 fw-bold" id="btn-save-encounter" onclick="saveEncounter()">
+              Save Encounter & Prescription
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var queueData = [];
+var activePatient = null;
+var activeAppointmentName = null;
+
+function loadAppointments() {
+  var queueEl = document.getElementById('appointment-queue');
+  queueEl.innerHTML = '<div class="p-3 text-center text-muted small">Loading today\'s queue...</div>';
+
+  frappe.call({
+    method: "frappe.client.get_list",
+    args: {
+      doctype: "Patient Appointment",
+      fields: ["name", "patient", "patient_name", "status", "appointment_time"],
+      filters: [["status", "in", ["Open", "Scheduled"]]],
+      order_by: "appointment_time asc",
+      limit_page_length: 30
+    },
+    callback: function(r) {
+      if (!r.message || r.message.length === 0) {
+        queueEl.innerHTML = '<div class="p-3 text-center text-muted small">No pending appointments found for today.</div>';
+        return;
+      }
+      queueData = r.message;
+      renderQueue(queueData);
+    },
+    error: function() {
+      queueEl.innerHTML = '<div class="p-3 text-center text-danger small">Failed to load appointments queue.</div>';
+    }
+  });
+}
+
+function renderQueue(list) {
+  var queueEl = document.getElementById('appointment-queue');
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i];
+    var safeName = (item.patient_name || item.patient).replace(/'/g, "\\'");
+    var slotTime = item.appointment_time || "Walk-in";
+
+    html += '<button type="button" class="list-group-item list-group-item-action text-start p-2" onclick="selectPatient(\'' + item.patient + '\', \'' + safeName + '\', \'' + item.name + '\')">' +
+            '<div class="d-flex justify-content-between align-items-center">' +
+            '<strong class="text-dark small">' + item.patient_name + '</strong>' +
+            '<span class="badge bg-light text-secondary border small">' + slotTime + '</span>' +
+            '</div>' +
+            '<div class="text-muted" style="font-size: 11px;">ID: ' + item.patient + '</div>' +
+            '</button>';
+  }
+  queueEl.innerHTML = html;
+}
+
+function filterQueue() {
+  var term = document.getElementById('queue-search').value.toLowerCase();
+  var filtered = queueData.filter(function(i) {
+    return (i.patient_name && i.patient_name.toLowerCase().indexOf(term) !== -1) || 
+           (i.patient && i.patient.toLowerCase().indexOf(term) !== -1);
+  });
+  renderQueue(filtered);
+}
+
+function selectPatient(id, name, appName) {
+  activePatient = { id: id, name: name };
+  activeAppointmentName = appName;
+  var badge = document.getElementById('active-patient-id');
+  badge.innerText = name + ' (' + id + ')';
+  badge.className = "badge bg-success";
+}
+
+function addMedicationRow() {
+  var tbody = document.getElementById('prescription-table-body');
+  var tr = document.createElement('tr');
+  tr.innerHTML = '<td><input type="text" class="form-control form-control-sm clinic-input rx-drug text-start" placeholder="Medicine name"></td>' +
+                 '<td><input type="text" class="form-control form-control-sm clinic-input rx-dosage" placeholder="1-0-1"></td>' +
+                 '<td><input type="text" class="form-control form-control-sm clinic-input rx-period" placeholder="5 Days"></td>' +
+                 '<td><select class="form-select form-select-sm clinic-input rx-instruction">' +
+                 '<option value="After Food">After Food</option>' +
+                 '<option value="Before Food">Before Food</option>' +
+                 '<option value="With Food">With Food</option>' +
+                 '<option value="At Bedtime">At Bedtime</option>' +
+                 '</select></td>' +
+                 '<td><button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeMedicationRow(this)">×</button></td>';
+  tbody.appendChild(tr);
+}
+
+function removeMedicationRow(btn) {
+  var tbody = document.getElementById('prescription-table-body');
+  if (tbody.rows.length > 1) {
+    btn.closest('tr').remove();
+  } else {
+    var row = tbody.rows[0];
+    row.querySelector('.rx-drug').value = '';
+    row.querySelector('.rx-dosage').value = '';
+    row.querySelector('.rx-period').value = '';
+  }
+}
+
+function clearDesk() {
+  document.getElementById('vitals-bp').value = "";
+  document.getElementById('vitals-pulse').value = "";
+  document.getElementById('vitals-sugar').value = "";
+  document.getElementById('vitals-weight').value = "";
+  document.getElementById('chief-complaints').value = "";
+  document.getElementById('clinical-impression').value = "";
+  
+  var tbody = document.getElementById('prescription-table-body');
+  tbody.innerHTML = '<tr>' +
+                    '<td><input type="text" class="form-control form-control-sm clinic-input rx-drug text-start" placeholder="e.g. Tab Metformin 500mg"></td>' +
+                    '<td><input type="text" class="form-control form-control-sm clinic-input rx-dosage" placeholder="1-0-1"></td>' +
+                    '<td><input type="text" class="form-control form-control-sm clinic-input rx-period" placeholder="5 Days"></td>' +
+                    '<td><select class="form-select
+

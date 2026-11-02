@@ -1,0 +1,430 @@
+<!-- title: Sale Entry -->
+<div id="ph">
+<style>
+#ph{--ink:#16324a;--mute:#5d7184;--line:#cfdad5;--bg:#f3f8f5;--ok:#1d7a5f;--err:#b3261e;max-width:860px;margin:0 auto;padding:16px 4px 40px;color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
+#ph *{box-sizing:border-box}
+#ph h1{font-size:1.7rem;margin:0;letter-spacing:-.01em}
+#ph h2{font-size:1.2rem;margin:0 0 8px}
+#ph h3{font-size:1.05rem;margin:0 0 4px}
+#ph .top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin-bottom:14px}
+#ph .top label{display:flex;gap:8px;align-items:center;margin:0;font-size:.92rem}
+#ph .top select{width:auto;max-width:60vw}
+#ph .tabs{display:grid;grid-template-columns:repeat(3,1fr);border:1.5px solid var(--ink);border-radius:10px;overflow:hidden;margin-bottom:16px}
+#ph .tabs button{padding:12px 6px;border:0;background:#fff;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+#ph .tabs button[aria-selected=true]{background:var(--ink);color:#fff}
+#ph label{display:block;font-size:.92rem;font-weight:600;margin:12px 0 4px}
+#ph input,#ph select,#ph textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);background:#fff}
+#ph input:focus,#ph select:focus,#ph button:focus-visible{outline:3px solid #8cc9b5;outline-offset:1px}
+#ph .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#ph .card{padding:14px;margin-bottom:14px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
+#ph .split{display:flex;justify-content:space-between;gap:12px;align-items:flex-end}
+#ph .r{text-align:right}
+#ph .mute,#ph .hint{color:var(--mute);font-size:.92rem}
+#ph .hint{margin:6px 0 0}
+#ph .badge{display:inline-block;padding:3px 12px;border-radius:6px;font-weight:700;font-size:.88rem;color:#fff;background:var(--ok)}
+#ph .badge.out{background:var(--err)}
+#ph .res{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;margin-top:8px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+#ph .res[aria-pressed=true]{border-color:var(--ok);background:var(--bg)}
+#ph .rates{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+#ph .rates span{display:block;color:var(--mute);font-size:.85rem}
+#ph .bar{position:sticky;bottom:0;display:flex;align-items:center;gap:14px;justify-content:space-between;padding:12px 14px;background:var(--bg);border:1.5px solid var(--line);border-radius:12px;margin-bottom:14px}
+#ph .bar span{display:block;font-size:.85rem;color:var(--mute)}
+#ph .bar b{font-size:1.25rem}
+#ph .btn{padding:12px 22px;border:0;border-radius:10px;background:var(--ink);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+#ph .btn.go{background:var(--ok)}
+#ph .btn:disabled{opacity:.55;cursor:wait}
+#ph .link{border:0;background:none;color:var(--ok);font:inherit;font-weight:700;cursor:pointer;padding:4px}
+#ph .chk{display:flex;gap:8px;align-items:center;margin:0}
+#ph .chk input{width:auto}
+#ph .sum{display:flex;justify-content:space-between;gap:12px;margin-top:16px;padding:12px 14px;background:var(--bg);border-radius:10px}
+#ph .scroll{overflow-x:auto}
+#ph table{width:100%;border-collapse:collapse;font-size:.95rem}
+#ph th,#ph td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+#ph td.n,#ph th.n{text-align:right}
+#ph #toast{position:sticky;top:0;z-index:5;padding:12px 14px;margin-bottom:12px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok)}
+#ph #toast.bad{border-color:var(--err);background:#fdf0ef}
+#ph .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+#ph .ln{padding:12px 0;border-top:1px solid var(--line)}
+#ph .ln:first-child{border-top:0}
+#ph .ln label{margin:8px 0 3px;font-size:.85rem;color:var(--mute)}
+#ph .rx{padding:12px 0;border-top:1px solid var(--line)}
+#ph .rx:first-of-type{border-top:0}
+#ph .rxd{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:.95rem}
+#ph .sec{border:1.5px solid var(--line);border-radius:12px;margin:10px 0;background:#fff}
+#ph .sechd{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:12px 14px;border:0;background:none;font:inherit;font-weight:700;color:var(--ink);cursor:pointer;text-align:left}
+#ph .sechd .v{color:var(--ok)}
+#ph .secb{padding:0 14px 12px}
+#ph .secb .row{display:flex;justify-content:space-between;padding:3px 0;font-size:.95rem}
+#ph .roundoff{display:flex;justify-content:space-between;padding:10px 14px;margin-top:6px;background:#eee;border-radius:12px 12px 0 0;font-size:.95rem}
+#ph .roundoff+.bar{margin-top:0;border-radius:0 0 12px 12px}
+#ph [hidden]{display:none!important}
+@media(max-width:480px){#ph .rates,#ph .g4{grid-template-columns:1fr 1fr}}
+</style>
+
+<div class="top">
+  <h1>Sale entry</h1>
+  <span><a class="link" href="/pharmacy" style="font-size:.9rem">Stock and purchase</a> <label style="display:inline-flex"><span style="margin-right:6px">Store</span><select id="wh" aria-label="Store"></select></label></span>
+</div>
+<div id="toast" role="status" hidden></div>
+
+<!-- SALES -->
+<section id="t-sale">
+  <div class="card">
+    <h2>Patient prescription</h2>
+    <label for="rx-q" style="margin-top:0">Find patient (name or mobile)</label>
+    <input id="rx-q" autocomplete="off" placeholder="Optional. Type a name or mobile number">
+    <div id="rx-res"></div>
+    <div id="rx-sel" class="card" style="margin:10px 0 0" hidden></div>
+    <div id="rx-list"></div>
+  </div>
+  <div class="card">
+    <label for="sl-q" style="margin-top:0">Search product</label>
+    <input id="sl-q" autocomplete="off" placeholder="Type a product name">
+    <div id="sl-res"></div>
+  </div>
+
+  <div id="sl-item" hidden>
+    <div class="card">
+      <h2 id="sl-name"></h2>
+      <span class="badge" id="sl-badge"></span>
+      <div class="split" style="margin-top:10px"><span class="mute" id="sl-exp"></span>
+        <span class="r"><b id="sl-packs"></b><br><span class="mute" id="sl-upp"></span></span></div>
+    </div>
+    <div class="card">
+      <div class="split" style="align-items:center">
+        <label class="chk"><input type="checkbox" id="sl-fefo" checked> Expiring batch first</label>
+        <button type="button" class="link" id="sl-seeall">See all</button>
+      </div>
+      <div id="sl-list" hidden></div>
+      <div id="sl-batch" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h3>Qty, rate &amp; discount</h3>
+      <div class="g2">
+        <div><label for="sl-pk">Sale qty in packs</label><input id="sl-pk" type="number" min="0" inputmode="numeric" placeholder="Packs"></div>
+        <div><label for="sl-un">Sale qty in loose units</label><input id="sl-un" type="number" min="0" inputmode="numeric" placeholder="Units"></div>
+      </div>
+      <div class="g2">
+        <div><label for="sl-rate">Sale rate (incl GST)</label><input id="sl-rate" type="number" step="any" inputmode="decimal"></div>
+        <div><label for="sl-disc">Sale discount (%)</label><input id="sl-disc" type="number" step="any" inputmode="decimal" value="0"></div>
+      </div>
+    </div>
+    <div class="bar">
+      <div><span>Item margin</span><b id="sl-mg">0.00%</b></div>
+      <div><span>Amount</span><b id="sl-am">&#8377;0.00</b></div>
+      <button type="button" class="btn" id="sl-add">Add</button>
+    </div>
+  </div>
+
+  <div class="card" id="cart-card" hidden>
+    <h2>Bill</h2>
+    <p class="hint" style="margin:0 0 6px">Change the batch, quantity, rate or discount on any line, or remove it.</p>
+    <div id="cart"></div>
+    <div class="sec">
+      <button type="button" class="sechd" id="bd-toggle"><span>Bill Discount</span><span class="v" id="bd-state">Add</span></button>
+      <div class="secb" id="bd-body" hidden>
+        <div class="g2">
+          <div><label for="bd-pct">Percentage</label><input id="bd-pct" type="number" step="any" inputmode="decimal" placeholder="Disc in %"></div>
+          <div><label for="bd-amt">Amount</label><input id="bd-amt" type="number" step="any" inputmode="decimal" placeholder="&#8377; 0"></div>
+        </div>
+        <p class="hint">Enter a percentage or an amount, not both. It is split across the drugs in proportion to their value, and stays correct if you change quantities.</p>
+        <p style="margin:10px 0 0"><button type="button" class="btn" id="bd-apply" style="width:100%">Apply to Products</button></p>
+        <p style="margin:6px 0 0;text-align:center"><button type="button" class="link" id="bd-clear">Remove bill discount</button></p>
+      </div>
+    </div>
+    <div class="sec">
+      <button type="button" class="sechd" id="inv-toggle"><span>Invoice Amount</span><span class="v" id="inv-amt">&#8377;0.00</span></button>
+      <div class="secb" id="inv-body" hidden>
+        <div class="row"><span>Items at MRP</span><b id="bk-gross"></b></div>
+        <div class="row"><span>Line discounts and rate changes</span><b id="bk-line"></b></div>
+        <div class="row"><span>Bill discount</span><b id="bk-bill"></b></div>
+      </div>
+    </div>
+    <div class="sec"><div class="sechd" style="cursor:default"><span>Sale Profit</span><span class="v" id="sale-profit">&#8377;0.00</span></div></div>
+    <div class="sec">
+      <button type="button" class="sechd" id="chg-toggle"><span>Custom Charge</span><span class="v" id="chg-amt">&#8377;0.00</span></button>
+      <div class="secb" id="chg-body" hidden>
+        <div class="g2">
+          <div><label for="chg-label">Charge name (optional)</label><input id="chg-label" autocomplete="off" placeholder="Packing, delivery"></div>
+          <div><label for="chg-in">Amount</label><input id="chg-in" type="number" step="any" inputmode="decimal" placeholder="&#8377; 0"></div>
+        </div>
+      </div>
+    </div>
+    <div class="g2">
+      <div><label for="sl-cust">Customer or patient (optional)</label><input id="sl-cust" autocomplete="off" placeholder="Name or mobile"></div>
+      <div><label for="sl-mode">Payment</label><select id="sl-mode"></select></div>
+    </div>
+    <div class="roundoff"><span>Round Off</span><b id="round-off">+&#8377;0.00</b></div>
+    <div class="bar"><div><span>Payable amount</span><b id="payable">&#8377;0</b></div><button type="button" class="btn go" id="sl-done">Save</button></div>
+  </div>
+  <div id="sl-receipt" class="card" hidden></div>
+</section>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector('#ph '+s)};
+var csrf='',wh='',modes=[];
+var sale={item:null,bs:[],b:null,cart:[],patient:null,bill:{mode:'',value:0},charge:{label:'',amt:0}};
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function n(v){v=parseFloat(v);return isNaN(v)?0:v}
+function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function mmyy(d){if(!d)return '-';var p=d.split('-');return p[1]+'/'+p[0].slice(2)}
+function qtyText(q,u){u=u||1;var pk=Math.floor(q/u+1e-9),ls=Math.round(q-pk*u);return pk+' Pack'+(pk===1?'':'s')+', '+ls+' Unit'+(ls===1?'':'s')}
+function toast(t,bad){var e=$('#toast');e.textContent=t||'';e.className=bad?'bad':'';e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
+function debounce(fn){var t;return function(){clearTimeout(t);t=setTimeout(fn,250)}}
+
+function call(method,params,post){
+  var p=new URLSearchParams(params||{}),o={headers:{Accept:'application/json'}};
+  if(post){o.method='POST';o.body=p;var t=csrf||(window.frappe&&frappe.csrf_token)||window.csrf_token;if(t)o.headers['X-Frappe-CSRF-Token']=t}
+  return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){var t='Something went wrong. Please try again.';
+        try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message.replace(/<[^>]+>/g,'')}catch(e){}
+        if(/invalid request/i.test(t))t='Your session expired. Refresh the page and try again.';
+        throw new Error(t)}
+      return j.message})})
+}
+
+/* sales tab */
+$('#sl-q').oninput=debounce(function(){
+  call('ph_products',{q:$('#sl-q').value.trim()}).then(function(r){
+    var box=$('#sl-res');
+    box.innerHTML=r.products.length?r.products.map(function(p){var s=p.units>0;
+      return '<button type="button" class="res" data-code="'+esc(p.code)+'" data-name="'+esc(p.name)+'"><strong>'+esc(p.name)+'</strong><span class="badge'+(s?'':' out')+'">'+(s?'In stock':'Out of stock')+'</span></button>'}).join(''):'<p class="hint">No matching products.</p>'
+  }).catch(function(e){toast(e.message,1)})
+});
+$('#sl-res').onclick=function(e){
+  var b=e.target.closest('button.res');if(!b)return;
+  call('ph_batches',{item:b.dataset.code}).then(function(r){
+    sale.item={code:b.dataset.code,name:b.dataset.name};
+    sale.bs=r.batches.filter(function(x){return x.qty>0});
+    sale.b=sale.bs[0]||null;$('#sl-fefo').checked=true;$('#sl-list').hidden=true;
+    $('#sl-res').innerHTML='';renderItem()
+  }).catch(function(e){toast(e.message,1)})
+};
+function renderItem(){
+  var bs=sale.bs,tot=0,packs=0;bs.forEach(function(b){tot+=b.qty;packs+=b.qty/(b.upp||1)});
+  $('#sl-item').hidden=false;$('#sl-name').textContent=sale.item.name;
+  var bd=$('#sl-badge');bd.textContent=tot>0?'In Stock':'Out of stock';bd.className='badge'+(tot>0?'':' out');
+  $('#sl-exp').textContent=bs[0]?'Earliest expiry: '+mmyy(bs[0].expiry):'No batch with stock';
+  $('#sl-packs').textContent=Math.round(packs*100)/100+' Packs';
+  $('#sl-upp').textContent=bs[0]?(bs[0].upp+' unit(s) per pack'):'';
+  $('#sl-list').innerHTML=bs.map(function(b,i){
+    return '<button type="button" class="res" data-i="'+i+'" aria-pressed="'+(sale.b===b)+'"><span><strong>'+esc(b.batch)+'</strong><br><span class="mute">Expiry '+mmyy(b.expiry)+'</span></span><span class="r">'+qtyText(b.qty,b.upp)+'</span></button>'}).join('');
+  showBatch()
+}
+function showBatch(){
+  var b=sale.b;
+  if(!b){$('#sl-batch').innerHTML='<p class="hint">Pick a batch with "See all".</p>';$('#sl-rate').value='';calcSale();return}
+  var mg=b.mrp>0?(1-b.net_rate/b.mrp)*100:0;
+  $('#sl-batch').innerHTML='<div class="split"><div><b style="font-size:1.1rem">'+esc(b.batch)+'</b><br><span class="mute">Expiry Date: '+mmyy(b.expiry)+'</span></div>'+
+   '<div class="r"><b>'+qtyText(b.qty,b.upp)+'</b><br><span class="mute">'+b.upp+' unit(s) per pack</span></div></div>'+
+   '<div class="rates"><div><span>Mrp Rate</span><b>'+inr(b.mrp)+'</b></div><div><span>Purc Rate</span><b>'+inr(b.purchase_rate)+'</b></div>'+
+   '<div><span>Net Rate</span><b>'+inr(b.net_rate)+'</b></div><div><span>Margin</span><b>'+mg.toFixed(2)+'%</b></div></div>';
+  $('#sl-rate').value=b.mrp||'';calcSale()
+}
+$('#sl-fefo').onchange=function(){
+  if(this.checked){sale.b=sale.bs[0]||null;$('#sl-list').hidden=true;renderItem()}
+  else{$('#sl-list').hidden=false}
+};
+$('#sl-seeall').onclick=function(){$('#sl-list').hidden=!$('#sl-list').hidden};
+$('#sl-list').onclick=function(e){
+  var b=e.target.closest('button.res');if(!b)return;
+  sale.b=sale.bs[+b.dataset.i];$('#sl-fefo').checked=sale.b===sale.bs[0];renderItem();$('#sl-list').hidden=true
+};
+function calcSale(){
+  var b=sale.b,upp=b?(b.upp||1):1,r=n($('#sl-rate').value)*(1-n($('#sl-disc').value)/100);
+  var amt=n($('#sl-pk').value)*r+n($('#sl-un').value)*r/upp;
+  var mg=(b&&r>0)?(r-b.net_rate)/r*100:0;
+  $('#sl-mg').textContent=mg.toFixed(2)+'%';$('#sl-am').textContent=inr(amt);return amt
+}
+['sl-pk','sl-un','sl-rate','sl-disc'].forEach(function(id){$('#'+id).oninput=calcSale});
+/* prescription + bill */
+var bcache={},rxPatients=[],rxList=[];
+function dlabel(d){return new Date(d+'T12:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
+function lb(l){for(var i=0;i<l.bs.length;i++){if(l.bs[i].batch===l.batch)return l.bs[i]}return null}
+function lu(l){var b=lb(l);return n(l.packs)*(b?b.upp:1)+n(l.units)}
+function used(batch){var t=0;sale.cart.forEach(function(l){if(l.batch===batch)t+=lu(l)});return t}
+function r0(l){return n(l.rate)*(1-n(l.disc)/100)}
+function base(l){var b=lb(l),upp=b?b.upp:1,r=r0(l);return n(l.packs)*r+n(l.units)*r/upp}
+function lAmt(l){return base(l)*(1-n(l.bd)/100)}
+function effDisc(l){return (1-(1-n(l.disc)/100)*(1-n(l.bd)/100))*100}
+function lMg(l){var b=lb(l),r=n(l.rate)*(1-effDisc(l)/100);return(b&&r>0)?(r-b.net_rate)/r*100:0}
+function billPct(){
+  var t0=0,p=0,bl=sale.bill;
+  sale.cart.forEach(function(l){t0+=base(l)});
+  if(bl.mode==='pct')p=n(bl.value);else if(bl.mode==='amt'&&t0>0)p=n(bl.value)/t0*100;
+  p=Math.max(0,Math.min(100,p));
+  sale.cart.forEach(function(l){l.bd=p});return p
+}
+function totals(){
+  var p=billPct(),gross=0,afterLine=0,inv=0,cost=0;
+  sale.cart.forEach(function(l){var b=lb(l),upp=b?b.upp:1,u=lu(l);
+    gross+=(b?b.mrp:n(l.rate))*u/upp;afterLine+=base(l);inv+=lAmt(l);cost+=b?b.net_rate*u/upp:0});
+  var charge=Math.max(0,n(sale.charge.amt)),sum=inv+charge,pay=Math.round(sum);
+  return {pct:p,gross:gross,afterLine:afterLine,inv:inv,profit:inv-cost,charge:charge,round:pay-sum,pay:pay}
+}
+function neg(x){return x>0.004?'-'+inr(x):inr(0)}
+function paint(t){
+  $('#inv-amt').textContent=inr(t.inv);
+  $('#bk-gross').textContent=inr(t.gross);$('#bk-line').textContent=neg(t.gross-t.afterLine);$('#bk-bill').textContent=neg(t.afterLine-t.inv);
+  $('#sale-profit').textContent=inr(t.profit)+(t.inv>0?' ('+(t.profit/t.inv*100).toFixed(1)+'%)':'');
+  $('#chg-amt').textContent=inr(t.charge);
+  $('#bd-state').textContent=t.pct>0?t.pct.toFixed(2)+'% applied':'Add';
+  $('#round-off').textContent=(t.round<0?'-':'+')+inr(Math.abs(t.round));
+  $('#payable').textContent='\u20B9'+t.pay.toLocaleString('en-IN')
+}
+function mkLine(code,name,bs,b,units){var upp=b.upp||1,pk=Math.floor(units/upp),un=units-pk*upp;return {item:code,name:name,bs:bs,batch:b.batch,packs:pk,units:un,rate:b.mrp,disc:0}}
+
+function cardHtml(l,i){
+  var opts=l.bs.map(function(x){return '<option value="'+esc(x.batch)+'"'+(x.batch===l.batch?' selected':'')+'>'+esc(x.batch)+' (exp '+mmyy(x.expiry)+', '+qtyText(x.qty,x.upp)+')</option>'}).join('');
+  return '<div class="ln" data-i="'+i+'"><div class="split" style="align-items:center"><b>'+esc(l.name)+'</b><button type="button" class="link" data-rm="'+i+'">Remove</button></div>'+
+   '<label>Batch</label><select data-f="batch">'+opts+'</select>'+
+   '<div class="g4"><div><label>Packs</label><input type="number" min="0" inputmode="numeric" data-f="packs" value="'+esc(l.packs)+'"></div>'+
+   '<div><label>Loose units</label><input type="number" min="0" inputmode="numeric" data-f="units" value="'+esc(l.units)+'"></div>'+
+   '<div><label>Rate (incl GST)</label><input type="number" step="any" inputmode="decimal" data-f="rate" value="'+esc(l.rate)+'"></div>'+
+   '<div><label>Discount %</label><input type="number" step="any" inputmode="decimal" data-f="disc" value="'+esc(l.disc)+'"></div></div>'+
+   '<div class="split" style="margin-top:8px"><span class="mute">Margin <b class="lm"></b><span class="lb"></span></span><span>Amount <b class="la"></b></span></div>'+
+   '<p class="hint lw" style="color:var(--err)" hidden></p></div>'
+}
+function checkCart(){
+  var ok=true,t=totals();
+  document.querySelectorAll('#ph #cart .ln').forEach(function(card,i){
+    var l=sale.cart[i],b=lb(l),w=card.querySelector('.lw'),msg='';
+    if(!b)msg='Pick a batch.';
+    else if(lu(l)<=0)msg='Set the quantity.';
+    else if(used(l.batch)>b.qty)msg='Only '+qtyText(b.qty,b.upp)+' in stock for batch '+b.batch+' (the bill uses '+qtyText(used(l.batch),b.upp)+').';
+    else if(n(l.rate)<=0)msg='Enter the sale rate.';
+    card.querySelector('.la').textContent=inr(lAmt(l));card.querySelector('.lm').textContent=lMg(l).toFixed(2)+'%';
+    card.querySelector('.lb').textContent=n(l.bd)>0?', bill discount '+n(l.bd).toFixed(2)+'%':'';
+    w.textContent=msg;w.hidden=!msg;if(msg)ok=false});
+  paint(t);return ok
+}
+function renderCart(){
+  $('#cart-card').hidden=!sale.cart.length;
+  $('#cart').innerHTML=sale.cart.map(cardHtml).join('');checkCart()
+}
+$('#cart').oninput=$('#cart').onchange=function(e){
+  var t=e.target,f=t.dataset.f;if(!f)return;
+  var l=sale.cart[+t.closest('.ln').dataset.i];
+  if(f==='batch'){l.batch=t.value;var nb=lb(l);if(nb)l.rate=nb.mrp;renderCart();return}
+  l[f]=t.value;checkCart()
+};
+$('#cart').onclick=function(e){var b=e.target.closest('[data-rm]');if(b){sale.cart.splice(+b.dataset.rm,1);renderCart()}};
+
+$('#sl-add').onclick=function(){
+  var b=sale.b;if(!b){toast('Pick a batch first.',1);return}
+  var pk=n($('#sl-pk').value),un=n($('#sl-un').value),upp=b.upp||1,units=pk*upp+un;
+  if(units<=0){toast('Enter the quantity to sell.',1);return}
+  if(units+used(b.batch)>b.qty){toast('Only '+qtyText(b.qty-used(b.batch),upp)+' left in batch '+b.batch+'.',1);return}
+  if(n($('#sl-rate').value)<=0){toast('Enter the sale rate.',1);return}
+  sale.cart.push({item:sale.item.code,name:sale.item.name,bs:sale.bs,batch:b.batch,packs:pk,units:un,rate:n($('#sl-rate').value),disc:n($('#sl-disc').value)});
+  sale.item=null;sale.b=null;sale.bs=[];$('#sl-item').hidden=true;
+  ['sl-pk','sl-un'].forEach(function(id){$('#'+id).value=''});$('#sl-disc').value='0';$('#sl-q').value='';
+  renderCart();toast('');$('#sl-q').focus()
+};
+
+/* find a patient and pull the prescription into the bill */
+$('#rx-q').oninput=debounce(function(){
+  var q=$('#rx-q').value.trim(),box=$('#rx-res');
+  if(q.length<2){box.innerHTML='';return}
+  call('ph_patients',{q:q}).then(function(r){
+    rxPatients=r.patients;
+    box.innerHTML=r.patients.length?r.patients.map(function(p,i){
+      return '<button type="button" class="res" data-i="'+i+'"><strong>'+esc(p.name)+'</strong><span class="mute">Age '+(p.age==null?'not recorded':esc(p.age))+', Mobile '+(p.mobile?esc(p.mobile):'not on file')+'</span></button>'}).join(''):'<p class="hint">No matching patient.</p>'
+  }).catch(function(e){toast(e.message,1)})
+});
+$('#rx-res').onclick=function(e){
+  var b=e.target.closest('button.res');if(!b)return;
+  var p=rxPatients[+b.dataset.i];sale.patient=p;
+  $('#rx-res').innerHTML='';$('#rx-q').value='';$('#sl-cust').value=p.name;
+  $('#rx-sel').hidden=false;
+  $('#rx-sel').innerHTML='<div class="split" style="align-items:center"><span><b>'+esc(p.name)+'</b><br><span class="mute">Age '+(p.age==null?'not recorded':esc(p.age))+', Mobile '+(p.mobile?esc(p.mobile):'not on file')+'</span></span><button type="button" class="link" id="rx-clear">Clear</button></div>';
+  $('#rx-list').innerHTML='<p class="hint">Loading prescriptions...</p>';
+  call('ph_rx',{patient:p.id}).then(function(r){rxList=r.encounters;renderRx()}).catch(function(e){$('#rx-list').innerHTML='';toast(e.message,1)})
+};
+$('#rx-sel').onclick=function(e){
+  if(e.target.id!=='rx-clear')return;
+  sale.patient=null;rxList=[];$('#rx-sel').hidden=true;$('#rx-list').innerHTML='';$('#sl-cust').value=''
+};
+function renderRx(){
+  var box=$('#rx-list');
+  if(!rxList.length){box.innerHTML='<p class="hint">No completed consultations with medicines for this patient.</p>';return}
+  box.innerHTML=rxList.map(function(e,i){
+    return '<div class="rx"><div class="split" style="align-items:center"><span><b>'+esc(dlabel(e.date))+'</b><br><span class="mute">'+esc(e.doctor||'')+(e.diagnosis?', '+esc(e.diagnosis):'')+'</span></span><button type="button" class="btn go" data-i="'+i+'">Add to bill</button></div>'+
+      e.drugs.map(function(d){
+        return '<div class="rxd"><span>'+esc(d.item_name||d.drug)+'<br><span class="mute">'+esc([d.dosage,d.period,d.comment].filter(Boolean).join(', '))+'</span></span><span class="r">'+
+          (d.item?(d.units>0?d.units+' units':'set qty'):'<span style="color:var(--err)">not in pharmacy</span>')+'</span></div>'}).join('')+'</div>'
+  }).join('')
+}
+$('#rx-list').onclick=function(e){var b=e.target.closest('button[data-i]');if(b)pull(rxList[+b.dataset.i])};
+function getBatches(code){
+  if(bcache[code])return Promise.resolve(bcache[code]);
+  return call('ph_batches',{item:code}).then(function(r){bcache[code]=r.batches.filter(function(b){return b.qty>0});return bcache[code]})
+}
+function pull(e){
+  var notes=[],added=0,p=Promise.resolve();
+  e.drugs.forEach(function(d){
+    p=p.then(function(){
+      if(!d.item){notes.push(d.drug+' (not in pharmacy)');return}
+      return getBatches(d.item).then(function(bs){
+        if(!bs.length){notes.push(d.item_name+' (out of stock)');return}
+        if(d.units<=0){sale.cart.push(mkLine(d.item,d.item_name,bs,bs[0],0));added++;notes.push(d.item_name+' (set the quantity)');return}
+        var left=d.units;
+        bs.forEach(function(b){
+          var avail=b.qty-used(b.batch);if(left<=0||avail<=0)return;
+          var take=Math.min(left,avail);sale.cart.push(mkLine(d.item,d.item_name,bs,b,take));left-=take;added++});
+        if(left>0)notes.push(d.item_name+' (short by '+left+' units)')
+      })
+    })
+  });
+  p.then(function(){
+    renderCart();
+    toast(added+' line(s) added from the prescription. Review and edit them below.'+(notes.length?' Check: '+notes.join('; ')+'.':''),notes.length>0&&!added);
+    $('#cart-card').scrollIntoView({block:'start',behavior:'smooth'})
+  }).catch(function(err){toast(err.message,1)})
+}
+
+$('#sl-done').onclick=function(){
+  if(!sale.cart.length)return;
+  if(!checkCart()){toast('Fix the lines marked in red before completing the sale.',1);return}
+  var b=this;b.disabled=true;
+  var lines=sale.cart.map(function(l){return {batch:l.batch,packs:n(l.packs),units:n(l.units),rate:n(l.rate),disc:effDisc(l)}});
+  call('ph_sale_save',{lines:JSON.stringify(lines),charge:n(sale.charge.amt),charge_label:sale.charge.label,customer:$('#sl-cust').value,patient:sale.patient?sale.patient.id:'',mode:$('#sl-mode').value,warehouse:wh},true).then(function(r){
+    var rc=$('#sl-receipt');rc.hidden=false;
+    rc.innerHTML='<h2>Sale complete</h2>Invoice <b>'+esc(r.invoice)+'</b>, total <b>'+inr(r.total)+'</b>'+(r.paid?', paid.':'.')+
+      (r.note?'<p class="hint">'+esc(r.note)+'</p>':'')+'<p><a href="/app/sales-invoice/'+encodeURIComponent(r.invoice)+'" target="_blank" rel="noopener">Open invoice</a></p>';
+    sale.cart=[];bcache={};sale.bill={mode:'',value:0};sale.charge={label:'',amt:0};['bd-pct','bd-amt','chg-label','chg-in'].forEach(function(id){$('#'+id).value=''});renderCart();sale.patient=null;rxList=[];
+    $('#rx-sel').hidden=true;$('#rx-list').innerHTML='';$('#sl-cust').value='';rc.scrollIntoView({block:'nearest'})
+  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false})
+};
+
+/* bill-level sections */
+function toggle(id){var e=$(id);e.hidden=!e.hidden}
+$('#bd-toggle').onclick=function(){toggle('#bd-body')};
+$('#inv-toggle').onclick=function(){toggle('#inv-body')};
+$('#chg-toggle').onclick=function(){toggle('#chg-body')};
+$('#bd-pct').oninput=function(){if(this.value)$('#bd-amt').value=''};
+$('#bd-amt').oninput=function(){if(this.value)$('#bd-pct').value=''};
+$('#bd-apply').onclick=function(){
+  var p=n($('#bd-pct').value),a=n($('#bd-amt').value);
+  if(p>0)sale.bill={mode:'pct',value:p};
+  else if(a>0)sale.bill={mode:'amt',value:a};
+  else{toast('Enter a percentage or an amount.',1);return}
+  toast('');checkCart()
+};
+$('#bd-clear').onclick=function(){sale.bill={mode:'',value:0};$('#bd-pct').value='';$('#bd-amt').value='';checkCart()};
+$('#chg-label').oninput=$('#chg-in').oninput=function(){sale.charge={label:$('#chg-label').value.trim(),amt:n($('#chg-in').value)};checkCart()};
+
+/* start */
+$('#wh').onchange=function(){wh=this.value};
+call('ph_meta').then(function(m){
+  csrf=m.csrf||'';wh=m.warehouse||'';
+  $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
+  modes=m.modes;$('#sl-mode').innerHTML=m.modes.map(function(x){return '<option>'+esc(x)+'</option>'}).join('')+'<option value="Credit">Credit (pay later)</option>';
+  if(!m.warehouses.length)toast('No store (warehouse) found. Create one in Desk first.',1)
+}).catch(function(e){toast(e.message,1)});
+})();
+</script>
+</div>

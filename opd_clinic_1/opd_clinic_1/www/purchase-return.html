@@ -1,0 +1,384 @@
+<!-- title: Purchase Return -->
+<div id="pr">
+<script>
+  function s(t){var d=document.createElement('div');d.style.cssText='padding:10px;margin:8px 0;background:#fdf0ef;color:#b3261e;border-left:4px solid #b3261e;font:14px system-ui;word-break:break-word';d.textContent=t;var p=document.getElementById('pr');p.insertBefore(d,p.firstChild)}
+  window.addEventListener('error',function(e){if(e.filename&&e.filename.indexOf('bundle')<0&&e.filename.indexOf('website_script')<0)s('Error: '+e.message+' (line '+e.lineno+':'+e.colno+')')});
+</script>
+<style>
+  #pr *{box-sizing:border-box;margin:0;padding:0}
+  #pr{font:15px/1.5 system-ui,sans-serif;color:#1c1b1f;max-width:680px;margin:0 auto;padding:14px 10px 80px}
+  #pr h1{font-size:1.4rem;font-weight:700;margin-bottom:14px}
+  #pr h2{font-size:1.05rem;font-weight:700;margin-bottom:10px}
+  #pr .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:16px;margin-bottom:14px}
+  #pr label{display:block;font-size:.82rem;font-weight:600;color:#555;margin-top:10px;margin-bottom:3px}
+  #pr label:first-child{margin-top:0}
+  #pr input,#pr select{width:100%;border:1px solid #c4c7c5;border-radius:8px;padding:9px 11px;font:15px system-ui;background:#fff;color:#1c1b1f}
+  #pr input:focus,#pr select:focus{outline:2px solid #1a73e8;border-color:transparent}
+  #pr .btn{background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:10px 20px;font:600 15px system-ui;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block;text-align:center}
+  #pr .btn:disabled{opacity:.5;cursor:default}
+  #pr .btn.go{background:#188038}
+  #pr .btn.red{background:#b3261e}
+  #pr .link{background:none;border:none;color:#1a73e8;font:15px system-ui;cursor:pointer;padding:0;text-decoration:underline}
+  #pr .back-link{color:#1a73e8;font-size:.9rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px}
+  #pr .hint{font-size:.82rem;color:#777;margin-top:6px}
+  #pr .mute{color:#777}
+  #pr #toast{padding:10px 14px;border-radius:8px;font-size:.9rem;margin:8px 0;background:#e6f4ea;color:#1e8e3e}
+  #pr #toast.bad{background:#fdf0ef;color:#b3261e}
+  #pr .inv-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:8px;cursor:pointer;background:#fafafa;gap:8px}
+  #pr .inv-row:hover{background:#e8f0fe;border-color:#1a73e8}
+  #pr .inv-row b{display:block;font-size:.95rem}
+  #pr .inv-row span{font-size:.8rem;color:#777}
+  #pr .inv-row .inv-total{font-weight:700;color:#188038;white-space:nowrap}
+  #pr .badge-return{background:#fdf0ef;color:#b3261e;font-size:0.75rem;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600}
+  #pr .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #pr .rtable{width:100%;border-collapse:collapse;font-size:.88rem}
+  #pr .rtable th{text-align:left;font-weight:600;padding:6px 8px;border-bottom:2px solid #e0e0e0;background:#f8f9fa;color:#555}
+  #pr .rtable td{padding:7px 8px;border-bottom:1px solid #eee;vertical-align:middle}
+  #pr .rtable td.n{text-align:right}
+  #pr .rtable th.n{text-align:right}
+  #pr .rtable input[type=number]{width:70px;padding:5px 7px;font-size:.88rem}
+  #pr .sum{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #eee;margin-top:6px;font-size:.92rem}
+  #pr .sum.total{font-weight:700;font-size:1rem;border-top:2px solid #ccc;margin-top:8px;padding-top:10px}
+  #pr .info-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  #pr .info-row span{background:#f1f3f4;border-radius:6px;padding:4px 10px;font-size:.83rem;color:#3c4043}
+  #pr .scroll{overflow-x:auto}
+</style>
+
+<a href="/pharmacy" class="back-link">&#8592; Back to Pharmacy</a>
+
+<h1>Purchase Return</h1>
+<div id="toast" role="status" hidden></div>
+
+<!-- Step 1: Find invoice -->
+<div class="card" id="step-find">
+  <h2>Find purchase invoice or return</h2>
+
+  <label for="pr-date">Filter by date</label>
+  <div style="display:flex;gap:6px;margin-top:4px;align-items:center">
+    <button type="button" id="date-prev" style="background:#f1f3f4;border:1px solid #c4c7c5;border-radius:8px;padding:9px 14px;font:700 18px system-ui;cursor:pointer;line-height:1;color:#1c1b1f;flex-shrink:0">&#8249;</button>
+    <input id="pr-date" type="date" style="flex:1;min-width:0">
+    <button type="button" id="date-next" style="background:#f1f3f4;border:1px solid #c4c7c5;border-radius:8px;padding:9px 14px;font:700 18px system-ui;cursor:pointer;line-height:1;color:#1c1b1f;flex-shrink:0">&#8250;</button>
+  </div>
+  <p class="hint" id="pr-date-fmt" style="font-size:.9rem;color:#1a73e8;font-weight:600;margin-top:5px"></p>
+
+  <div class="g2">
+    <div>
+      <label for="pr-sup">Filter by supplier</label>
+      <input id="pr-sup" autocomplete="off" placeholder="Supplier name">
+    </div>
+    <div>
+      <label for="pr-inv">Filter by invoice no</label>
+      <input id="pr-inv" autocomplete="off" placeholder="ACC-PINV-...">
+    </div>
+  </div>
+
+  <p class="hint">Shows both original invoices and existing return notes.</p>
+  <p style="margin-top:10px"><button type="button" class="btn" id="pr-search" style="width:100%">Search invoices</button></p>
+  <div id="pr-list" style="margin-top:12px"></div>
+</div>
+
+<!-- Step 2A: New Return Form (for regular invoices) -->
+<div class="card" id="step-inv" hidden>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 id="inv-title" style="margin:0"></h2>
+    <button type="button" class="link" id="inv-clear">&#8592; Back</button>
+  </div>
+  <div class="info-row" id="inv-info"></div>
+  <p class="hint" id="inv-hint"></p>
+  <div class="scroll" style="margin-top:12px">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Batch</th>
+          <th class="n">Bought qty</th>
+          <th class="n">Return qty</th>
+        </tr>
+      </thead>
+      <tbody id="ret-lines"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" id="step-submit" hidden>
+  <h2>Return details</h2>
+  <label for="ret-reason">Reason for return</label>
+  <select id="ret-reason">
+    <option value="Wrong Item">Wrong Item</option>
+    <option value="Damaged">Damaged</option>
+    <option value="Expired">Expired</option>
+    <option value="Quality Issue">Quality Issue</option>
+    <option value="Excess quantity">Excess quantity</option>
+    <option value="Other">Other</option>
+  </select>
+  <div class="sum total" style="margin-top:16px">
+    <span>Return amount (credit)</span>
+    <b id="ret-total">&#8377;0.00</b>
+  </div>
+  <p style="margin-top:14px">
+    <button type="button" class="btn go" id="ret-submit" style="width:100%">Submit return</button>
+  </p>
+</div>
+
+<!-- Step 2B: View / Edit / Cancel an Existing Return Note -->
+<div class="card" id="step-view-return" hidden>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h2 id="vr-title" style="margin:0;color:#b3261e"></h2>
+    <button type="button" class="link" id="vr-back">&#8592; Back</button>
+  </div>
+  <div class="info-row" id="vr-info"></div>
+  <div class="scroll" style="margin-top:12px">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Batch</th>
+          <th class="n">Returned qty</th>
+          <th class="n">Rate</th>
+        </tr>
+      </thead>
+      <tbody id="vr-lines"></tbody>
+    </table>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+    <button type="button" class="btn" id="vr-edit" style="flex:1">Edit return (Cancel & redo)</button>
+    <button type="button" class="btn red" id="vr-cancel" style="flex:1">Cancel return</button>
+  </div>
+</div>
+
+<!-- Step 4: Success -->
+<div class="card" id="step-done" hidden>
+  <h2>Action complete</h2>
+  <p id="done-msg" style="margin:10px 0"></p>
+  <p style="margin-top:12px">
+    <button type="button" class="btn" id="done-new">Done / Search again</button>
+  </p>
+</div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector('#pr '+s)};
+var csrf='',inv=null;
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function n(v){v=parseFloat(v);return isNaN(v)?0:v}
+function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function mmyy(d){if(!d)return '-';var p=d.split('-');return p[1]+'/'+p[0].slice(2)}
+function fmtDate(d){if(!d)return '-';var p=(d||'').slice(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function toast(t,bad){var e=$('#toast');e.textContent=t||'';e.className=bad?'bad':'';e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
+
+function call(method,params,post){
+  var p=new URLSearchParams(params||{}),o={headers:{Accept:'application/json'}};
+  if(post){o.method='POST';o.body=p;var t=csrf||(window.frappe&&frappe.csrf_token)||window.csrf_token;if(t)o.headers['X-Frappe-CSRF-Token']=t}
+  return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){
+        var t='Something went wrong. Please try again.';
+        try{var msgs=JSON.parse(j._server_messages);var last=JSON.parse(msgs[msgs.length-1]);t=(last.message||last).replace(/<[^>]+>/g,'')}catch(e){}
+        if(/invalid request|not logged in/i.test(t)){window.location.replace('/login?redirect-to='+encodeURIComponent(window.location.pathname));return}
+        throw new Error(t)
+      }
+      return j.message})})
+}
+
+call('ph_meta').then(function(m){csrf=m.csrf||''}).catch(function(){});
+
+$('#pr-date').value=new Date().toISOString().slice(0,10);
+function updateDateDisplay(){
+  var v=$('#pr-date').value,el=$('#pr-date-fmt');
+  if(v){var p=v.split('-');el.textContent='Selected: '+p[2]+'/'+p[1]+'/'+p[0]}else{el.textContent=''}
+}
+$('#pr-date').oninput=updateDateDisplay;
+$('#pr-date').onchange=updateDateDisplay;
+updateDateDisplay();
+
+function shiftDate(days){
+  var v=$('#pr-date').value;
+  var d=v?new Date(v+'T12:00:00'):new Date();
+  d.setDate(d.getDate()+days);
+  $('#pr-date').value=d.toISOString().slice(0,10);
+  updateDateDisplay();
+}
+$('#date-prev').onclick=function(){shiftDate(-1)};
+$('#date-next').onclick=function(){shiftDate(1)};
+
+$('#pr-search').onclick=function(){
+  var date=$('#pr-date').value;
+  var sup=$('#pr-sup').value.trim();
+  var invQ=$('#pr-inv').value.trim();
+  if(!date&&!sup&&!invQ){toast('Enter at least one filter.',1);return}
+  var b=this;b.disabled=true;
+  $('#pr-list').innerHTML='<p class="hint">Searching...</p>';
+  toast('');
+  call('pr_list',{date:date,supplier:sup,invoice:invQ}).then(function(r){
+    if(!r.invoices.length){
+      $('#pr-list').innerHTML='<p class="hint">No invoices or returns found.</p>';
+      return
+    }
+    $('#pr-list').innerHTML=r.invoices.map(function(iv){
+      var sub=esc(iv.supplier);
+      if(iv.bill_no)sub+=' &nbsp;&middot;&nbsp; Bill: '+esc(iv.bill_no);
+      sub+=' &nbsp;&middot;&nbsp; '+fmtDate(iv.date);
+      var badge=iv.is_return?'<span class="badge-return">Return Note</span>':'';
+      return '<div class="inv-row" data-inv="'+esc(iv.name)+'">'+
+        '<div><b>'+esc(iv.name)+badge+'</b><span>'+sub+'</span></div>'+
+        '<div class="inv-total">'+inr(iv.total)+'</div>'+
+      '</div>'
+    }).join('')
+  }).catch(function(e){toast(e.message,1);$('#pr-list').innerHTML=''}).then(function(){b.disabled=false})
+};
+
+[$('#pr-sup'),$('#pr-inv')].forEach(function(el){el.onkeydown=function(e){if(e.key==='Enter')$('#pr-search').click()}});
+
+$('#pr-list').onclick=function(e){
+  var row=e.target.closest('.inv-row');
+  if(!row)return;
+  loadInvoice(row.dataset.inv);
+};
+
+function loadInvoice(name){
+  toast('');
+  call('pr_load',{invoice:name}).then(function(r){
+    inv=r;
+    if(inv.is_return){
+      showReturnView();
+    }else{
+      showInvoice();
+    }
+  }).catch(function(e){toast(e.message,1)})
+}
+
+function showReturnView(){
+  $('#step-find').hidden=true;
+  $('#step-inv').hidden=true;
+  $('#step-submit').hidden=true;
+  $('#step-view-return').hidden=false;
+
+  $('#vr-title').textContent='Return Note: '+inv.invoice;
+  $('#vr-info').innerHTML=
+    '<span>Date: '+esc(fmtDate(inv.date))+'</span>'+
+    '<span>Supplier: '+esc(inv.supplier)+'</span>'+
+    '<span>Against: '+esc(inv.return_against)+'</span>'+
+    '<span>Total refund: '+inr(inv.total)+'</span>';
+
+  $('#vr-lines').innerHTML=inv.items.map(function(it){
+    return '<tr>'+
+      '<td>'+esc(it.item_name)+'</td>'+
+      '<td>'+esc(it.batch_no||'-')+'<br><span class="mute" style="font-size:.78rem">Exp '+mmyy(it.expiry)+'</span></td>'+
+      '<td class="n">'+it.qty+'</td>'+
+      '<td class="n">'+inr(it.rate)+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+// Cancel Return Note
+$('#vr-cancel').onclick=function(){
+  if(!confirm('Cancel this return note? The returned stock will be deducted back from your store.')) return;
+  var b=this;b.disabled=true;
+  call('pr_cancel',{invoice:inv.invoice},true).then(function(r){
+    $('#step-view-return').hidden=true;
+    $('#step-done').hidden=false;
+    $('#done-msg').innerHTML='Return note <b>'+esc(r.invoice)+'</b> has been cancelled successfully.';
+    toast('');
+  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false});
+};
+
+// Edit Return Note: Cancel existing note, then reload original invoice into return view
+$('#vr-edit').onclick=function(){
+  if(!confirm('This will cancel the current return note and let you enter new return quantities. Continue?')) return;
+  var orig=inv.return_against;
+  var b=this;b.disabled=true;
+  call('pr_cancel',{invoice:inv.invoice},true).then(function(){
+    $('#step-view-return').hidden=true;
+    loadInvoice(orig);
+  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false});
+};
+
+$('#vr-back').onclick=$('#inv-clear').onclick=function(){
+  inv=null;
+  $('#step-inv').hidden=true;
+  $('#step-submit').hidden=true;
+  $('#step-view-return').hidden=true;
+  $('#step-done').hidden=true;
+  $('#step-find').hidden=false;
+  toast('');
+};
+
+$('#done-new').onclick=function(){
+  inv=null;
+  $('#step-inv').hidden=true;
+  $('#step-submit').hidden=true;
+  $('#step-view-return').hidden=true;
+  $('#step-done').hidden=true;
+  $('#step-find').hidden=false;
+  $('#pr-search').click();
+  toast('');
+};
+
+function showInvoice(){
+  $('#step-find').hidden=true;
+  $('#step-view-return').hidden=true;
+  $('#inv-title').textContent='Purchase Invoice: '+inv.invoice;
+  $('#inv-info').innerHTML=
+    '<span>Date: '+esc(fmtDate(inv.date))+'</span>'+
+    '<span>Supplier: '+esc(inv.supplier)+'</span>'+
+    (inv.bill_no?'<span>Bill no: '+esc(inv.bill_no)+'</span>':'')+
+    '<span>Total: '+inr(inv.total)+'</span>'+
+    (inv.already_returned?'<span style="background:#fdf0ef;color:#b3261e">Partial return exists</span>':'');
+  $('#inv-hint').textContent='Enter return quantity for each item (0 to skip). Max is the bought quantity.';
+  $('#ret-lines').innerHTML=inv.items.map(function(it,i){
+    return '<tr>'+
+      '<td>'+esc(it.item_name)+'</td>'+
+      '<td>'+esc(it.batch_no||'-')+'<br><span class="mute" style="font-size:.78rem">Exp '+mmyy(it.expiry)+'</span></td>'+
+      '<td class="n">'+it.bought_qty+'</td>'+
+      '<td class="n"><input type="number" min="0" max="'+it.max_qty+'" step="1" inputmode="numeric" value="0" data-i="'+i+'" class="rq"></td>'+
+      '</tr>'
+  }).join('');
+  $('#step-inv').hidden=false;
+  $('#step-submit').hidden=false;
+  calcTotal();
+  $('#step-inv').scrollIntoView({block:'start',behavior:'smooth'})
+}
+
+function calcTotal(){
+  if(!inv)return 0;
+  var total=0;
+  document.querySelectorAll('#pr .rq').forEach(function(inp,i){
+    var it=inv.items[i];
+    var qty=Math.min(Math.max(0,n(inp.value)),it.max_qty);
+    inp.value=qty;
+    total+=qty*it.rate;
+  });
+  $('#ret-total').textContent=inr(total);
+  return total;
+}
+
+$('#ret-lines').oninput=calcTotal;
+
+$('#ret-submit').onclick=function(){
+  if(!inv){toast('Search an invoice first.',1);return}
+  var lines=[];
+  document.querySelectorAll('#pr .rq').forEach(function(inp,i){
+    var it=inv.items[i];
+    var qty=Math.min(Math.max(0,n(inp.value)),it.max_qty);
+    if(qty>0) lines.push({item_code:it.item_code,batch_no:it.batch_no,qty:qty,rate:it.rate,warehouse:it.warehouse});
+  });
+  if(!lines.length){toast('Enter at least one item quantity to return.',1);return}
+  var b=this;b.disabled=true;toast('');
+  call('pr_save',{
+    invoice:inv.invoice,
+    lines:JSON.stringify(lines),
+    reason:$('#ret-reason').value
+  },true).then(function(r){
+    $('#step-done').hidden=false;
+    $('#done-msg').innerHTML='Return note <b>'+esc(r.return_invoice)+'</b> created. Credit amount: <b>'+inr(r.total)+'</b>. Stock has been deducted.';
+    $('#step-inv').hidden=true;
+    $('#step-submit').hidden=true;
+    $('#step-done').scrollIntoView({block:'start',behavior:'smooth'});
+    toast('')
+  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false})
+};
+
+})();
+</script>
+</div>

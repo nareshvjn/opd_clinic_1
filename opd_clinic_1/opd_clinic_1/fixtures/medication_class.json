@@ -1,0 +1,149 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Tablet",
+  "modified": "2026-10-08 20:06:20.726743",
+  "name": "Tablet"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Syrup",
+  "modified": "2026-10-12 19:58:00.540906",
+  "name": "Syrup"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Injection",
+  "modified": "2026-10-12 19:58:19.476209",
+  "name": "Injection"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Ointment",
+  "modified": "2026-10-12 19:58:28.793168",
+  "name": "Ointment"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Cream",
+  "modified": "2026-10-12 19:58:35.386205",
+  "name": "Cream"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Drug",
+  "modified": "2026-10-18 20:16:59.492062",
+  "name": "Drug"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Bandage",
+  "modified": "2026-10-20 20:29:15.247951",
+  "name": "Bandage"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Drops",
+  "modified": "2026-10-20 20:29:22.658765",
+  "name": "Drops"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Gel",
+  "modified": "2026-10-20 20:30:22.748652",
+  "name": "Gel"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Infusion",
+  "modified": "2026-10-20 20:30:28.578226",
+  "name": "Infusion"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Liquid",
+  "modified": "2026-10-20 20:30:35.384891",
+  "name": "Liquid"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Lotion",
+  "modified": "2026-10-20 20:30:41.851110",
+  "name": "Lotion"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Powder",
+  "modified": "2026-10-20 20:30:49.294198",
+  "name": "Powder"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Respule",
+  "modified": "2026-10-20 20:30:53.764657",
+  "name": "Respule"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Sachet",
+  "modified": "2026-10-20 20:31:04.089408",
+  "name": "Sachet"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Spray",
+  "modified": "2026-10-20 20:31:10.101199",
+  "name": "Spray"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Soap",
+  "modified": "2026-10-20 20:31:13.453220",
+  "name": "Soap"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Suppository",
+  "modified": "2026-10-20 20:31:24.257910",
+  "name": "Suppository"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Surgicals",
+  "modified": "2026-10-20 20:31:30.439694",
+  "name": "Surgicals"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Syringe",
+  "modified": "2026-10-20 20:31:38.417983",
+  "name": "Syringe"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Medication Class",
+  "medication_class": "Capsule",
+  "modified": "2026-10-20 20:30:16.274109",
+  "name": "Capsule"
+ }
+]

@@ -1,0 +1,142 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Syrup",
+  "modified": "2026-10-08 08:28:06.003234",
+  "name": "Syrup"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Capsule",
+  "modified": "2026-10-08 08:28:06.017867",
+  "name": "Capsule"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Cream",
+  "modified": "2026-10-08 08:28:06.022671",
+  "name": "Cream"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Ointment",
+  "modified": "2026-10-20 20:12:46.880698",
+  "name": "Ointment"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Surgicals",
+  "modified": "2026-10-20 20:13:14.151292",
+  "name": "Surgicals"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Bandage",
+  "modified": "2026-10-20 20:13:54.243591",
+  "name": "Bandage"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Drops",
+  "modified": "2026-10-20 20:13:59.641711",
+  "name": "Drops"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Infusion",
+  "modified": "2026-10-20 20:14:35.760584",
+  "name": "Infusion"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Respule",
+  "modified": "2026-10-20 20:14:46.874802",
+  "name": "Respule"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Soap",
+  "modified": "2026-10-20 20:15:22.287903",
+  "name": "Soap"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Spray",
+  "modified": "2026-10-20 20:15:26.810105",
+  "name": "Spray"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Powder",
+  "modified": "2026-10-20 20:15:31.743433",
+  "name": "Powder"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Gel",
+  "modified": "2026-10-20 20:19:48.983029",
+  "name": "Gel"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Lotion",
+  "modified": "2026-10-20 20:19:53.498580",
+  "name": "Lotion"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Sachet",
+  "modified": "2026-10-20 20:20:02.960165",
+  "name": "Sachet"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Suppository",
+  "modified": "2026-10-20 20:20:14.462712",
+  "name": "Suppository"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Syringe",
+  "modified": "2026-10-20 20:20:19.139829",
+  "name": "Syringe"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Injection",
+  "modified": "2026-10-08 08:28:06.008769",
+  "name": "Injection"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Liquid",
+  "modified": "2026-10-20 20:14:41.477936",
+  "name": "Liquid"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Dosage Form",
+  "dosage_form": "Tablet",
+  "modified": "2026-10-08 08:28:05.998083",
+  "name": "Tablet"
+ }
+]

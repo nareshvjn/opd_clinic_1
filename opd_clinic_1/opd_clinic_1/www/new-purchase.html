@@ -1,0 +1,429 @@
+<!-- title: New Purchase -->
+<div id="np">
+<script>
+  function s(t){var d=document.createElement('div');d.style.cssText='padding:10px;margin:8px 0;background:#fdf0ef;color:#b3261e;border-left:4px solid #b3261e;font:14px system-ui;word-break:break-word';d.textContent=t;var p=document.getElementById('np');p.insertBefore(d,p.firstChild)}
+  window.addEventListener('error',function(e){if(e.filename&&e.filename.indexOf('bundle')<0&&e.filename.indexOf('website_script')<0)s('Error: '+e.message+' (line '+e.lineno+':'+e.colno+')')});
+</script>
+<style>
+  #np *{box-sizing:border-box;margin:0;padding:0}
+  #np{font:15px/1.5 system-ui,sans-serif;color:#1c1b1f;max-width:680px;margin:0 auto;padding:14px 10px 80px}
+  #np .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px}
+  #np h1{font-size:1.4rem;font-weight:700}
+  #np h2{font-size:1.05rem;font-weight:700;margin-bottom:10px}
+  #np h3{font-size:0.95rem;font-weight:700;margin-bottom:8px}
+  #np .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:12px}
+  #np label{display:block;font-size:.82rem;font-weight:600;color:#555;margin-top:10px;margin-bottom:3px}
+  #np label:first-child{margin-top:0}
+  #np input,#np select{width:100%;border:1px solid #c4c7c5;border-radius:8px;padding:9px 11px;font:15px system-ui;background:#fff;color:#1c1b1f}
+  #np input:focus,#np select:focus{outline:2px solid #1a73e8;border-color:transparent}
+  #np .btn{background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:10px 18px;font:600 15px system-ui;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block;text-align:center}
+  #np .btn:disabled{opacity:.5;cursor:default}
+  #np .btn.go{background:#188038}
+  #np .link{background:none;border:none;color:#1a73e8;font:15px system-ui;cursor:pointer;padding:0;text-decoration:underline}
+  #np .back-link{color:#1a73e8;font-size:.9rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-bottom:10px}
+  #np .split{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  #np .hint{font-size:.82rem;color:#777;margin-top:4px}
+  #np .mute{color:#777}
+  #np #toast{padding:10px 14px;border-radius:8px;font-size:.9rem;margin:8px 0;background:#e6f4ea;color:#1e8e3e}
+  #np #toast.bad{background:#fdf0ef;color:#b3261e}
+  #np .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #np .sum{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid #eee;font-size:.92rem}
+  #np .scroll{overflow-x:auto}
+  #np table{width:100%;border-collapse:collapse;font-size:.88rem}
+  #np th{text-align:left;font-weight:600;padding:6px 8px;border-bottom:2px solid #e0e0e0;background:#f8f9fa;color:#555}
+  #np td{padding:7px 8px;border-bottom:1px solid #eee;vertical-align:middle}
+  #np td.n{text-align:right}
+  #np th.n{text-align:right}
+  @media(max-width:520px){
+    #np .g2{grid-template-columns:1fr}
+  }
+</style>
+
+<a href="/pharmacy" class="back-link">&#8592; Back to Pharmacy</a>
+
+<div class="top">
+  <h1>New Purchase</h1>
+  <label style="margin:0;font-size:.82rem">Store <select id="wh" style="width:auto;display:inline-block"></select></label>
+</div>
+
+<div id="edit-banner" class="card" style="background:#fff8e1;border:1px solid #ffe082;display:none;margin-bottom:12px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div>
+      <b style="color:#b06000" id="edit-banner-title">Editing Purchase</b>
+      <p class="hint" style="color:#795548;margin:2px 0 0">Original purchase invoice remains active and unchanged until you click "Save purchase".</p>
+    </div>
+    <button type="button" class="btn" id="btn-cancel-invoice-edit" style="background:#b3261e;padding:6px 14px;font-size:.85rem">Cancel</button>
+  </div>
+</div>
+
+<div id="toast" role="status" hidden></div>
+<datalist id="dl-prod"></datalist>
+<datalist id="dl-sup"></datalist>
+
+<!-- Supplier & Bill -->
+<div class="card">
+  <h2>Purchase details</h2>
+  <label for="pu-sup" style="margin-top:0">Supplier</label>
+  <input id="pu-sup" list="dl-sup" autocomplete="off" placeholder="Choose or type supplier name">
+  <div class="g2">
+    <div><label for="pu-bill">Supplier bill no</label><input id="pu-bill" autocomplete="off"></div>
+    <div><label for="pu-bdate">Bill date</label><input id="pu-bdate" type="date"></div>
+  </div>
+</div>
+
+<!-- Add Line -->
+<div class="card">
+  <h2 id="pu-line-title">Add line</h2>
+  <label for="pu-prod" style="margin-top:0">Product name</label>
+  <input id="pu-prod" list="dl-prod" autocomplete="off" placeholder="Search or type product name">
+  <div id="f-pu"></div>
+  <div class="split" style="margin-top:14px;gap:10px">
+    <button type="button" class="btn" id="pu-add" style="flex:1">Add line</button>
+    <button type="button" class="link" id="pu-cancel-edit" style="display:none">Cancel edit</button>
+  </div>
+</div>
+
+<!-- Lines table -->
+<div class="card" id="pu-card" hidden>
+  <h2>Lines</h2>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Product</th><th>Batch</th><th>Exp</th><th>Qty</th><th>GST</th><th class="n">Rate</th><th class="n">Amount</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="pu-lines"></tbody>
+    </table>
+  </div>
+  <div class="sum" style="font-weight:normal;color:#777;margin-top:8px"><span>Items subtotal (excl GST)</span><b id="pu-sub">&#8377;0.00</b></div>
+  <div class="sum" style="font-weight:normal;color:#777"><span>Total GST</span><b id="pu-tot-gst">&#8377;0.00</b></div>
+  <div class="sum" style="font-weight:700"><span>Items subtotal (incl GST)</span><b id="pu-sub-gst">&#8377;0.00</b></div>
+
+  <div class="g2" style="margin-top:12px">
+    <div><label for="pu-disc-pct">Bill discount (%)</label><input id="pu-disc-pct" type="number" min="0" max="100" step="any" inputmode="decimal" placeholder="0%"></div>
+    <div><label for="pu-disc-amt">Or discount (&#8377;)</label><input id="pu-disc-amt" type="number" min="0" step="any" inputmode="decimal" placeholder="&#8377;0.00"></div>
+  </div>
+  <div class="g2">
+    <div><label for="pu-courier">Courier charges (&#8377;)</label><input id="pu-courier" type="number" min="0" step="any" inputmode="decimal" placeholder="&#8377;0.00"></div>
+    <div style="align-self:flex-end;text-align:right;padding-bottom:10px"><span class="mute">Grand total:</span> <b id="pu-tot" style="font-size:1.15rem">&#8377;0.00</b></div>
+  </div>
+
+  <h3 style="margin-top:18px;margin-bottom:8px">Payment details</h3>
+  <div class="g2">
+    <div>
+      <label for="pu-pay-status">Payment status</label>
+      <select id="pu-pay-status">
+        <option value="Paid" selected>Paid</option>
+        <option value="Due">Due</option>
+      </select>
+    </div>
+    <div id="pu-box-due" style="display:none">
+      <label for="pu-due-date">Due date</label>
+      <input id="pu-due-date" type="date">
+    </div>
+    <div id="pu-box-pdate">
+      <label for="pu-paid-date">Paid date</label>
+      <input id="pu-paid-date" type="date">
+    </div>
+  </div>
+
+  <div class="g2" id="pu-box-paydetails">
+    <div>
+      <label for="pu-pay-mode">Payment mode</label>
+      <select id="pu-pay-mode"></select>
+    </div>
+    <div>
+      <label for="pu-paid-amt">Paid amount (&#8377;)</label>
+      <input id="pu-paid-amt" type="number" min="0" step="any" inputmode="decimal">
+    </div>
+  </div>
+
+  <p style="margin:16px 0 0"><button type="button" class="btn go" id="pu-save" style="width:100%">Save purchase</button></p>
+</div>
+
+<div id="pu-receipt" class="card" hidden></div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector('#np '+s)};
+var csrf='',wh='',pu=[],editPuIdx=-1,editingInvoice=null;
+var prodCache=[],puPaidAmountManuallySet=false;
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function n(v){v=parseFloat(v);return isNaN(v)?0:v}
+function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function mmyy(d){if(!d)return '-';var p=d.split('-');return p[1]+'/'+p[0].slice(2)}
+function toast(t,bad){var e=$('#toast');e.textContent=t||'';e.className=bad?'bad':'';e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
+function debounce(fn){var t;return function(){clearTimeout(t);t=setTimeout(fn,250)}}
+
+function call(method,params,post){
+  var p=new URLSearchParams(params||{}),o={headers:{Accept:'application/json'}};
+  if(post){o.method='POST';o.body=p;var t=csrf||(window.frappe&&frappe.csrf_token)||window.csrf_token;if(t)o.headers['X-Frappe-CSRF-Token']=t}
+  return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){
+        var t='Something went wrong. Please try again.';
+        try{var msgs=JSON.parse(j._server_messages);var last=JSON.parse(msgs[msgs.length-1]);t=(last.message||last).replace(/<[^>]+>/g,'')}catch(e){}
+        if(/invalid request|not logged in/i.test(t)){window.location.replace('/login?redirect-to='+encodeURIComponent(window.location.pathname));return}
+        throw new Error(t);
+      }
+      return j.message})})
+}
+
+function form(p){
+  var gst=[0,5,12,18,28].map(function(g){return '<option'+(g===5?' selected':'')+' value="'+g+'">'+g+'%</option>'}).join('');
+  return '<div class="g2"><div><label for="'+p+'-bno">Batch no</label><input id="'+p+'-bno" autocomplete="off"></div>'+
+  '<div><label for="'+p+'-exp">Batch expiry (month/year)</label><input id="'+p+'-exp" type="month"></div></div>'+
+  '<div class="g2"><div><label for="'+p+'-hsn">HSN code</label><input id="'+p+'-hsn" inputmode="numeric" value="3004"></div>'+
+  '<div><label for="'+p+'-gst">Batch GST rate</label><select id="'+p+'-gst">'+gst+'</select></div></div>'+
+  '<label for="'+p+'-mrp">MRP including GST</label><input id="'+p+'-mrp" type="number" step="any" inputmode="decimal">'+
+  '<label for="'+p+'-rate">Purchase rate</label><div class="g2"><input id="'+p+'-rate" type="number" step="any" inputmode="decimal">'+
+  '<select id="'+p+'-basis" aria-label="Rate basis"><option value="excl">Excluding GST</option><option value="incl">Including GST</option></select></div>'+
+  '<label for="'+p+'-disc">Purchase discount (%)</label><input id="'+p+'-disc" type="number" step="any" inputmode="decimal" value="0">'+
+  '<div class="g2"><div><label for="'+p+'-upp">Unit per pack</label><input id="'+p+'-upp" type="number" min="1" inputmode="numeric" value="1"></div>'+
+  '<p class="hint" style="align-self:end">e.g. 10 tablets per strip</p></div>'+
+  '<div class="g2"><div><label for="'+p+'-packs">Number of packs</label><input id="'+p+'-packs" type="number" min="0" inputmode="numeric"></div>'+
+  '<div><label for="'+p+'-units">Loose units if any</label><input id="'+p+'-units" type="number" min="0" inputmode="numeric" value="0"></div></div>'+
+  '<div class="sum" style="margin-top:8px"><span>Margin <b id="'+p+'-mg">0.00%</b></span><span>Amount <b id="'+p+'-am">\u20B90.00</b></span></div>';
+}
+
+function g(p,k){return $('#'+p+'-'+k)}
+function read(p){
+  var m=g(p,'exp').value,exp='';
+  if(m){var y=+m.slice(0,4),mo=+m.slice(5,7);exp=y+'-'+String(mo).padStart(2,'0')+'-'+String(new Date(y,mo,0).getDate()).padStart(2,'0')}
+  var gstEl=g(p,'gst');
+  var gstVal=(gstEl&&gstEl.value)?gstEl.value:'5';
+  return {batch:g(p,'bno').value.trim(),expiry:exp,hsn:(g(p,'hsn').value||'3004').trim(),gst:gstVal,mrp:g(p,'mrp').value,
+  rate:g(p,'rate').value,basis:g(p,'basis').value,upp:g(p,'upp').value||'1',packs:g(p,'packs').value||'0',
+  units:g(p,'units').value||'0',disc:(g(p,'disc')||{}).value||'0'}
+}
+
+function calc(p){
+  var d=read(p),gst=n(d.gst),excl=d.basis==='incl'?n(d.rate)/(1+gst/100):n(d.rate);
+  var net=excl*(1-n(d.disc)/100),mrpx=n(d.mrp)/(1+gst/100),upp=Math.max(1,n(d.upp));
+  var mg=mrpx>0?(mrpx-net)/mrpx*100:0,amt=(n(d.packs)+n(d.units)/upp)*net;
+  g(p,'mg').textContent=mg.toFixed(2)+'%';g(p,'am').textContent=inr(amt);
+  return {net:net,amt:amt,gst:gst}
+}
+
+function clearForm(p){
+  ['bno','exp','mrp','rate','packs'].forEach(function(k){g(p,k).value=''});
+  g(p,'hsn').value='3004';g(p,'gst').value='5';g(p,'basis').value='excl';
+  g(p,'upp').value='1';g(p,'units').value='0';if(g(p,'disc'))g(p,'disc').value='0';
+  calc(p)
+}
+
+$('#f-pu').innerHTML=form('pu');
+$('#f-pu').oninput=function(){calc('pu')};
+$('#f-pu').onchange=$('#f-pu').oninput;
+
+var todayStr = new Date().toISOString().slice(0,10);
+$('#pu-bdate').value = todayStr;
+$('#pu-paid-date').value = todayStr;
+
+$('#pu-paid-amt').oninput = function(){ puPaidAmountManuallySet = (this.value !== ''); };
+$('#pu-pay-status').onchange = function(){
+  var isDue = this.value === 'Due';
+  $('#pu-box-due').style.display = isDue ? 'block' : 'none';
+  $('#pu-box-pdate').style.display = isDue ? 'none' : 'block';
+  $('#pu-box-paydetails').style.display = isDue ? 'none' : 'grid';
+  if(isDue && !$('#pu-due-date').value){
+    var d = new Date(); d.setDate(d.getDate() + 30);
+    $('#pu-due-date').value = d.toISOString().slice(0,10);
+  }
+};
+
+call('ph_meta').then(function(m){
+  csrf=m.csrf||'';wh=m.warehouse||'';
+  $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
+  $('#dl-sup').innerHTML=m.suppliers.map(function(s){return '<option value="'+esc(s)+'">'}).join('');
+  var pModes=m.modes.slice();
+  if(!pModes.some(function(x){return /^cash$/i.test(x)})) pModes.unshift("Cash");
+  $('#pu-pay-mode').innerHTML=pModes.map(function(x){return '<option>'+esc(x)+'</option>'}).join('');
+  var pcm=pModes.filter(function(x){return /^cash$/i.test(x)})[0];
+  if(pcm) $('#pu-pay-mode').value=pcm;
+  checkEditMode();
+}).catch(function(e){toast(e.message,1)});
+
+function checkEditMode(){
+  var raw=null;
+  try{raw=sessionStorage.getItem('edit_purchase');sessionStorage.removeItem('edit_purchase')}catch(e){}
+  if(!raw)return;
+  var d=JSON.parse(raw);
+  editingInvoice=d.name;
+  $('#edit-banner').style.display='block';
+  $('#edit-banner-title').textContent='Editing purchase invoice '+d.name;
+  $('#pu-save').textContent='Save';
+  toast('Editing purchase '+d.name+'. Original invoice stays active until you save.');
+  if(d.supplier) $('#pu-sup').value=d.supplier;
+  if(d.bill_no) $('#pu-bill').value=d.bill_no;
+  if(d.bill_date) $('#pu-bdate').value=d.bill_date;
+  if(d.warehouse){wh=d.warehouse;$('#wh').value=wh}
+  if(d.discount_percentage) $('#pu-disc-pct').value=d.discount_percentage;
+  if(d.discount_amount) $('#pu-disc-amt').value=d.discount_amount;
+  if(d.courier_charges) $('#pu-courier').value=d.courier_charges;
+  if(d.payment_status){
+    $('#pu-pay-status').value=d.payment_status;
+    $('#pu-pay-status').dispatchEvent(new Event('change'));
+  }
+  if(d.due_date) $('#pu-due-date').value=d.due_date;
+  if(d.paid_date) $('#pu-paid-date').value=d.paid_date;
+  if(d.payment_mode) $('#pu-pay-mode').value=d.payment_mode;
+  if(d.paid_amount){
+    $('#pu-paid-amt').value=d.paid_amount;
+    puPaidAmountManuallySet=true;
+  }
+  pu=d.items||[];
+  renderPu();
+}
+
+$('#btn-cancel-invoice-edit').onclick=function(){
+  if(!confirm('Cancel editing this purchase? The original purchase invoice will remain completely unchanged.')) return;
+  editingInvoice=null;
+  try{sessionStorage.removeItem('edit_purchase')}catch(e){}
+  window.location.href='/pharmacy';
+};
+
+$('#wh').onchange=function(){wh=this.value};
+
+$('#pu-prod').oninput=debounce(function(){
+  call('ph_products',{q:$('#pu-prod').value.trim()}).then(function(r){
+    $('#dl-prod').innerHTML=r.products.map(function(p){return '<option value="'+esc(p.name)+'">'}).join('')
+  }).catch(function(){})
+});
+
+function calcPuTotals(){
+  var subExcl=0,totGst=0;
+  for(var i=0;i<pu.length;i++){
+    var itemAmt=n(pu[i].amount);
+    var itemGstRate=n(pu[i].gst);
+    subExcl+=itemAmt;
+    totGst+=itemAmt*(itemGstRate/100);
+  }
+  var subIncl=subExcl+totGst;
+  $('#pu-sub').textContent=inr(subExcl);
+  $('#pu-tot-gst').textContent=inr(totGst);
+  $('#pu-sub-gst').textContent=inr(subIncl);
+
+  var dpct=n($('#pu-disc-pct').value),damt=n($('#pu-disc-amt').value);
+  if(damt>0&&subIncl>0)dpct=damt/subIncl*100;
+  var discVal=subIncl*(Math.min(100,dpct)/100);
+  var courier=Math.max(0,n($('#pu-courier').value));
+  var grand=Math.max(0,subIncl-discVal+courier);
+  $('#pu-tot').textContent=inr(grand);
+
+  if(!puPaidAmountManuallySet){
+    $('#pu-paid-amt').value = grand > 0 ? grand.toFixed(2) : '';
+  }
+  return {sub:subExcl,gst:totGst,subIncl:subIncl,disc:discVal,courier:courier,grand:grand}
+}
+
+function renderPu(){
+  $('#pu-card').hidden=!pu.length;
+  $('#pu-lines').innerHTML=pu.map(function(l,i){
+    return '<tr><td>'+esc(l.product)+'</td><td>'+esc(l.batch)+'</td><td>'+mmyy(l.expiry)+'</td><td>'+esc(l.packs)+' p, '+esc(l.units)+' u</td><td>'+esc(l.gst)+'%</td><td class="n">'+inr(l.net)+'</td><td class="n">'+inr(l.amount)+'</td><td><button type="button" class="link" data-edit="'+i+'">Edit</button> | <button type="button" class="link" data-rm="'+i+'">Remove</button></td></tr>'
+  }).join('');
+  calcPuTotals()
+}
+
+$('#pu-disc-pct').oninput=function(){if(this.value!=='')$('#pu-disc-amt').value='';calcPuTotals()};
+$('#pu-disc-amt').oninput=function(){if(this.value!=='')$('#pu-disc-pct').value='';calcPuTotals()};
+$('#pu-courier').oninput=calcPuTotals;
+
+function resetPuEditMode(){
+  editPuIdx=-1;
+  $('#pu-line-title').textContent='Add line';
+  $('#pu-add').textContent='Add line';
+  $('#pu-cancel-edit').style.display='none';
+  clearForm('pu');
+  $('#pu-prod').value=''
+}
+$('#pu-cancel-edit').onclick=resetPuEditMode;
+
+$('#pu-lines').onclick=function(e){
+  var ed=e.target.closest('[data-edit]');
+  if(ed){
+    var idx=+ed.dataset.edit,item=pu[idx];
+    editPuIdx=idx;
+    $('#pu-line-title').textContent='Edit line #'+(idx+1)+' ('+item.product+')';
+    $('#pu-add').textContent='Update line';
+    $('#pu-cancel-edit').style.display='inline-block';
+    $('#pu-prod').value=item.product;
+    g('pu','bno').value=item.batch;
+    g('pu','exp').value=(item.expiry||'').slice(0,7);
+    g('pu','hsn').value=item.hsn||'3004';
+    g('pu','gst').value=String(item.gst||'5');
+    g('pu','mrp').value=item.mrp||'';
+    g('pu','rate').value=item.rate||'';
+    g('pu','basis').value=item.basis||'excl';
+    g('pu','upp').value=item.upp||'1';
+    g('pu','packs').value=item.packs||'0';
+    g('pu','units').value=item.units||'0';
+    if(g('pu','disc'))g('pu','disc').value=item.disc||'0';
+    calc('pu');
+    $('#pu-prod').scrollIntoView({block:'center',behavior:'smooth'});
+    return
+  }
+  var b=e.target.closest('[data-rm]');
+  if(b){
+    var rmIdx=+b.dataset.rm;
+    if(editPuIdx===rmIdx)resetPuEditMode();
+    pu.splice(rmIdx,1);
+    renderPu()
+  }
+};
+
+$('#pu-add').onclick=function(){
+  var prod=$('#pu-prod').value.trim(),d=read('pu');
+  if(!prod||!d.batch||!d.expiry){toast('Enter product, batch no and expiry.',1);return}
+  if(n(d.packs)+n(d.units)<=0){toast('Enter quantity received.',1);return}
+  if(n(d.rate)<=0||n(d.mrp)<=0){toast('Enter MRP and purchase rate.',1);return}
+  var c=calc('pu');d.product=prod;d.amount=c.amt;d.net=c.net;d.gst=c.gst;
+
+  if(editPuIdx>=0&&editPuIdx<pu.length){
+    pu[editPuIdx]=d;toast('Line updated.');resetPuEditMode()
+  }else{
+    pu.push(d);clearForm('pu');$('#pu-prod').value='';toast('')
+  }
+  renderPu()
+};
+
+$('#pu-save').onclick=function(){
+  var sup=$('#pu-sup').value.trim(),b=this;
+  if(!sup||!pu.length){toast('Enter supplier and add at least one line.',1);return}
+  b.disabled=true;
+  var payload={
+    supplier:sup,
+    bill_no:$('#pu-bill').value,
+    bill_date:$('#pu-bdate').value,
+    warehouse:wh,
+    lines:JSON.stringify(pu),
+    discount_percentage:$('#pu-disc-pct').value||'0',
+    discount_amount:$('#pu-disc-amt').value||'0',
+    courier_charges:$('#pu-courier').value||'0',
+    payment_status:$('#pu-pay-status').value,
+    due_date:$('#pu-due-date').value,
+    paid_date:$('#pu-paid-date').value,
+    payment_mode:$('#pu-pay-mode').value,
+    paid_amount:$('#pu-paid-amt').value
+  };
+  if(editingInvoice){
+    payload.amend_invoice=editingInvoice;
+  }
+  call('ph_purchase_save',payload,true).then(function(r){
+    editingInvoice=null;
+    $('#edit-banner').style.display='none';
+    $('#pu-save').textContent='Save purchase';
+    var rc=$('#pu-receipt');rc.hidden=false;
+    rc.innerHTML='<h2>Purchase saved</h2>Invoice <b>'+esc(r.invoice)+'</b>, total <b>'+inr(r.total)+'</b>.<p style="margin-top:10px;display:flex;gap:12px"><a class="btn" style="text-decoration:none;background:#5d7184" href="/app/purchase-invoice/'+encodeURIComponent(r.invoice)+'" target="_blank" rel="noopener">Open in ERPNext</a><button type="button" class="btn" id="pu-another">New purchase</button></p>';
+    pu=[];renderPu();$('#pu-bill').value='';$('#pu-disc-pct').value='';$('#pu-disc-amt').value='';$('#pu-courier').value='';
+    puPaidAmountManuallySet=false;resetPuEditMode();toast('');
+    rc.scrollIntoView({block:'nearest'});
+    $('#pu-another').onclick=function(){rc.hidden=true;window.scrollTo({top:0,behavior:'smooth'})};
+  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false})
+};
+
+calc('pu');
+})();
+</script>
+</div>
+
