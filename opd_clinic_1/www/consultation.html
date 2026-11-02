@@ -1,7 +1,8 @@
 <!-- title: Consultation -->
 <div id="en">
 <style>
-#en{--ink:#16324a;--mute:#5d7184;--line:#cfdad5;--bg:#f3f8f5;--ok:#1d7a5f;--err:#b3261e;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;height:calc(100vh - 92px);min-height:620px;max-width:1880px;margin:0 auto;padding:8px 4px 0;color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+html,body{height:auto!important;min-height:100%!important;overflow-y:auto!important}
+#en{--ink:#16324a;--mute:#5d7184;--line:#cfdad5;--bg:#f3f8f5;--ok:#1d7a5f;--err:#b3261e;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;min-height:100vh;height:auto!important;max-width:1880px;margin:0 auto;padding:8px 8px 60px;color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:visible!important}
 .web-footer,body>footer{display:none!important}
 #en *{box-sizing:border-box}
 #en a.back{color:#cfeee2;font-weight:600;text-decoration:none;font-size:.9rem;white-space:nowrap}
@@ -11,18 +12,36 @@
 #en .pt p{margin:0;font-size:.88rem;opacity:.88}
 #en .pt .ap{margin-left:auto;text-align:right;font-size:.85rem}
 #en .pt .ap b{display:block;font-size:1rem}
-#en h2{font-size:.95rem;margin:0 0 6px}
-#en .card{padding:9px 12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;min-height:0}
+#en h2{font-size:.95rem;margin:0 0 8px}
+#en .card{padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
 #en label{display:block;font-size:.76rem;font-weight:600;margin:0 0 2px;color:var(--mute)}
 #en input,#en select,#en textarea{width:100%;padding:7px 9px;border:1.5px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);background:#fff}
 #en input:focus,#en select:focus,#en textarea:focus,#en button:focus-visible{outline:3px solid #8cc9b5;outline-offset:1px}
-#en #form{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:10px}
-#en .main{display:flex;flex-direction:column;gap:10px;min-height:0}
-#en .side{display:flex;flex-direction:column;gap:10px;min-height:0}
+
+#en #form{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+#en #sec-hx{grid-column:1/-1;background:#f8faf9}
+#en #sec-vitals{grid-column:1/-1}
+#en #sec-sym{grid-column:1}
+#en #sec-dx{grid-column:2}
+#en #sec-meds{grid-column:1/-1}
+#en #sec-lab{grid-column:1}
+#en #sec-notes{grid-column:2}
+#en #acts{grid-column:1/-1}
+
+#en .hx-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+#en .hx-head h2{margin:0;font-size:.95rem}
+#en #hx{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto}
+#en .hx-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 10px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:.88rem}
+#en .hx-info{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#en a.hx-date{font-weight:700;color:var(--ink);text-decoration:none;border-bottom:1.5px solid #8cc9b5}
+#en a.hx-date:hover{color:var(--ok)}
+#en .hx-dx{background:var(--bg);color:var(--ok);padding:2px 8px;border-radius:6px;font-weight:600;font-size:.82rem;border:1px solid var(--line)}
+#en .hx-note{color:var(--mute);font-size:.84rem}
+#en .hx-actions{display:flex;gap:6px;align-items:center;margin-left:auto}
+#en .hx-btn{display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:.8rem;font-weight:600;text-decoration:none}
+#en .hx-btn:hover{background:var(--bg);border-color:var(--ink)}
+
 #en .vg{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
-#en .pair{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px}
-#en .pair .card{display:flex;flex-direction:column}
-#en .pair textarea{flex:1;min-height:60px;resize:none}
 #en .tags{flex:1;display:flex;flex-wrap:wrap;align-content:flex-start;gap:5px;padding:5px;min-height:58px;border:1.5px solid var(--line);border-radius:8px}
 #en .tags input{flex:1 1 130px;border:0;padding:4px;min-width:0}
 #en .tags input:focus{outline:none}
@@ -30,31 +49,47 @@
 #en .chip{display:inline-flex;gap:4px;align-items:center;padding:2px 3px 2px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:.9rem}
 #en .chip.new{border-style:dashed}
 #en .chip button{border:0;background:none;color:var(--mute);font-size:1.1rem;line-height:1;cursor:pointer;padding:2px 6px}
-#en .meds{flex:1;min-height:150px;display:flex;flex-direction:column}
-#en #meds{flex:1;min-height:0;overflow-y:auto;padding-right:4px}
-#en .med{display:grid;grid-template-columns:minmax(170px,2.4fr) minmax(90px,1fr) minmax(90px,1fr) minmax(90px,1fr) minmax(130px,2fr) auto;gap:6px 8px;align-items:end;padding:6px 0;border-top:1px solid var(--line)}
-#en .med:first-child{border-top:0;padding-top:0}
-#en .nn{grid-column:1/-1;display:flex;gap:10px;align-items:end;flex-wrap:wrap;padding:2px 0 2px}
-#en .nn>div{min-width:110px}
-#en .nn .hint{margin:0 6px 6px 0}
-#en .mf{flex:none;display:flex;gap:10px;align-items:center;padding-top:6px}
-#en button.sm{padding:7px 12px;border:1.5px solid var(--ink);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+
+#en .meds{display:flex;flex-direction:column;gap:10px}
+#en #meds{display:flex;flex-direction:column;gap:8px}
+#en .med{background:#fdfefe;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+#en .med-row{display:grid;grid-template-columns:minmax(180px,2.4fr) 115px 115px 115px minmax(140px,1.8fr) auto;gap:8px;align-items:end}
+#en .med button.rm{height:38px;padding:0 14px;border:1.5px solid var(--err);background:#fff;color:var(--err);border-radius:8px;font-weight:600;cursor:pointer;white-space:nowrap}
+#en .med button.rm:hover{background:var(--err);color:#fff}
+#en .nn{padding:8px 0 2px;margin-top:2px;border-top:1px dashed var(--line)}
+#en .nn .hint{margin:0 0 6px;font-size:.82rem;color:var(--mute);display:block}
+#en .nn-fields{display:grid;grid-template-columns:minmax(180px,1.5fr) 120px 120px;gap:8px;max-width:600px;align-items:end}
+#en .mf{display:flex;gap:10px;align-items:center;padding-top:4px}
+#en button.sm{padding:7px 14px;border:1.5px solid var(--ink);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
 #en .hint{color:var(--mute);font-size:.85rem;margin:0}
-#en .hist{flex:1;display:flex;flex-direction:column}
-#en #hx{flex:1;min-height:0;overflow-y:auto}
-#en .hx{padding:7px 0;border-top:1px solid var(--line);font-size:.9rem}
-#en .hx:first-child{border-top:0}
-#en .hx b{display:block}
-#en .acts{flex:none;display:flex;gap:8px}
-#en .acts button{flex:1;padding:12px 8px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer;border:1.5px solid var(--ink);background:#fff;color:var(--ink)}
-#en .acts button.go{background:var(--ok);border-color:var(--ok);color:#fff}
+
+#en #notes{min-height:58px;resize:vertical}
+
+#en .acts{display:flex;gap:12px;justify-content:flex-end;align-items:center;flex-wrap:wrap;padding:16px 0 32px;margin-top:4px;border-top:1.5px solid var(--line)}
+#en .acts button,#en .acts a.pb{padding:12px 24px;border-radius:10px;font:inherit;font-weight:700;font-size:1rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+#en .acts button{border:1.5px solid var(--ink);background:#fff;color:var(--ink)}
+#en .acts button.go,#en .acts a.pb{background:var(--ok);border:1.5px solid var(--ok);color:#fff}
+#en .acts button.go:hover,#en .acts a.pb:hover{filter:brightness(.92)}
 #en .acts button:disabled{opacity:.55;cursor:wait}
-#en a.pb{display:inline-block;padding:10px 18px;border-radius:10px;background:var(--ok);color:#fff;font-weight:700;text-decoration:none;text-align:center}
-#en .note{flex:none;padding:9px 14px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok)}
+
+#en .note{padding:9px 14px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok)}
 #en .note.bad{border-color:var(--err);background:#fdf0ef}
 #en [hidden]{display:none!important}
-@media(max-width:1100px){#en{height:auto;min-height:0}#en #form{grid-template-columns:1fr}#en #meds{overflow:visible}#en .meds{min-height:0}#en .vg{grid-template-columns:repeat(4,1fr)}#en .med{grid-template-columns:1fr 1fr 1fr}#en .hist{flex:none}#en #hx{overflow:visible}}
-@media(max-width:700px){#en .pair{grid-template-columns:1fr}#en .vg{grid-template-columns:1fr 1fr}#en .med{grid-template-columns:1fr}#en .pt{flex-wrap:wrap}#en .pt .ap{margin-left:0;text-align:left}}
+
+@media(max-width:960px){
+  #en #form{grid-template-columns:1fr}
+  #en #sec-sym,#en #sec-dx,#en #sec-lab,#en #sec-notes{grid-column:1}
+  #en .vg{grid-template-columns:repeat(4,1fr)}
+  #en .med-row{grid-template-columns:1fr 1fr}
+  #en .med-row>div:first-child,#en .med-row>div:nth-child(5){grid-column:1/-1}
+}
+@media(max-width:540px){
+  #en .vg{grid-template-columns:repeat(2,1fr)}
+  #en .pt{flex-wrap:wrap}
+  #en .pt .ap{margin-left:0;text-align:left}
+  #en .acts{justify-content:stretch}
+  #en .acts button,#en .acts a.pb{flex:1}
+}
 </style>
 
 <datalist id="dl-sym"></datalist><datalist id="dl-dx"></datalist><datalist id="dl-med"></datalist><datalist id="dl-lab"></datalist><datalist id="dl-uom"></datalist>
@@ -68,52 +103,58 @@
 <div id="msg" class="note bad" role="alert" hidden></div>
 
 <div id="form" hidden>
-  <div class="main">
-    <section class="card">
-      <h2>Vitals</h2>
-      <div class="vg">
-        <div><label for="v-temperature">Temp (&deg;F)</label><input id="v-temperature" type="number" step="any" inputmode="decimal" placeholder="98.6"></div>
-        <div><label for="v-pulse">Pulse (/min)</label><input id="v-pulse" type="number" inputmode="numeric"></div>
-        <div><label for="v-bp_systolic">BP systolic</label><input id="v-bp_systolic" type="number" inputmode="numeric"></div>
-        <div><label for="v-bp_diastolic">BP diastolic</label><input id="v-bp_diastolic" type="number" inputmode="numeric"></div>
-        <div><label for="v-respiratory_rate">Resp (/min)</label><input id="v-respiratory_rate" type="number" inputmode="numeric"></div>
-        <div><label for="v-height">Height (cm)</label><input id="v-height" type="number" step="any" inputmode="decimal"></div>
-        <div><label for="v-weight">Weight (kg)</label><input id="v-weight" type="number" step="any" inputmode="decimal"></div>
-        <div><label for="v-bmi">BMI</label><input id="v-bmi" readonly tabindex="-1"></div>
-      </div>
-    </section>
-
-    <div class="pair">
-      <section class="card"><h2>Complaints</h2>
-        <div class="tags" id="tg-sym"><input id="in-sym" list="dl-sym" placeholder="Type and press Enter (new ones are added)" aria-label="Add complaint"></div>
-      </section>
-      <section class="card"><h2>Diagnosis</h2>
-        <div class="tags" id="tg-dx"><input id="in-dx" list="dl-dx" placeholder="Type and press Enter (new ones are added)" aria-label="Add diagnosis"></div>
-      </section>
+  <section class="card hist" id="sec-hx">
+    <div class="hx-head">
+      <h2>Previous visits</h2>
     </div>
+    <div id="hx"></div>
+  </section>
 
-    <section class="card meds"><h2>Medicines</h2>
-      <div id="meds"></div>
-      <div class="mf"><button type="button" class="sm" id="add-med">Add medicine</button><span class="hint" id="med-hint"></span></div>
-    </section>
-
-    <div class="pair">
-      <section class="card"><h2>Lab tests</h2>
-        <div class="tags" id="tg-lab"><input id="in-lab" list="dl-lab" placeholder="Type and press Enter" aria-label="Add lab test"></div>
-      </section>
-      <section class="card"><h2>Notes</h2>
-        <textarea id="notes" rows="3" aria-label="Consultation notes" placeholder="Examination findings, advice, follow-up"></textarea>
-      </section>
+  <section class="card" id="sec-vitals">
+    <h2>Vitals</h2>
+    <div class="vg">
+      <div><label for="v-temperature">Temp (&deg;F)</label><input id="v-temperature" type="number" step="any" inputmode="decimal" placeholder="98.6"></div>
+      <div><label for="v-pulse">Pulse (/min)</label><input id="v-pulse" type="number" inputmode="numeric"></div>
+      <div><label for="v-bp_systolic">BP systolic</label><input id="v-bp_systolic" type="number" inputmode="numeric"></div>
+      <div><label for="v-bp_diastolic">BP diastolic</label><input id="v-bp_diastolic" type="number" inputmode="numeric"></div>
+      <div><label for="v-respiratory_rate">Resp (/min)</label><input id="v-respiratory_rate" type="number" inputmode="numeric"></div>
+      <div><label for="v-height">Height (cm)</label><input id="v-height" type="number" step="any" inputmode="decimal"></div>
+      <div><label for="v-weight">Weight (kg)</label><input id="v-weight" type="number" step="any" inputmode="decimal"></div>
+      <div><label for="v-bmi">BMI</label><input id="v-bmi" readonly tabindex="-1"></div>
     </div>
+  </section>
+
+  <section class="card" id="sec-sym">
+    <h2>Complaints</h2>
+    <div class="tags" id="tg-sym"><input id="in-sym" list="dl-sym" placeholder="Type and press Enter (new ones are added)" aria-label="Add complaint"></div>
+  </section>
+
+  <section class="card" id="sec-dx">
+    <h2>Diagnosis</h2>
+    <div class="tags" id="tg-dx"><input id="in-dx" list="dl-dx" placeholder="Type and press Enter (new ones are added)" aria-label="Add diagnosis"></div>
+  </section>
+
+  <section class="card meds" id="sec-meds">
+    <h2>Medicines</h2>
+    <div id="meds"></div>
+    <div class="mf"><button type="button" class="sm" id="add-med">+ Add medicine</button><span class="hint" id="med-hint"></span></div>
+  </section>
+
+  <section class="card" id="sec-lab">
+    <h2>Lab tests</h2>
+    <div class="tags" id="tg-lab"><input id="in-lab" list="dl-lab" placeholder="Type and press Enter" aria-label="Add lab test"></div>
+  </section>
+
+  <section class="card" id="sec-notes">
+    <h2>Notes</h2>
+    <textarea id="notes" rows="3" aria-label="Consultation notes" placeholder="Examination findings, advice, follow-up"></textarea>
+  </section>
+
+  <div class="acts" id="acts">
+    <button type="button" id="draft">Save draft</button>
+    <button type="button" class="go" id="complete">Complete consultation</button>
+    <a class="pb" id="print-btn" href="#" target="_blank" rel="noopener" hidden>Print encounter</a>
   </div>
-
-  <aside class="side">
-    <section class="card hist"><h2>Previous visits</h2><div id="hx"></div></section>
-    <div class="acts">
-      <button type="button" id="draft">Save draft</button>
-      <button type="button" class="go" id="complete">Complete consultation</button>
-    </div>
-  </aside>
 </div>
 
 <div id="done" class="note" hidden></div>
@@ -121,7 +162,7 @@
 <script>
 (function(){
 var $=function(s){return document.querySelector('#en '+s)};
-var q=new URLSearchParams(location.search),A=q.get('appointment')||'',P=q.get('patient')||'',D=q.get('practitioner')||'';
+var q=new URLSearchParams(location.search),A=q.get('appointment')||'',P=q.get('patient')||'',D=q.get('practitioner')||'',E=q.get('encounter')||'';
 var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},NEW={sym:'complaints',dx:'diagnoses'},VK=['temperature','pulse','bp_systolic','bp_diastolic','respiratory_rate','height','weight'];
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
@@ -177,16 +218,21 @@ function renderMeds(){
   if(!M.length)M.push(blankMed());
   box.innerHTML=M.map(function(m,i){
     var isNew=m.drug.trim()&&L.medications.indexOf(m.drug.trim())<0;
-    return '<div class="med"><div><label>Medicine</label><input list="dl-med" data-i="'+i+'" data-f="drug" value="'+esc(m.drug)+'" placeholder="Search, or type a new medicine"></div>'+
-      '<div><label>Form</label><select data-i="'+i+'" data-f="form">'+opts(L.forms,m.form,'Select')+'</select></div>'+
-      '<div><label>Dosage</label><select data-i="'+i+'" data-f="dosage">'+opts(L.dosages,m.dosage,'Select')+'</select></div>'+
-      '<div><label>Duration</label><select data-i="'+i+'" data-f="period">'+opts(L.periods,m.period,'Select')+'</select></div>'+
-      '<div><label>Instructions</label><input data-i="'+i+'" data-f="comment" value="'+esc(m.comment)+'" placeholder="For example after food" aria-label="Instructions"></div>'+
-      '<button type="button" class="sm" data-rm="'+i+'" aria-label="Remove medicine">Remove</button>'+
+    return '<div class="med">'+
+      '<div class="med-row">'+
+        '<div><label>Medicine</label><input list="dl-med" data-i="'+i+'" data-f="drug" value="'+esc(m.drug)+'" placeholder="Search, or type a new medicine"></div>'+
+        '<div><label>Form</label><select data-i="'+i+'" data-f="form">'+opts(L.forms,m.form,'Select')+'</select></div>'+
+        '<div><label>Dosage</label><select data-i="'+i+'" data-f="dosage">'+opts(L.dosages,m.dosage,'Select')+'</select></div>'+
+        '<div><label>Duration</label><select data-i="'+i+'" data-f="period">'+opts(L.periods,m.period,'Select')+'</select></div>'+
+        '<div><label>Instructions</label><input data-i="'+i+'" data-f="comment" value="'+esc(m.comment)+'" placeholder="For example after food" aria-label="Instructions"></div>'+
+        '<div><label>&nbsp;</label><button type="button" class="rm" data-rm="'+i+'">Remove</button></div>'+
+      '</div>'+
       '<div class="nn"'+(isNew?'':' hidden')+'><span class="hint">'+(L.items.indexOf(m.drug.trim())>-1?'Pharmacy item with no Medication record yet. One will be created when you save.':'New medicine. It will be added to the item list and to Medication when you save.')+'</span>'+
-      '<div><label>Medication class</label><select data-i="'+i+'" data-f="mclass">'+opts(L.classes,m.mclass,'Choose automatically')+'</select></div>'+
-      '<div><label>Strength</label><input type="number" step="any" inputmode="decimal" data-i="'+i+'" data-f="strength" value="'+esc(m.strength)+'" placeholder="10"></div>'+
-      '<div><label>Unit</label><input list="dl-uom" data-i="'+i+'" data-f="unit" value="'+esc(m.unit)+'" placeholder="mg"></div></div></div>'
+      '<div class="nn-fields">'+
+        '<div><label>Medication class</label><select data-i="'+i+'" data-f="mclass">'+opts(L.classes,m.mclass,'Choose automatically')+'</select></div>'+
+        '<div><label>Strength</label><input type="number" step="any" inputmode="decimal" data-i="'+i+'" data-f="strength" value="'+esc(m.strength)+'" placeholder="10"></div>'+
+        '<div><label>Unit</label><input list="dl-uom" data-i="'+i+'" data-f="unit" value="'+esc(m.unit)+'" placeholder="mg"></div>'+
+      '</div></div></div>'
   }).join('')
 }
 $('#meds').oninput=$('#meds').onchange=function(e){
@@ -228,18 +274,51 @@ function init(r){
   fill('dl-sym',L.complaints);fill('dl-dx',L.diagnoses);fill('dl-med',L.medications.concat(L.items));fill('dl-lab',L.labs);fill('dl-uom',L.uoms);
   if(!(L.medications.length+L.items.length))$('#med-hint').textContent='No medicines saved yet. Type a medicine name to add a new one.';
   var e=r.encounter;
-  if(e){T.sym=e.symptoms||[];T.dx=e.diagnosis||[];T.lab=e.labs||[];M=e.drugs||[];$('#notes').value=e.comment||''}
+  if(e){window.currentEncounter=e.name;T.sym=e.symptoms||[];T.dx=e.diagnosis||[];T.lab=e.labs||[];M=e.drugs||[];$('#notes').value=e.comment||''}
   if(r.vitals){VK.forEach(function(k){if(r.vitals[k])$('#v-'+k).value=r.vitals[k]});bmi()}
   ['sym','dx','lab'].forEach(renderTags);renderMeds();
-  $('#hx').innerHTML=(r.history||[]).length?r.history.map(function(h){
-    var op=(h.appointment&&h.appointment!==A)?' <a href="'+location.pathname+'?appointment='+encodeURIComponent(h.appointment)+'&patient='+encodeURIComponent(P)+'&practitioner='+encodeURIComponent(D)+'" target="_blank" rel="noopener">Open to view or edit</a>':'';
-    return '<div class="hx"><b>'+esc(h.date)+(h.diagnosis.length?'  '+esc(h.diagnosis.join(', ')):'')+'</b>'+esc(h.comment)+op+'</div>'}).join(''):'<p class="hint">No earlier completed visits.</p>';
+
+  var curEncId = (e && e.name) || E || window.currentEncounter || '';
+  var hxList = (r.history || []).filter(function(h){
+    var hEnc = h.encounter || h.name || '';
+    if(curEncId && hEnc && hEnc === curEncId) return false;
+    if(A && h.appointment && h.appointment === A) return false;
+    return true;
+  });
+  $('#hx').innerHTML = hxList.length ? hxList.map(function(h){
+    var encName = h.encounter || h.name || '';
+    var consUrl = '/consultation?' + (encName ? 'encounter=' + encodeURIComponent(encName) + '&' : '') +
+                  (h.appointment ? 'appointment=' + encodeURIComponent(h.appointment) + '&' : '') +
+                  'patient=' + encodeURIComponent(P) + '&practitioner=' + encodeURIComponent(D);
+    var deskUrl = encName ? '/app/patient-encounter/' + encodeURIComponent(encName) : '';
+    var printUrl = encName ? pu(encName) : '';
+    var dxText = (h.diagnosis && h.diagnosis.length) ? h.diagnosis.join(', ') : '';
+
+    return '<div class="hx-row">' +
+      '<div class="hx-info">' +
+        '<a class="hx-date" href="' + consUrl + '" target="_blank" rel="noopener" title="Open consultation in new tab">' +
+          esc(h.date) +
+        '</a>' +
+        (dxText ? '<span class="hx-dx">' + esc(dxText) + '</span>' : '') +
+        (h.comment ? '<span class="hx-note">' + esc(h.comment) + '</span>' : '') +
+      '</div>' +
+      '<div class="hx-actions">' +
+        (encName ? '<a class="hx-btn" href="' + consUrl + '" target="_blank" rel="noopener" title="Open consultation in new tab">Open ↗</a>' : '') +
+        (encName ? '<a class="hx-btn" href="' + deskUrl + '" target="_blank" rel="noopener" title="View Patient Encounter in Desk">' + esc(encName) + ' ↗</a>' : '') +
+        (encName ? '<a class="hx-btn" href="' + printUrl + '" target="_blank" rel="noopener" title="Print encounter">Print 🖶</a>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('') : '<p class="hint">No earlier completed visits.</p>';
+
   $('#form').hidden=false;
   if(e&&e.docstatus===1){
     amend=true;
     VK.forEach(function(k){$('#v-'+k).disabled=true});
-    $('#draft').hidden=true;$('#complete').textContent='Save changes';
-    $('.acts').insertAdjacentHTML('beforeend','<a class="pb" style="flex:none" href="'+pu(e.name)+'" target="_blank" rel="noopener">Print encounter</a>');
+    $('#draft').hidden=true;
+    $('#complete').textContent='Save changes';
+    var pb=$('#print-btn');
+    pb.href=pu(e.name);
+    pb.hidden=false;
     msg('This consultation is completed. Change anything below and press Save changes: the original is cancelled and the corrected one is saved. Vitals stay as recorded.',true)}
 }
 
@@ -253,19 +332,21 @@ function learn(){
 function save(complete){
   if(complete&&!window.confirm(amend?'Save these changes? The completed consultation is cancelled and replaced by the corrected one.':'Complete this consultation? It will be submitted and the appointment closed.'))return;
   var b1=$('#draft'),b2=$('#complete');b1.disabled=b2.disabled=true;msg('');
-  call('enc_save',payload(complete),true).then(function(r){
+  var endpoint = amend ? 'enc_amend' : 'enc_save';
+  var data = payload(complete);
+  if(amend && window.currentEncounter){ data.encounter = window.currentEncounter; }
+  call(endpoint, data, true).then(function(r){
     if(r.completed){
       $('#form').hidden=true;var d=$('#done');d.hidden=false;
       d.innerHTML='<b>Consultation completed.</b><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px"><a class="pb" href="'+pu(r.encounter)+'" target="_blank" rel="noopener">Print encounter</a><a href="/doctor-desk">Back to doctor desk</a><a href="/app/patient-encounter/'+encodeURIComponent(r.encounter)+'" target="_blank" rel="noopener">View in Desk</a></div>'
-    }else{learn();msg('Draft saved.',true)}
+    }else{learn();msg(amend ? 'Changes saved.' : 'Draft saved.',true)}
   }).catch(function(e){msg(e.message)}).then(function(){b1.disabled=b2.disabled=false})
 }
 $('#draft').onclick=function(){save(false)};
 $('#complete').onclick=function(){save(true)};
 
-if(!A&&!P){$('#pn').textContent='No patient selected';msg('Open this page with the Start consultation button on the doctor desk.')}
-else call('enc_load',{appointment:A,patient:P}).then(init).catch(function(e){$('#pn').textContent='Could not open consultation';msg(e.message)});
+if(!A&&!P&&!E){$('#pn').textContent='No patient selected';msg('Open this page with the Start consultation button on the doctor desk.')}
+else call('enc_load',{appointment:A,patient:P,encounter:E}).then(init).catch(function(e){$('#pn').textContent='Could not open consultation';msg(e.message)});
 })();
 </script>
 </div>
-
