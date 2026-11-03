@@ -68,7 +68,7 @@
   "enabled": 1,
   "event": "Value Change",
   "from_attach_field": null,
-  "is_standard": 1,
+  "is_standard": 0,
   "message": "<b>Material Request Type</b>: {{ doc.material_request_type }}<br>\n<b>Company</b>: {{ doc.company }}\n\n<h3>Order Summary</h3>\n\n<table border=2 >\n    <tr align=\"center\">\n        <th>Item Name</th>\n        <th>Received Quantity</th>\n    </tr>\n    {% for item in doc.items %}\n        {% if frappe.utils.flt(item.received_qty, 2) > 0.0 %}\n            <tr align=\"center\">\n                <td>{{ item.item_code }}</td>\n                <td>{{ frappe.utils.flt(item.received_qty, 2) }}</td>\n            </tr>\n        {% endif %}\n    {% endfor %}\n</table>",
   "message_type": null,
   "method": "",
