@@ -254,7 +254,7 @@ app_license = "mit"
 # ignore_translatable_strings_from = []
 
 # Records created on/after this date are exported (change to your start date)
-NEW_RECORDS_SINCE = "2026-10-01"
+NEW_RECORDS_SINCE = "2026-10-15"
 
 # DocTypes where you added fields or changed properties
 CUSTOMIZED_DOCTYPES = ["Batch", "Healthcare Practitioner"]
@@ -262,9 +262,9 @@ CUSTOMIZED_DOCTYPES = ["Batch", "Healthcare Practitioner"]
 # One entry per DocType: later entries for the same DocType overwrite earlier ones.
 fixtures = [
     # Master data
-    {"dt": "UOM", "filters": [["creation", ">", NEW_RECORDS_SINCE]]},
-    {"dt": "Dosage Form", "filters": [["creation", ">", NEW_RECORDS_SINCE]]},
-    {"dt": "Medication Class", "filters": [["creation", ">", NEW_RECORDS_SINCE]]},
+    {"dt": "UOM", "filters": [["owner", "!=", "Administrator"]]},
+    {"dt": "Dosage Form", "filters": [["owner", "!=", "Administrator"]]},
+    {"dt": "Medication Class", "filters": [["owner", "!=", "Administrator"]]},
 
     # Custom fields and property setters
     {"dt": "Custom Field", "filters": [["dt", "in", CUSTOMIZED_DOCTYPES]]},
@@ -272,6 +272,5 @@ fixtures = [
 
     # Scripts and website (remove each once converted to files)
     {"dt": "Server Script"},
-    {"dt": "Web Template"},
     {"dt": "Web Page"},
 ]

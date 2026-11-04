@@ -129,7 +129,7 @@ function render(){
       '<p class="m">'+esc(a.type)+(data.can_pick?' with '+esc(a.practitioner_name):'')+' </p>'+
       (a.notes?'<p class="n">'+esc(a.notes)+'</p>':'')+' </div>'+
       '<div class="x"><select class="st" data-id="'+esc(a.id)+'" aria-label="Status for '+esc(a.name)+'">'+opts+'</select>'+
-      '<a class="btn go" href="/consultation?'+q+'">'+((closed || a.has_encounter)?'Open Consultation':'Start Consultation')+'</a>'+invBtn+
+      '<a class="btn go" href="/consultation?'+q+'">'+(a.has_encounter?'Open Consultation':'Start Consultation')+'</a>'+invBtn+
       '<a class="btn" target="_blank" rel="noopener" href="/app/patient/'+encodeURIComponent(a.patient)+'">Patient record</a></div></article>'
   }).join('')}
 

@@ -2,27 +2,6 @@
  {
   "docstatus": 0,
   "doctype": "Dosage Form",
-  "dosage_form": "Syrup",
-  "modified": "2026-10-08 08:28:06.003234",
-  "name": "Syrup"
- },
- {
-  "docstatus": 0,
-  "doctype": "Dosage Form",
-  "dosage_form": "Capsule",
-  "modified": "2026-10-08 08:28:06.017867",
-  "name": "Capsule"
- },
- {
-  "docstatus": 0,
-  "doctype": "Dosage Form",
-  "dosage_form": "Cream",
-  "modified": "2026-10-08 08:28:06.022671",
-  "name": "Cream"
- },
- {
-  "docstatus": 0,
-  "doctype": "Dosage Form",
   "dosage_form": "Ointment",
   "modified": "2026-10-20 20:12:46.880698",
   "name": "Ointment"
@@ -121,22 +100,8 @@
  {
   "docstatus": 0,
   "doctype": "Dosage Form",
-  "dosage_form": "Injection",
-  "modified": "2026-10-08 08:28:06.008769",
-  "name": "Injection"
- },
- {
-  "docstatus": 0,
-  "doctype": "Dosage Form",
   "dosage_form": "Liquid",
   "modified": "2026-10-20 20:14:41.477936",
   "name": "Liquid"
- },
- {
-  "docstatus": 0,
-  "doctype": "Dosage Form",
-  "dosage_form": "Tablet",
-  "modified": "2026-10-08 08:28:05.998083",
-  "name": "Tablet"
  }
 ]
