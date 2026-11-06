@@ -4,6 +4,15 @@ fail_fast: false
 
 
 repos:
+  - repo: local
+    hooks:
+      - id: sync-clinic-fixtures
+        name: "Sync www/ and scripts/ to fixtures JSON"
+        entry: python3 opd_clinic_1/sync_all.py
+        language: system
+        pass_filenames: false
+        files: ^opd_clinic_1/(www|scripts)/
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

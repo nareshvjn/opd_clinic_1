@@ -16,65 +16,149 @@ if not ok:
 
 def wh_qty(b, w):
     try:
-        r = frappe.call("erpnext.stock.doctype.batch.batch.get_batch_qty", batch_no=b, warehouse=w)
-    except:
-        return None
-    try:
-        return float(r)
+        res = frappe.db.sql("""select sum(actual_qty) from `tabStock Ledger Entry`
+            where batch_no = %s and warehouse = %s and is_cancelled = 0""", (b, w))
+        if res and res[0] and res[0][0] is not None:
+            return float(res[0][0])
     except:
         pass
-    try:
-        t = 0
-        for x in r:
-            t += x.get("qty") or 0
-        return t
-    except:
-        return None
-
-f = frappe.form_dict
-q = (f.get("q") or "").strip()
-wh = f.get("warehouse")
-show_zero = f.get("zero") in ("1", "true")
-
-filters = {"disabled": 0}
-if not show_zero:
-    filters["batch_qty"] = [">", 0]
-or_filters = []
-if q:
-    or_filters = [["Batch", "item", "like", "%" + q + "%"],
-                  ["Batch", "item_name", "like", "%" + q + "%"],
-                  ["Batch", "name", "like", "%" + q + "%"]]
-
-rows = frappe.get_all("Batch", filters=filters, or_filters=or_filters,
-    fields=["name", "item", "item_name", "expiry_date", "batch_qty", "mrp", "purchase_rate",
-            "net_rate", "gst_rate", "hsn_code", "units_per_pack"],
-    order_by="item_name asc, expiry_date asc", limit=300)
+    return None
 
 out = []
-for b in rows:
-    qty = b.batch_qty or 0
-    if wh and qty > 0:
-        w = wh_qty(b.name, wh)
-        if w is not None:
-            qty = w
-    if qty <= 0 and not show_zero:
-        continue
-    out.append({"batch": b.name, "item": b.item, "name": b.item_name or b.item,
-        "expiry": str(b.expiry_date or ""), "qty": qty if qty > 0 else 0,
-        "mrp": b.mrp or 0, "purchase_rate": b.purchase_rate or 0,
-        "net_rate": b.net_rate or b.purchase_rate or 0, "gst": b.gst_rate or 0,
-        "hsn": b.hsn_code or "", "upp": b.units_per_pack or 1})
-if show_zero:
-    # products that have no batch at all yet (for example a new medicine added from the consultation page)
-    iq = []
+try:
+    f = frappe.form_dict
+    q = (f.get("q") or "").strip()
+    wh = f.get("warehouse")
+    show_zero = f.get("zero") not in ("0", "false")
+
+    meta = frappe.get_meta("Batch")
+
+    def find_f(fn):
+        if meta.has_field(fn):
+            return fn
+        if meta.has_field("custom_" + fn):
+            return "custom_" + fn
+        return None
+
+    f_exp = find_f("expiry_date")
+    f_qty = find_f("batch_qty")
+    f_item = "item" if meta.has_field("item") else ("item_code" if meta.has_field("item_code") else None)
+    f_iname = find_f("item_name")
+    f_mrp = find_f("mrp")
+    f_pur = find_f("purchase_rate")
+    f_net = find_f("net_rate")
+    f_gst = find_f("gst_rate")
+    f_hsn = find_f("hsn_code")
+    f_upp = find_f("units_per_pack")
+
+    fields = ["name"]
+    for field_name in [f_item, f_iname, f_exp, f_qty, f_mrp, f_pur, f_net, f_gst, f_hsn, f_upp]:
+        if field_name and field_name not in fields:
+            fields.append(field_name)
+
+    filters = {}
+    if meta.has_field("disabled"):
+        filters["disabled"] = 0
+
+    if not show_zero and f_qty:
+        filters[f_qty] = [">", 0]
+
+    or_filters = []
     if q:
-        iq = [["Item", "item_name", "like", "%" + q + "%"], ["Item", "item_code", "like", "%" + q + "%"]]
-    for it in frappe.get_all("Item", filters={"disabled": 0, "is_stock_item": 1}, or_filters=iq,
-            fields=["name", "item_name", "item_group", "has_batch_no"], order_by="item_name asc", limit=300):
-        if it.item_group != "Drug" and not it.has_batch_no:
+        if f_item:
+            or_filters.append(["Batch", f_item, "like", "%" + q + "%"])
+        if f_iname:
+            or_filters.append(["Batch", f_iname, "like", "%" + q + "%"])
+        or_filters.append(["Batch", "name", "like", "%" + q + "%"])
+
+    order_parts = []
+    if f_iname:
+        order_parts.append(f_iname + " asc")
+    if f_exp:
+        order_parts.append(f_exp + " asc")
+    order_parts.append("name asc")
+    order_by = ", ".join(order_parts)
+
+    rows = frappe.get_all("Batch", filters=filters, or_filters=or_filters if or_filters else None,
+        fields=fields, order_by=order_by, limit=500)
+
+    for b in rows:
+        item_code = b.get(f_item) if f_item else ""
+        item_name = b.get(f_iname) if f_iname else ""
+        if not item_name and item_code:
+            item_name = frappe.db.get_value("Item", item_code, "item_name") or item_code
+
+        qty = (b.get(f_qty) if f_qty else 0) or 0
+        if wh:
+            w = wh_qty(b.name, wh)
+            if w is not None:
+                qty = w
+        elif not f_qty or qty == 0:
+            try:
+                s = frappe.db.sql("""select sum(actual_qty) from `tabStock Ledger Entry`
+                    where batch_no = %s and is_cancelled = 0""", (b.name,))
+                if s and s[0] and s[0][0] is not None:
+                    qty = float(s[0][0])
+            except:
+                pass
+
+        if qty <= 0 and not show_zero:
             continue
-        if frappe.db.exists("Batch", {"item": it.name, "disabled": 0}):
-            continue
-        out.append({"batch": "", "item": it.name, "name": it.item_name or it.name, "expiry": "", "qty": 0,
-            "mrp": 0, "purchase_rate": 0, "net_rate": 0, "gst": 0, "hsn": "", "upp": 1})
+
+        mrp = (b.get(f_mrp) if f_mrp else 0) or 0
+        pur = (b.get(f_pur) if f_pur else 0) or 0
+        net = (b.get(f_net) if f_net else pur) or pur or 0
+        gst = (b.get(f_gst) if f_gst else 0) or 0
+        hsn = (b.get(f_hsn) if f_hsn else "") or ""
+        upp = (b.get(f_upp) if f_upp else 1) or 1
+        exp = str((b.get(f_exp) if f_exp else "") or "")
+
+        out.append({
+            "batch": b.name,
+            "item": item_code,
+            "name": item_name or item_code or b.name,
+            "expiry": exp,
+            "qty": qty if qty > 0 else 0,
+            "mrp": mrp,
+            "purchase_rate": pur,
+            "net_rate": net,
+            "gst": gst,
+            "hsn": hsn,
+            "upp": upp
+        })
+
+    if show_zero:
+        seen_items = set()
+        for x in out:
+            if x.get("item"):
+                seen_items.add(x["item"])
+
+        iq = []
+        if q:
+            iq = [["Item", "item_name", "like", "%" + q + "%"], ["Item", "item_code", "like", "%" + q + "%"]]
+        items = frappe.get_all("Item", filters={"disabled": 0, "is_stock_item": 1}, or_filters=iq if iq else None,
+            fields=["name", "item_name", "item_group", "has_batch_no"], order_by="item_name asc", limit=500)
+        for it in items:
+            if it.name in seen_items:
+                continue
+            grp = (it.item_group or "").lower()
+            if it.item_group != "Drug" and not it.has_batch_no and "drug" not in grp and "med" not in grp:
+                continue
+            seen_items.add(it.name)
+            out.append({
+                "batch": "",
+                "item": it.name,
+                "name": it.item_name or it.name,
+                "expiry": "",
+                "qty": 0,
+                "mrp": 0,
+                "purchase_rate": 0,
+                "net_rate": 0,
+                "gst": 0,
+                "hsn": "",
+                "upp": 1
+            })
+except Exception as e:
+    frappe.log_error(title="ph_stock_list error", message=frappe.get_traceback())
+
 frappe.response["message"] = {"batches": out}

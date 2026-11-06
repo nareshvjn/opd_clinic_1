@@ -59,22 +59,46 @@ if qty < 0:
     frappe.throw("Quantity cannot be negative.")
 
 company = frappe.db.get_single_value("Global Defaults", "default_company")
-co = frappe.db.get_value("Company", company, ["stock_adjustment_account", "cost_center"], as_dict=True)
+co = frappe.db.get_value("Company", company, ["stock_adjustment_account", "cost_center"], as_dict=True) or {}
+adj_acc = co.get("stock_adjustment_account")
+if not adj_acc:
+    adj_acc = frappe.db.get_value("Account", {"account_type": "Stock Adjustment", "company": company, "is_group": 0}, "name")
+if not adj_acc:
+    adj_acc = frappe.db.get_value("Account", {"account_name": ["like", "%Stock Adjustment%"], "company": company, "is_group": 0}, "name")
+if not adj_acc:
+    adj_acc = frappe.db.get_value("Company", company, "default_inventory_account")
+
+cost_center = co.get("cost_center")
+if not cost_center:
+    cost_center = frappe.db.get_value("Cost Center", {"company": company, "is_group": 0}, "name")
 
 b = frappe.get_doc("Batch", bname)
 item = b.item
 old_rate = b.purchase_rate or 0
-b.expiry_date = f.get("expiry")
-b.hsn_code = f.get("hsn") or ""
-b.gst_rate = gst
-b.mrp = num(f.get("mrp"))
-b.purchase_rate = rate
-if (not b.net_rate) or abs(rate - old_rate) > 0.0001:
-    b.net_rate = rate
-b.units_per_pack = upp
+meta = frappe.get_meta("Batch")
+if f.get("expiry"):
+    b.expiry_date = f.get("expiry")
+hsn = f.get("hsn") or ""
+mrp = num(f.get("mrp"))
+net = rate if ((not b.net_rate) or abs(rate - old_rate) > 0.0001) else (b.net_rate or rate)
+
+for fn, val in [("hsn_code", hsn), ("gst_rate", gst), ("mrp", mrp),
+                ("purchase_rate", rate), ("net_rate", net), ("units_per_pack", upp)]:
+    if meta.has_field(fn):
+        b.set(fn, val)
+    if meta.has_field("custom_" + fn):
+        b.set("custom_" + fn, val)
 b.save(ignore_permissions=True)
 
 cur = wh_qty(bname, wh)
+if cur is None:
+    try:
+        s = frappe.db.sql("""select sum(actual_qty) from `tabStock Ledger Entry`
+            where batch_no = %s and warehouse = %s and is_cancelled = 0""", (bname, wh))
+        if s and s[0] and s[0][0] is not None:
+            cur = float(s[0][0])
+    except:
+        pass
 if cur is None:
     cur = frappe.db.get_value("Batch", bname, "batch_qty") or 0
 val = rate / upp
@@ -88,7 +112,7 @@ if qty != cur:
         se.to_warehouse = wh
         se.append("items", {"item_code": item, "qty": qty, "t_warehouse": wh, "basic_rate": val,
             "batch_no": bname, "use_serial_batch_fields": 1,
-            "expense_account": co.stock_adjustment_account, "cost_center": co.cost_center})
+            "expense_account": adj_acc, "cost_center": cost_center})
         se.insert(ignore_permissions=True)
         se.submit()
         doc_name = se.name
@@ -96,8 +120,8 @@ if qty != cur:
         sr = frappe.new_doc("Stock Reconciliation")
         sr.purpose = "Stock Reconciliation"
         sr.company = company
-        sr.expense_account = co.stock_adjustment_account
-        sr.cost_center = co.cost_center
+        sr.expense_account = adj_acc
+        sr.cost_center = cost_center
         sr.append("items", {"item_code": item, "warehouse": wh, "qty": qty, "valuation_rate": val,
             "batch_no": bname, "use_serial_batch_fields": 1})
         sr.insert(ignore_permissions=True)

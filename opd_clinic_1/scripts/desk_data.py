@@ -82,8 +82,9 @@ for r in rows:
     inv = ""
     if r.status in ["Closed", "Checked Out"]:
         inv = find_invoice(r.name)
-    has_encounter = bool(frappe.db.exists("Patient Encounter",
-        {"appointment": r.name, "docstatus": ["<", 2]}))
+    enc_found = frappe.get_all("Patient Encounter",
+        filters={"appointment": r.name, "docstatus": ["!=", 2]}, fields=["name"], limit=1)
+    has_encounter = bool(enc_found or r.status in ["Closed", "Checked Out"])
     t = str(r.appointment_time).split(":")
     out.append({
         "id": r.name, "patient": r.patient, "name": r.patient_name,

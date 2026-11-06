@@ -19,10 +19,14 @@ for r in ["Physician", "Nursing User"]:
 if not ok:
     frappe.throw("You don't have access to consultations.")
 
-def names(dt):
+def names(dt, limit=500):
     out = []
     try:
-        for r in frappe.get_all(dt, fields=["name"], order_by="name", limit=500):
+        if limit:
+            records = frappe.get_all(dt, fields=["name"], order_by="name", limit=limit)
+        else:
+            records = frappe.get_all(dt, fields=["name"], order_by="name")
+        for r in records:
             out.append(r.name)
     except:
         pass
@@ -30,6 +34,14 @@ def names(dt):
 
 appt_id = frappe.form_dict.get("appointment")
 patient_id = frappe.form_dict.get("patient")
+enc_id = (frappe.form_dict.get("encounter") or "").strip()
+
+if enc_id and frappe.db.exists("Patient Encounter", enc_id):
+    curr_enc = frappe.get_doc("Patient Encounter", enc_id)
+    if not patient_id:
+        patient_id = curr_enc.patient
+    if not appt_id and curr_enc.appointment:
+        appt_id = curr_enc.appointment
 appt = None
 if appt_id:
     appt = frappe.get_doc("Patient Appointment", appt_id)
@@ -50,7 +62,20 @@ if pat.dob:
 
 enc = None
 vit = None
-if appt_id:
+if enc_id and frappe.db.exists("Patient Encounter", enc_id):
+    e = frappe.get_doc("Patient Encounter", enc_id)
+    enc = {
+        "name": e.name,
+        "docstatus": e.docstatus,
+        "amended_from": e.amended_from or "",
+        "comment": e.encounter_comment or "",
+        "symptoms": [x.complaint for x in e.symptoms],
+        "diagnosis": [x.diagnosis for x in e.diagnosis],
+        "drugs": [{"drug": x.drug_code, "form": x.dosage_form or "", "dosage": x.dosage or "",
+                   "period": x.period or "", "comment": x.comment or ""} for x in e.drug_prescription],
+        "labs": [x.lab_test_code for x in e.lab_test_prescription],
+    }
+elif appt_id:
     found = frappe.get_all("Patient Encounter",
         filters={"appointment": appt_id, "docstatus": ["<", 2]}, fields=["name"], limit=1)
     if found:
@@ -72,17 +97,53 @@ if appt_id:
     if v:
         vit = v[0]
 
+current_enc_name = enc.get("name") if enc else ""
+current_appt_name = appt_id or ""
+
 history = []
-for h in frappe.get_all("Patient Encounter", filters={"patient": patient_id, "docstatus": 1},
+hx_filters = {"patient": patient_id, "docstatus": 1}
+if current_enc_name:
+    hx_filters["name"] = ["!=", current_enc_name]
+elif current_appt_name:
+    hx_filters["appointment"] = ["!=", current_appt_name]
+
+for h in frappe.get_all("Patient Encounter", filters=hx_filters,
         fields=["name", "appointment", "encounter_date", "encounter_comment"],
         order_by="encounter_date desc", limit=5):
+    if current_enc_name and h.name == current_enc_name:
+        continue
+    if current_appt_name and h.appointment == current_appt_name:
+        continue
     hd = frappe.get_doc("Patient Encounter", h.name)
     history.append({
+        "encounter": h.name,
+        "name": h.name,
         "date": str(h.encounter_date),
         "appointment": h.appointment or "",
         "diagnosis": [x.diagnosis for x in hd.diagnosis],
         "comment": h.encounter_comment or "",
     })
+
+# Auto-cleanup: rename any Medications that were prefixed with "Tablet "
+if frappe.db.exists("DocType", "Medication"):
+    try:
+        bad_meds = frappe.get_all("Medication", filters=[["name", "like", "Tablet %"]], fields=["name"], limit=50)
+        for bm in bad_meds:
+            clean_name = bm.name
+            if clean_name.startswith("Tablet "):
+                clean_name = clean_name[7:]
+            elif clean_name.startswith("tablet "):
+                clean_name = clean_name[7:]
+            if clean_name.endswith(" mg"):
+                clean_name = clean_name[:-3]
+            clean_name = clean_name.strip()
+            if clean_name and clean_name != bm.name and not frappe.db.exists("Medication", clean_name):
+                try:
+                    frappe.rename_doc("Medication", bm.name, clean_name, ignore_permissions=True)
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
 # Pharmacy stock items that are not Medications yet (including ones with no batches or no stock).
 # Choosing one in the consultation creates the Medication and links it to that item.
@@ -165,7 +226,7 @@ frappe.response["message"] = {
         "periods": names("Prescription Duration"),
         "labs": names("Lab Test Template"),
         "forms": names("Dosage Form"),
-        "classes": names("Medication Class"),
+        "classes": names("Medication Class", limit=None),
         "uoms": names("UOM"),
     },
     "med_forms": med_forms,

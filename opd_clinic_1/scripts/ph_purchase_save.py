@@ -46,12 +46,15 @@ def ensure_medication_class():
 def ensure_medication(item_code, item_name):
     if not frappe.db.exists("DocType", "Medication"):
         return
-    if frappe.db.exists("Medication", item_code) or frappe.db.exists("Medication", {"item": item_code}):
+    nm = item_name or item_code
+    if frappe.db.exists("Medication", nm) or frappe.db.exists("Medication", {"item": item_code}):
         return
     try:
         med = frappe.new_doc("Medication")
-        med.medication_name = item_name
-        med.generic_name = item_name
+        med.name = nm
+        med.flags.name_set = True
+        med.medication_name = nm
+        med.generic_name = nm
         med.item = item_code
         
         m_class = ensure_medication_class()
@@ -98,16 +101,20 @@ def ensure_batch(item, batch_in, expiry, hsn, gst, mrp, rate, net, upp):
         if frappe.db.get_value("Batch", bname, "item") == item:
             existing = bname
 
+    meta = frappe.get_meta("Batch")
+    def set_batch_fields(doc):
+        if expiry:
+            doc.expiry_date = expiry
+        for fn, val in [("hsn_code", hsn), ("gst_rate", gst), ("mrp", mrp),
+                        ("purchase_rate", rate), ("net_rate", net), ("units_per_pack", upp)]:
+            if meta.has_field(fn):
+                doc.set(fn, val)
+            if meta.has_field("custom_" + fn):
+                doc.set("custom_" + fn, val)
+
     if existing:
         b = frappe.get_doc("Batch", existing)
-        if expiry:
-            b.expiry_date = expiry
-        b.hsn_code = hsn
-        b.gst_rate = gst
-        b.mrp = mrp
-        b.purchase_rate = rate
-        b.net_rate = net
-        b.units_per_pack = upp
+        set_batch_fields(b)
         b.save(ignore_permissions=True)
         return b.name
     else:
@@ -121,15 +128,10 @@ def ensure_batch(item, batch_in, expiry, hsn, gst, mrp, rate, net, upp):
                 
         b = frappe.new_doc("Batch")
         b.name = target_name
+        b.flags.name_set = True
         b.batch_id = bname
         b.item = item
-        b.expiry_date = expiry
-        b.hsn_code = hsn
-        b.gst_rate = gst
-        b.mrp = mrp
-        b.purchase_rate = rate
-        b.net_rate = net
-        b.units_per_pack = upp
+        set_batch_fields(b)
         b.insert(ignore_permissions=True, ignore_mandatory=True)
         return b.name
 

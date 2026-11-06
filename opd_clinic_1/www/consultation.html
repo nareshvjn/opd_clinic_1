@@ -177,6 +177,11 @@ function call(method,params,post){
     return r.json().catch(function(){return {}}).then(function(j){
       if(!r.ok){var t='Something went wrong. Please try again.';
         try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message.replace(/<[^>]+>/g,'')}catch(e){}
+        if(t==='Something went wrong. Please try again.'){
+          if(j.exc_type)t=j.exc_type+(j.exception?': '+j.exception:'');
+          else if(j.exception)t=j.exception;
+          else if(j.message)t=j.message;
+        }
         if(/invalid request/i.test(t))t='Your session expired. Refresh the page and try again.';
         throw new Error(t)}
       return j.message})})
