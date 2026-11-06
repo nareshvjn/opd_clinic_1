@@ -168,7 +168,12 @@ function n(v){v=parseFloat(v);return isNaN(v)?0:v}
 function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function mmyy(d){if(!d)return '-';var p=d.split('-');return p[1]+'/'+p[0].slice(2)}
 function fmtDate(d){if(!d)return '-';var p=(d||'').slice(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0]}
-function qtyText(q,u){u=u||1;var pk=Math.floor(q/u+1e-9),ls=Math.round(q-pk*u);return pk+' Pack'+(pk===1?'':'s')+', '+ls+' Unit'+(ls===1?'':'s')}
+function qtyText(q,u){
+  u=(u&&u>1)?u:1;
+  var pk=(u>1)?Math.floor(q/u+1e-9):0;
+  var ls=(u>1)?Math.round(q-pk*u):Math.round(q);
+  return pk+' Pack'+(pk===1?'':'s')+', '+ls+' Unit'+(ls===1?'':'s');
+}
 function toast(t,bad){var e=$('#toast');e.textContent=t||'';e.className=bad?'bad':'';e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
 function debounce(fn){var t;return function(){clearTimeout(t);t=setTimeout(fn,250)}}
 
@@ -425,9 +430,15 @@ function renderList(){
   var map={},gs=[],val=0;
   rows.forEach(function(b){
     var gp=map[b.item];if(!gp){gp={item:b.item,name:b.name,qty:0,pk:0,un:0,exp:'',batches:[]};map[b.item]=gp;gs.push(gp)}
-    var u=b.upp||1,pp=Math.floor(b.qty/u+1e-9);gp.batches.push(b);gp.qty+=b.qty;gp.pk+=pp;gp.un+=Math.round(b.qty-pp*u);
+    var u=(b.upp&&b.upp>1)?b.upp:1;
+    var pp=(u>1)?Math.floor(b.qty/u+1e-9):0;
+    var uu=(u>1)?Math.round(b.qty-pp*u):Math.round(b.qty);
+    gp.batches.push(b);
+    gp.qty+=b.qty;
+    gp.pk+=pp;
+    gp.un+=uu;
     if(b.expiry&&(!gp.exp||b.expiry<gp.exp))gp.exp=b.expiry;
-    val+=b.qty/(b.upp||1)*(b.net_rate||0)
+    val+=b.qty/u*(b.net_rate||0)
   });
   gs.sort(function(a,b){
     if(s==='exp')return (a.exp||'9999').localeCompare(b.exp||'9999');
@@ -483,14 +494,19 @@ $('#ls-rows').onclick=function(e){
   if(![].some.call(gs.options,function(o){return o.value===gv}))gs.add(new Option(gv+'%',gv));
   gs.value=gv;g('ed','mrp').value=b.mrp||'';g('ed','rate').value=b.purchase_rate||'';g('ed','basis').value='excl';
   g('ed','upp').value=b.upp||1;
-  var upp=b.upp||1,pk=Math.floor(b.qty/upp+1e-9);g('ed','packs').value=pk;g('ed','units').value=Math.round(b.qty-pk*upp);
+  var upp=(b.upp&&b.upp>1)?b.upp:1;
+  var pk=(upp>1)?Math.floor(b.qty/upp+1e-9):0;
+  var un=(upp>1)?Math.round(b.qty-pk*upp):Math.round(b.qty);
+  g('ed','packs').value=pk;g('ed','units').value=un;
   ls.total=b.qty;calc('ed');
   $('#ls-edit').hidden=false;$('#ls-edit').scrollIntoView({block:'start',behavior:'smooth'})
 };
 
 g('ed','upp').onchange=function(){
   var u=Math.max(1,Math.floor(n(this.value)));this.value=u;
-  var pk=Math.floor(ls.total/u+1e-9);g('ed','packs').value=pk;g('ed','units').value=Math.round(ls.total-pk*u);calc('ed')
+  var pk=(u>1)?Math.floor(ls.total/u+1e-9):0;
+  var un=(u>1)?Math.round(ls.total-pk*u):Math.round(ls.total);
+  g('ed','packs').value=pk;g('ed','units').value=un;calc('ed')
 };
 
 [g('ed','packs'),g('ed','units')].forEach(function(el){el.oninput=function(){
