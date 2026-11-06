@@ -24,6 +24,21 @@ def wh_qty(b, w):
         pass
     return None
 
+def parse_upp_from_name(name):
+    if not name:
+        return 1
+    clean = str(name).lower().replace("'", " ").replace("(", " ").replace(")", " ").replace("/", " ")
+    words = clean.split()
+    for w in words:
+        if w.endswith("s") and len(w) > 1 and w[:-1].isdigit():
+            val = int(w[:-1])
+            if 1 < val <= 500:
+                return val
+    for i in range(len(words) - 1):
+        if words[i].isdigit() and words[i + 1] in ("tab", "tabs", "tablet", "tablets", "cap", "caps", "capsule", "capsules", "strip", "strips") and int(words[i]) <= 500:
+            return int(words[i])
+    return 1
+
 out = []
 try:
     f = frappe.form_dict
@@ -112,6 +127,16 @@ try:
         hsn = (b.get(f_hsn) if f_hsn else "") or ""
         upp = (b.get(f_upp) if f_upp else 1) or 1
         exp = str((b.get(f_exp) if f_exp else "") or "")
+
+        if upp <= 1:
+            name_upp = parse_upp_from_name(item_name or item_code)
+            if name_upp > 1:
+                upp = name_upp
+        if upp < 1:
+            upp = 1
+
+        if mrp <= 0 and pur > 0:
+            mrp = pur
 
         out.append({
             "batch": b.name,

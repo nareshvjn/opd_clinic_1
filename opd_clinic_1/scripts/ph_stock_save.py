@@ -204,7 +204,43 @@ def ensure_item(name, item_group=None, stock_uom=None, form=None, generic=None, 
     ensure_medication(code, name, form=form, generic=generic, mclass=mclass, strength=strength, unit=unit)
     return code
 
+def ensure_batch_fields():
+    meta = frappe.get_meta("Batch")
+    needed = [
+        ("mrp", "MRP", "Currency", "batch_qty"),
+        ("units_per_pack", "Units Per Pack", "Int", "mrp"),
+        ("purchase_rate", "Purchase Rate", "Currency", "units_per_pack"),
+        ("net_rate", "Net Rate", "Currency", "purchase_rate"),
+        ("gst_rate", "GST Rate", "Percent", "net_rate"),
+        ("hsn_code", "HSN Code", "Data", "gst_rate")
+    ]
+    created = False
+    for fn, label, ftype, after in needed:
+        if not (meta.has_field(fn) or meta.has_field("custom_" + fn)):
+            try:
+                cf = frappe.new_doc("Custom Field")
+                cf.dt = "Batch"
+                cf.fieldname = fn
+                cf.label = label
+                cf.fieldtype = ftype
+                if after:
+                    cf.insert_after = after
+                cf.insert(ignore_permissions=True)
+                created = True
+            except:
+                pass
+    if created:
+        try:
+            frappe.clear_cache(doctype="Batch")
+        except:
+            pass
+
 def ensure_batch(item, batch_in, expiry, hsn, gst, mrp, rate, net, upp):
+    try:
+        ensure_batch_fields()
+    except:
+        pass
+
     bname = (batch_in or "").strip()
     existing = frappe.db.get_value("Batch", {"batch_id": bname, "item": item}, "name")
     if not existing and frappe.db.exists("Batch", bname):
@@ -222,13 +258,13 @@ def ensure_batch(item, batch_in, expiry, hsn, gst, mrp, rate, net, upp):
             if meta.has_field("custom_" + fn):
                 doc.set("custom_" + fn, val)
 
+    target_name = bname
     if existing:
         b = frappe.get_doc("Batch", existing)
         set_batch_fields(b)
         b.save(ignore_permissions=True)
-        return b.name
+        target_name = b.name
     else:
-        target_name = bname
         if frappe.db.exists("Batch", target_name):
             target_name = bname + "-" + item
             n = 1
@@ -243,7 +279,22 @@ def ensure_batch(item, batch_in, expiry, hsn, gst, mrp, rate, net, upp):
         b.item = item
         set_batch_fields(b)
         b.insert(ignore_permissions=True, ignore_mandatory=True)
-        return b.name
+
+    for fn, val in [("hsn_code", hsn), ("gst_rate", gst), ("mrp", mrp),
+                    ("purchase_rate", rate), ("net_rate", net), ("units_per_pack", upp)]:
+        for fld in (fn, "custom_" + fn):
+            try:
+                frappe.db.set_value("Batch", target_name, fld, val, update_modified=False)
+            except:
+                pass
+
+    if mrp > 0:
+        try:
+            frappe.db.set_value("Item", item, "standard_rate", mrp, update_modified=False)
+        except:
+            pass
+
+    return target_name
 
 def wh_qty(b, w):
     try:

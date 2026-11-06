@@ -89,10 +89,21 @@ if patient and frappe.db.exists("Patient", patient):
 for ln in lines:
     batch_doc = ln.get("batch")
     b = frappe.get_doc("Batch", batch_doc)
-    upp = b.units_per_pack or 1
+    upp = b.get("units_per_pack") or b.get("custom_units_per_pack")
+    if not upp or int(upp) <= 1:
+        clean = str(b.item).lower().replace("'", " ").replace("(", " ").replace(")", " ")
+        for w in clean.split():
+            if w.endswith("s") and len(w) > 1 and w[:-1].isdigit():
+                val = int(w[:-1])
+                if 1 < val <= 500:
+                    upp = val
+                    break
+    upp = int(upp or 1)
+    if upp < 1:
+        upp = 1
     qty = num(ln.get("packs")) * upp + num(ln.get("units"))
     rate_incl = num(ln.get("rate"))
-    gst = num(b.gst_rate)
+    gst = num(b.get("gst_rate") or b.get("custom_gst_rate") or 0)
     rate_excl = rate_incl / (1 + gst / 100.0) if gst else rate_incl
     rate_unit = rate_excl / upp
 
