@@ -323,7 +323,7 @@ function showBatch(){
     '<div class="r"><b>'+qtyText(b.qty,b.upp)+'</b><br><span class="mute">'+b.upp+' unit(s) per pack</span></div></div>'+
     '<div class="rates"><div><span>Mrp Rate</span><b>'+inr(b.mrp)+'</b></div><div><span>Purc Rate</span><b>'+inr(b.purchase_rate)+'</b></div>'+
     '<div><span>Net Rate</span><b>'+inr(b.net_rate)+'</b></div><div><span>Margin</span><b>'+mg.toFixed(2)+'%</b></div></div>';
-  $('#sl-rate').value=b.mrp||'';calcSale()
+  $('#sl-rate').value=(b.mrp||b.purchase_rate||'')||'';calcSale()
 }
 
 $('#sl-fefo').onchange=function(){
@@ -349,7 +349,15 @@ function lu(l){var b=lb(l);return n(l.packs)*(b?b.upp:1)+n(l.units)}
 function used(batch){var t=0;sale.cart.forEach(function(l){if(l.batch===batch)t+=lu(l)});return t}
 function lAmt(l){var b=lb(l),upp=b?b.upp:1,r=n(l.rate)*(1-n(l.disc)/100);return n(l.packs)*r+n(l.units)*r/upp}
 function lMg(l){var b=lb(l),r=n(l.rate)*(1-n(l.disc)/100);return(b&&r>0)?(r-b.net_rate)/r*100:0}
-function mkLine(code,name,bs,b,units){var upp=b.upp||1,pk=Math.floor(units/upp),un=units-pk*upp;return {item:code,name:name,bs:bs,batch:b.batch,packs:pk,units:un,rate:b.mrp,disc:0}}
+function mkLine(code,name,bs,b,units){
+  var upp=(b&&b.upp>1)?b.upp:1,pk=0,un=units;
+  if(upp>1){
+    pk=Math.floor(units/upp);
+    un=units-pk*upp;
+  }
+  var rate=(b&&(b.mrp||b.purchase_rate||b.net_rate))?(b.mrp||b.purchase_rate||b.net_rate):0;
+  return {item:code,name:name,bs:bs,batch:b?b.batch:'',packs:pk,units:un,rate:rate,disc:0}
+}
 
 function cardHtml(l,i){
   var opts=l.bs.map(function(x){return '<option value="'+esc(x.batch)+'"'+(x.batch===l.batch?' selected':'')+'>'+esc(x.batch)+' (exp '+mmyy(x.expiry)+', '+qtyText(x.qty,x.upp)+')</option>'}).join('');
@@ -385,7 +393,13 @@ function renderCart(){
 $('#cart').oninput=$('#cart').onchange=function(e){
   var t=e.target,f=t.dataset.f;if(!f)return;
   var l=sale.cart[+t.closest('.ln').dataset.i];
-  if(f==='batch'){l.batch=t.value;var nb=lb(l);if(nb)l.rate=nb.mrp;renderCart();return}
+  if(f==='batch'){
+    l.batch=t.value;
+    var nb=lb(l);
+    if(nb&&(nb.mrp||nb.purchase_rate))l.rate=nb.mrp||nb.purchase_rate;
+    renderCart();
+    return
+  }
   l[f]=t.value;checkCart()
 };
 
