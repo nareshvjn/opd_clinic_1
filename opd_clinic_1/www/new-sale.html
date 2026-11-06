@@ -205,6 +205,11 @@ function call(method,params,post){
       if(!r.ok){
         var t='Something went wrong. Please try again.';
         try{var msgs=JSON.parse(j._server_messages);var last=JSON.parse(msgs[msgs.length-1]);t=(last.message||last).replace(/<[^>]+>/g,'')}catch(e){}
+        if(t==='Something went wrong. Please try again.'){
+          if(j.exc_type)t=j.exc_type+(j.exception?': '+j.exception:'');
+          else if(j.exception)t=j.exception;
+          else if(j.message)t=j.message;
+        }
         if(/invalid request|not logged in/i.test(t)){window.location.replace('/login?redirect-to='+encodeURIComponent(window.location.pathname));return}
         throw new Error(t);
       }
@@ -441,23 +446,34 @@ $('#rx-list').onclick=function(e){var b=e.target.closest('button[data-i]');if(b)
 
 function getBatches(code){
   if(bcache[code])return Promise.resolve(bcache[code]);
-  return call('ph_batches',{item:code}).then(function(r){bcache[code]=r.batches.filter(function(b){return b.qty>0});return bcache[code]})
+  return call('ph_batches',{item:code}).then(function(r){
+    var list=(r&&r.batches)?r.batches:[];
+    bcache[code]=list.filter(function(b){return n(b.qty)>0});
+    return bcache[code];
+  }).catch(function(e){
+    console.warn('Failed to fetch batches for', code, e);
+    bcache[code]=[];
+    return bcache[code];
+  });
 }
 
 function pull(e){
   var notes=[],added=0,p=Promise.resolve();
   e.drugs.forEach(function(d){
     p=p.then(function(){
-      if(!d.item){notes.push(d.drug+' (not in pharmacy)');return}
+      var iname=d.item_name||d.drug||d.item;
+      if(!d.item){notes.push(iname+' (not in pharmacy)');return}
       return getBatches(d.item).then(function(bs){
-        if(!bs.length){notes.push(d.item_name+' (out of stock)');return}
-        if(d.units<=0){sale.cart.push(mkLine(d.item,d.item_name,bs,bs[0],0));added++;notes.push(d.item_name+' (set quantity)');return}
+        if(!bs.length){notes.push(iname+' (out of stock)');return}
+        if(d.units<=0){sale.cart.push(mkLine(d.item,iname,bs,bs[0],0));added++;notes.push(iname+' (set quantity)');return}
         var left=d.units;
         bs.forEach(function(b){
           var avail=b.qty-used(b.batch);if(left<=0||avail<=0)return;
-          var take=Math.min(left,avail);sale.cart.push(mkLine(d.item,d.item_name,bs,b,take));left-=take;added++
+          var take=Math.min(left,avail);sale.cart.push(mkLine(d.item,iname,bs,b,take));left-=take;added++
         });
-        if(left>0)notes.push(d.item_name+' (short by '+left+' units)')
+        if(left>0)notes.push(iname+' (short by '+left+' units)')
+      }).catch(function(err){
+        notes.push(iname+' ('+(err.message||'error')+')');
       })
     })
   });

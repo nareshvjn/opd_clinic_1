@@ -19,10 +19,14 @@ for r in ["Physician", "Nursing User"]:
 if not ok:
     frappe.throw("You don't have access to consultations.")
 
-def names(dt):
+def names(dt, limit=500):
     out = []
     try:
-        for r in frappe.get_all(dt, fields=["name"], order_by="name", limit=500):
+        if limit:
+            records = frappe.get_all(dt, fields=["name"], order_by="name", limit=limit)
+        else:
+            records = frappe.get_all(dt, fields=["name"], order_by="name")
+        for r in records:
             out.append(r.name)
     except:
         pass
@@ -120,6 +124,27 @@ for h in frappe.get_all("Patient Encounter", filters=hx_filters,
         "comment": h.encounter_comment or "",
     })
 
+# Auto-cleanup: rename any Medications that were prefixed with "Tablet "
+if frappe.db.exists("DocType", "Medication"):
+    try:
+        bad_meds = frappe.get_all("Medication", filters=[["name", "like", "Tablet %"]], fields=["name"], limit=50)
+        for bm in bad_meds:
+            clean_name = bm.name
+            if clean_name.startswith("Tablet "):
+                clean_name = clean_name[7:]
+            elif clean_name.startswith("tablet "):
+                clean_name = clean_name[7:]
+            if clean_name.endswith(" mg"):
+                clean_name = clean_name[:-3]
+            clean_name = clean_name.strip()
+            if clean_name and clean_name != bm.name and not frappe.db.exists("Medication", clean_name):
+                try:
+                    frappe.rename_doc("Medication", bm.name, clean_name, ignore_permissions=True)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
 # Pharmacy stock items that are not Medications yet (including ones with no batches or no stock).
 # Choosing one in the consultation creates the Medication and links it to that item.
 stock_items = []
@@ -201,7 +226,7 @@ frappe.response["message"] = {
         "periods": names("Prescription Duration"),
         "labs": names("Lab Test Template"),
         "forms": names("Dosage Form"),
-        "classes": names("Medication Class"),
+        "classes": names("Medication Class", limit=None),
         "uoms": names("UOM"),
     },
     "med_forms": med_forms,

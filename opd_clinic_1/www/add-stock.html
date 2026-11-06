@@ -46,10 +46,18 @@
   <h2>Stock entry</h2>
   <label for="st-prod" style="margin-top:0">Product name</label>
   <input id="st-prod" list="dl-prod" autocomplete="off" placeholder="Search or type product name">
-  <label for="st-exist">Batch</label>
-  <select id="st-exist"><option value="">New batch</option></select>
+  <div class="g2" style="margin-top:8px">
+    <div>
+      <label for="st-form" style="margin-top:0">Dosage form</label>
+      <select id="st-form"></select>
+    </div>
+    <div>
+      <label for="st-exist" style="margin-top:0">Batch</label>
+      <select id="st-exist"><option value="">New batch</option></select>
+    </div>
+  </div>
   <div id="f-st"></div>
-  <p class="hint">For an existing batch, the packs and units entered will set the new total stock.</p>
+  <p class="hint">For an existing batch, the packs and units entered will set the new total stock. Automatically creates both Item and Medication entries.</p>
   <p style="margin:16px 0 0"><button type="button" class="btn go" id="st-save" style="width:100%">Save stock</button></p>
 </div>
 
@@ -129,6 +137,8 @@ $('#f-st').onchange=$('#f-st').oninput;
 call('ph_meta').then(function(m){
   csrf=m.csrf||'';wh=m.warehouse||'';
   $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
+  var dfs=(m.dosage_forms&&m.dosage_forms.length)?m.dosage_forms:['Tablet','Capsule','Syrup','Injection','Drops','Ointment','Cream','Suspension','Inhaler','Gel','Lotion','Powder','Spray'];
+  $('#st-form').innerHTML=dfs.map(function(f){return '<option'+(f==='Tablet'?' selected':'')+' value="'+esc(f)+'">'+esc(f)+'</option>'}).join('');
 }).catch(function(e){toast(e.message,1)});
 
 $('#wh').onchange=function(){wh=this.value};
@@ -166,7 +176,7 @@ $('#st-save').onclick=function(){
   var prod=$('#st-prod').value.trim(),d=read('st'),b=this;
   if(!prod||!d.batch||!d.expiry){toast('Enter product, batch no and expiry.',1);return}
   if(n(d.mrp)<=0||n(d.rate)<=0){toast('Enter MRP and purchase rate.',1);return}
-  d.product=prod;d.warehouse=wh;b.disabled=true;
+  d.product=prod;d.form=$('#st-form').value;d.warehouse=wh;b.disabled=true;
   call('ph_stock_save',d,true).then(function(r){
     toast('Saved batch '+r.batch+' of '+r.item+'. Total stock is now '+r.units+' unit(s).');
     clearForm('st');$('#st-prod').value='';$('#st-exist').innerHTML='<option value="">New batch</option>'
