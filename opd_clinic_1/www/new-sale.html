@@ -328,9 +328,9 @@ function renderItem(){
 
 function batchMrp(b){
   if(!b)return 0;
-  if(n(b.mrp)>0)return n(b.mrp);
-  var p=n(b.purchase_rate)||n(b.net_rate);
-  if(p>0)return Math.round(p*(1+n(b.gst)/100)*100)/100;
+  var gst=n(b.gst);
+  var base=n(b.mrp)>0?n(b.mrp):(n(b.purchase_rate)||n(b.net_rate));
+  if(base>0)return Math.round(base*(1+gst/100)*100)/100;
   return 0;
 }
 
@@ -342,7 +342,7 @@ function showBatch(){
   var mg=(bm>0&&cost>0)?(1-cost/bm)*100:0;
   $('#sl-batch').innerHTML='<div class="split"><div><b style="font-size:1.05rem">'+esc(b.batch)+'</b><br><span class="mute">Expiry Date: '+mmyy(b.expiry)+'</span></div>'+
     '<div class="r"><b>'+qtyText(b.qty,b.upp)+'</b><br><span class="mute">'+b.upp+' unit(s) per pack</span></div></div>'+
-    '<div class="rates"><div><span>MRP</span><b>'+inr(bm)+'</b></div><div><span>Purchase Rate</span><b>'+inr(b.purchase_rate)+'</b></div>'+
+    '<div class="rates"><div><span>MRP (incl GST)</span><b>'+inr(bm)+'</b></div><div><span>Purchase Rate</span><b>'+inr(b.purchase_rate)+'</b></div>'+
     '<div><span>Net Rate</span><b>'+inr(b.net_rate)+'</b></div><div><span>Margin</span><b>'+mg.toFixed(2)+'%</b></div></div>';
   $('#sl-rate').value=bm>0?bm:'';calcSale()
 }
