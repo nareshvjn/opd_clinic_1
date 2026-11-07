@@ -124,7 +124,8 @@ function calc(p){
   var d=read(p),gst=n(d.gst),excl=d.basis==='incl'?n(d.rate)/(1+gst/100):n(d.rate);
   var net=excl,mrpx=n(d.mrp)/(1+gst/100),upp=Math.max(1,n(d.upp));
   var mrpVal=n(d.mrp);
-  var mg=mrpx>0?(mrpx-net)/mrpx*100:0,amt=(n(d.packs)+n(d.units)/upp)*(mrpVal>0?mrpVal:net);
+  var mrpWithGst=mrpVal>0?Math.round(mrpVal*(1+gst/100)*100)/100:0;
+  var mg=mrpx>0?(mrpx-net)/mrpx*100:0,amt=(n(d.packs)+n(d.units)/upp)*(mrpWithGst>0?mrpWithGst:net);
   g(p,'mg').textContent=mg.toFixed(2)+'%';g(p,'am').textContent=inr(amt);
   return {net:net,amt:amt,gst:gst}
 }
