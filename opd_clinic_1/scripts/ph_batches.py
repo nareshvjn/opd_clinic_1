@@ -89,6 +89,15 @@ try:
                     item_mrp = float(sr)
             except Exception:
                 pass
+        if not item_mrp:
+            for col in ("custom_mrp", "mrp"):
+                try:
+                    val = frappe.db.get_value("Item", item, col)
+                    if val and float(val) > 0:
+                        item_mrp = float(val)
+                        break
+                except Exception:
+                    pass
 
         meta = frappe.get_meta("Batch")
 
