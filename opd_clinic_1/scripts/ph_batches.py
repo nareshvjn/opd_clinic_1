@@ -90,16 +90,58 @@ try:
             except Exception:
                 pass
 
-        batches = frappe.db.sql("""
-            SELECT * FROM `tabBatch`
-            WHERE (item = %s OR name IN (SELECT parent FROM `tabStock Ledger Entry` WHERE item_code = %s))
-              AND (disabled = 0 OR disabled IS NULL)
-            ORDER BY ifnull(expiry_date, '9999-12-31') asc, name asc
-        """, (item, item), as_dict=True)
+        meta = frappe.get_meta("Batch")
+
+        def find_f(fn):
+            if meta.has_field(fn):
+                return fn
+            if meta.has_field("custom_" + fn):
+                return "custom_" + fn
+            return None
+
+        f_exp = find_f("expiry_date")
+        f_qty = find_f("batch_qty")
+        f_mrp = find_f("mrp")
+        f_pur = find_f("purchase_rate")
+        f_net = find_f("net_rate")
+        f_gst = find_f("gst_rate")
+        f_hsn = find_f("hsn_code")
+        f_upp = find_f("units_per_pack")
+
+        fields = ["name"]
+        for f in [f_exp, f_qty, f_mrp, f_pur, f_net, f_gst, f_hsn, f_upp]:
+            if f and f not in fields:
+                fields.append(f)
+
+        item_field = "item" if meta.has_field("item") else ("item_code" if meta.has_field("item_code") else "item")
+        filters = {}
+        if item_field:
+            filters[item_field] = item
+        if meta.has_field("disabled"):
+            filters["disabled"] = 0
+
+        order_by = (f_exp + " asc") if (f_exp and meta.has_field(f_exp)) else "name asc"
+
+        batches = []
+        try:
+            batches = frappe.get_all("Batch", filters=filters, fields=fields, order_by=order_by)
+        except Exception:
+            batches = []
+
+        if not batches:
+            try:
+                batches = frappe.db.sql("""
+                    SELECT name, expiry_date, batch_qty FROM `tabBatch`
+                    WHERE (item = %s OR batch_id = %s)
+                      AND (disabled = 0 OR disabled IS NULL)
+                    ORDER BY ifnull(expiry_date, '9999-12-31') asc, name asc
+                """, (item, item), as_dict=True)
+            except Exception:
+                pass
 
         for b in batches:
             bname = b.get("name")
-            qty = b.get("batch_qty") or 0
+            qty = (b.get(f_qty) if f_qty else 0) or 0
             try:
                 s = frappe.db.sql("""select sum(actual_qty) from `tabStock Ledger Entry`
                     where batch_no = %s and is_cancelled = 0""", (bname,))
@@ -108,18 +150,49 @@ try:
             except Exception:
                 pass
 
-            mrp = float(b.get("mrp") or b.get("custom_mrp") or 0)
-            pur = float(b.get("purchase_rate") or b.get("custom_purchase_rate") or 0)
-            net = float(b.get("net_rate") or b.get("custom_net_rate") or pur or 0)
-            gst = float(b.get("gst_rate") or b.get("custom_gst_rate") or 0)
-            hsn = str(b.get("hsn_code") or b.get("custom_hsn_code") or "")
-            upp = int(b.get("units_per_pack") or b.get("custom_units_per_pack") or 0)
-            exp = str(b.get("expiry_date") or "")
+            mrp = float((b.get(f_mrp) if f_mrp else 0) or 0)
+            pur = float((b.get(f_pur) if f_pur else 0) or 0)
+            net = float((b.get(f_net) if f_net else pur) or pur or 0)
+            gst = float((b.get(f_gst) if f_gst else 0) or 0)
+            hsn = str((b.get(f_hsn) if f_hsn else "") or "")
+            upp = int((b.get(f_upp) if f_upp else 1) or 1)
+            exp = str((b.get(f_exp) if f_exp else "") or "")
+
+            if mrp <= 0:
+                for col in ("custom_mrp", "mrp"):
+                    try:
+                        val = frappe.db.get_value("Batch", bname, col)
+                        if val and float(val) > 0:
+                            mrp = float(val)
+                            break
+                    except Exception:
+                        pass
+
+            if upp <= 1:
+                for col in ("custom_units_per_pack", "units_per_pack"):
+                    try:
+                        val = frappe.db.get_value("Batch", bname, col)
+                        if val and int(val) > 1:
+                            upp = int(val)
+                            break
+                    except Exception:
+                        pass
 
             if upp <= 1 and item_upp > 1:
                 upp = item_upp
             if upp < 1:
                 upp = 1
+
+            if pur <= 0 or net <= 0:
+                for col in ("custom_purchase_rate", "purchase_rate"):
+                    try:
+                        val = frappe.db.get_value("Batch", bname, col)
+                        if val and float(val) > 0:
+                            pur = float(val)
+                            net = pur
+                            break
+                    except Exception:
+                        pass
 
             if pur <= 0 or net <= 0:
                 try:
@@ -142,13 +215,13 @@ try:
                     mrp = pur
 
             heal_dict = {}
-            if mrp > 0 and not (b.get("mrp") or b.get("custom_mrp")):
+            if mrp > 0 and not (b.get(f_mrp) if f_mrp else None):
                 heal_dict["mrp"] = mrp
                 heal_dict["custom_mrp"] = mrp
-            if upp > 1 and not (b.get("units_per_pack") or b.get("custom_units_per_pack")):
+            if upp > 1 and not (b.get(f_upp) if f_upp else None):
                 heal_dict["units_per_pack"] = upp
                 heal_dict["custom_units_per_pack"] = upp
-            if pur > 0 and not (b.get("purchase_rate") or b.get("custom_purchase_rate")):
+            if pur > 0 and not (b.get(f_pur) if f_pur else None):
                 heal_dict["purchase_rate"] = pur
                 heal_dict["custom_purchase_rate"] = pur
 
