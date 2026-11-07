@@ -136,7 +136,7 @@ try:
             upp = 1
 
         if mrp <= 0 and pur > 0:
-            mrp = pur
+            mrp = round(pur * (1 + (gst or 0) / 100.0), 2)
 
         out.append({
             "batch": b.name,

@@ -107,13 +107,13 @@
     <div id="sl-batch" style="margin-top:12px"></div>
   </div>
   <div class="card">
-    <h3>Qty, rate &amp; discount</h3>
+    <h3>Qty, MRP &amp; discount</h3>
     <div class="g2">
       <div><label for="sl-pk">Sale qty in packs</label><input id="sl-pk" type="number" min="0" inputmode="numeric" placeholder="Packs"></div>
       <div><label for="sl-un">Sale qty in loose units</label><input id="sl-un" type="number" min="0" inputmode="numeric" placeholder="Units"></div>
     </div>
     <div class="g2">
-      <div><label for="sl-rate">Sale rate (incl GST)</label><input id="sl-rate" type="number" step="any" inputmode="decimal"></div>
+      <div><label for="sl-rate">MRP (incl GST)</label><input id="sl-rate" type="number" step="any" inputmode="decimal"></div>
       <div><label for="sl-disc">Sale discount (%)</label><input id="sl-disc" type="number" step="any" inputmode="decimal" value="0"></div>
     </div>
     <div class="bar">
@@ -127,7 +127,7 @@
 <!-- Cart / Bill section -->
 <div class="card" id="cart-card" hidden>
   <h2>Bill</h2>
-  <p class="hint" style="margin:0 0 6px">Change batch, quantity, rate or discount on any line, or remove it.</p>
+  <p class="hint" style="margin:0 0 6px">Change batch, quantity, MRP or discount on any line, or remove it.</p>
   <div id="cart"></div>
 
   <button type="button" class="sech" data-tg="bd-body" aria-expanded="false">
@@ -326,15 +326,25 @@ function renderItem(){
   showBatch()
 }
 
+function batchMrp(b){
+  if(!b)return 0;
+  if(n(b.mrp)>0)return n(b.mrp);
+  var p=n(b.purchase_rate)||n(b.net_rate);
+  if(p>0)return Math.round(p*(1+n(b.gst)/100)*100)/100;
+  return 0;
+}
+
 function showBatch(){
   var b=sale.b;
   if(!b){$('#sl-batch').innerHTML='<p class="hint">Pick a batch with "See all".</p>';$('#sl-rate').value='';calcSale();return}
-  var mg=b.mrp>0?(1-b.net_rate/b.mrp)*100:0;
+  var bm=batchMrp(b);
+  var cost=n(b.net_rate)||n(b.purchase_rate);
+  var mg=(bm>0&&cost>0)?(1-cost/bm)*100:0;
   $('#sl-batch').innerHTML='<div class="split"><div><b style="font-size:1.05rem">'+esc(b.batch)+'</b><br><span class="mute">Expiry Date: '+mmyy(b.expiry)+'</span></div>'+
     '<div class="r"><b>'+qtyText(b.qty,b.upp)+'</b><br><span class="mute">'+b.upp+' unit(s) per pack</span></div></div>'+
-    '<div class="rates"><div><span>Mrp Rate</span><b>'+inr(b.mrp)+'</b></div><div><span>Purc Rate</span><b>'+inr(b.purchase_rate)+'</b></div>'+
+    '<div class="rates"><div><span>MRP</span><b>'+inr(bm)+'</b></div><div><span>Purchase Rate</span><b>'+inr(b.purchase_rate)+'</b></div>'+
     '<div><span>Net Rate</span><b>'+inr(b.net_rate)+'</b></div><div><span>Margin</span><b>'+mg.toFixed(2)+'%</b></div></div>';
-  $('#sl-rate').value=(b.mrp||b.purchase_rate||'')||'';calcSale()
+  $('#sl-rate').value=bm>0?bm:'';calcSale()
 }
 
 $('#sl-fefo').onchange=function(){
@@ -350,7 +360,8 @@ $('#sl-list').onclick=function(e){
 function calcSale(){
   var b=sale.b,upp=b?(b.upp||1):1,r=n($('#sl-rate').value)*(1-n($('#sl-disc').value)/100);
   var amt=n($('#sl-pk').value)*r+n($('#sl-un').value)*r/upp;
-  var mg=(b&&r>0)?(r-b.net_rate)/r*100:0;
+  var cost=b?(n(b.net_rate)||n(b.purchase_rate)):0;
+  var mg=(b&&r>0&&cost>0)?(r-cost)/r*100:0;
   $('#sl-mg').textContent=mg.toFixed(2)+'%';$('#sl-am').textContent=inr(amt);return amt
 }
 ['sl-pk','sl-un','sl-rate','sl-disc'].forEach(function(id){$('#'+id).oninput=calcSale});
@@ -359,14 +370,14 @@ function lb(l){for(var i=0;i<l.bs.length;i++){if(l.bs[i].batch===l.batch)return 
 function lu(l){var b=lb(l);return n(l.packs)*(b?b.upp:1)+n(l.units)}
 function used(batch){var t=0;sale.cart.forEach(function(l){if(l.batch===batch)t+=lu(l)});return t}
 function lAmt(l){var b=lb(l),upp=b?b.upp:1,r=n(l.rate)*(1-n(l.disc)/100);return n(l.packs)*r+n(l.units)*r/upp}
-function lMg(l){var b=lb(l),r=n(l.rate)*(1-n(l.disc)/100);return(b&&r>0)?(r-b.net_rate)/r*100:0}
+function lMg(l){var b=lb(l),r=n(l.rate)*(1-n(l.disc)/100),cost=b?(n(b.net_rate)||n(b.purchase_rate)):0;return(b&&r>0&&cost>0)?(r-cost)/r*100:0}
 function mkLine(code,name,bs,b,units){
   var upp=(b&&b.upp>1)?b.upp:1,pk=0,un=units;
   if(upp>1){
     pk=Math.floor(units/upp);
     un=units-pk*upp;
   }
-  var rate=(b&&(b.mrp||b.purchase_rate||b.net_rate))?(b.mrp||b.purchase_rate||b.net_rate):0;
+  var rate=batchMrp(b);
   return {item:code,name:name,bs:bs,batch:b?b.batch:'',packs:pk,units:un,rate:rate,disc:0}
 }
 
@@ -376,7 +387,7 @@ function cardHtml(l,i){
     '<label>Batch</label><select data-f="batch">'+opts+'</select>'+
     '<div class="g4"><div><label>Packs</label><input type="number" min="0" inputmode="numeric" data-f="packs" value="'+esc(l.packs)+'"></div>'+
     '<div><label>Loose units</label><input type="number" min="0" inputmode="numeric" data-f="units" value="'+esc(l.units)+'"></div>'+
-    '<div><label>Rate (incl GST)</label><input type="number" step="any" inputmode="decimal" data-f="rate" value="'+esc(l.rate)+'"></div>'+
+    '<div><label>MRP (incl GST)</label><input type="number" step="any" inputmode="decimal" data-f="rate" value="'+esc(l.rate)+'"></div>'+
     '<div><label>Discount %</label><input type="number" step="any" inputmode="decimal" data-f="disc" value="'+esc(l.disc)+'"></div></div>'+
     '<div class="split" style="margin-top:8px"><span class="mute">Margin <b class="lm"></b></span><span>Amount <b class="la"></b></span></div>'+
     '<p class="hint lw" style="color:#b3261e" hidden></p></div>'
@@ -389,7 +400,7 @@ function checkCart(){
     if(!b)msg='Pick a batch.';
     else if(lu(l)<=0)msg='Set the quantity.';
     else if(used(l.batch)>b.qty)msg='Only '+qtyText(b.qty,b.upp)+' in stock for batch '+b.batch+'.';
-    else if(n(l.rate)<=0)msg='Enter sale rate.';
+    else if(n(l.rate)<=0)msg='Enter MRP.';
     card.querySelector('.la').textContent=inr(lAmt(l));card.querySelector('.lm').textContent=lMg(l).toFixed(2)+'%';
     w.textContent=msg;w.hidden=!msg;if(msg)ok=false
   });
@@ -407,7 +418,8 @@ $('#cart').oninput=$('#cart').onchange=function(e){
   if(f==='batch'){
     l.batch=t.value;
     var nb=lb(l);
-    if(nb&&(nb.mrp||nb.purchase_rate))l.rate=nb.mrp||nb.purchase_rate;
+    var nbm=batchMrp(nb);
+    if(nbm>0)l.rate=nbm;
     renderCart();
     return
   }
@@ -421,7 +433,7 @@ $('#sl-add').onclick=function(){
   var pk=n($('#sl-pk').value),un=n($('#sl-un').value),upp=b.upp||1,units=pk*upp+un;
   if(units<=0){toast('Enter quantity to sell.',1);return}
   if(units+used(b.batch)>b.qty){toast('Only '+qtyText(b.qty-used(b.batch),upp)+' left in batch '+b.batch+'.',1);return}
-  if(n($('#sl-rate').value)<=0){toast('Enter sale rate.',1);return}
+  if(n($('#sl-rate').value)<=0){toast('Enter MRP.',1);return}
   sale.cart.push({item:sale.item.code,name:sale.item.name,bs:sale.bs,batch:b.batch,packs:pk,units:un,rate:n($('#sl-rate').value),disc:n($('#sl-disc').value)});
   sale.item=null;sale.b=null;sale.bs=[];$('#sl-item').hidden=true;
   ['sl-pk','sl-un'].forEach(function(id){$('#'+id).value=''});$('#sl-disc').value='0';$('#sl-q').value='';

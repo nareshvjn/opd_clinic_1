@@ -212,7 +212,7 @@ try:
                 if item_mrp > 0:
                     mrp = item_mrp
                 elif pur > 0:
-                    mrp = pur
+                    mrp = round(pur * (1 + (gst or 0) / 100.0), 2)
 
             heal_dict = {}
             if mrp > 0 and not (b.get(f_mrp) if f_mrp else None):
