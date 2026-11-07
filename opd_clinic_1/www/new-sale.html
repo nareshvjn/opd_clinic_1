@@ -107,13 +107,13 @@
     <div id="sl-batch" style="margin-top:12px"></div>
   </div>
   <div class="card">
-    <h3>Qty, MRP &amp; discount</h3>
+    <h3>Qty, Effective MRP &amp; discount</h3>
     <div class="g2">
       <div><label for="sl-pk">Sale qty in packs</label><input id="sl-pk" type="number" min="0" inputmode="numeric" placeholder="Packs"></div>
       <div><label for="sl-un">Sale qty in loose units</label><input id="sl-un" type="number" min="0" inputmode="numeric" placeholder="Units"></div>
     </div>
     <div class="g2">
-      <div><label for="sl-rate">MRP (incl GST)</label><input id="sl-rate" type="number" step="any" inputmode="decimal"></div>
+      <div><label for="sl-rate">Effective MRP (incl GST)</label><input id="sl-rate" type="number" step="any" inputmode="decimal"></div>
       <div><label for="sl-disc">Sale discount (%)</label><input id="sl-disc" type="number" step="any" inputmode="decimal" value="0"></div>
     </div>
     <div class="bar">
@@ -127,7 +127,7 @@
 <!-- Cart / Bill section -->
 <div class="card" id="cart-card" hidden>
   <h2>Bill</h2>
-  <p class="hint" style="margin:0 0 6px">Change batch, quantity, MRP or discount on any line, or remove it.</p>
+  <p class="hint" style="margin:0 0 6px">Change batch, quantity, Effective MRP or discount on any line, or remove it.</p>
   <div id="cart"></div>
 
   <button type="button" class="sech" data-tg="bd-body" aria-expanded="false">
@@ -334,6 +334,29 @@ function batchMrp(b){
   return 0;
 }
 
+function currentBillDiscPct(){
+  var pctInput=$('#bd-pct').value.trim(),amtInput=$('#bd-amt').value.trim();
+  if(!pctInput&&!amtInput)return null;
+  var gross=0;sale.cart.forEach(function(l){gross+=lGross(l)});
+  var pct=0;
+  if(amtInput!==''){
+    var amt=n(amtInput);
+    if(gross>0&&amt>0)pct=(amt/gross)*100;
+  }else if(pctInput!==''){
+    pct=n(pctInput);
+  }
+  if(pct<0)pct=0;
+  if(pct>100)pct=100;
+  return Math.round(pct*10000)/10000;
+}
+
+function applyOverallDiscount(){
+  var pct=currentBillDiscPct();
+  if(pct==null)return false;
+  sale.cart.forEach(function(l){l.disc=pct});
+  return true;
+}
+
 function showBatch(){
   var b=sale.b;
   if(!b){$('#sl-batch').innerHTML='<p class="hint">Pick a batch with "See all".</p>';$('#sl-rate').value='';calcSale();return}
@@ -342,9 +365,12 @@ function showBatch(){
   var mg=(bm>0&&cost>0)?(1-cost/bm)*100:0;
   $('#sl-batch').innerHTML='<div class="split"><div><b style="font-size:1.05rem">'+esc(b.batch)+'</b><br><span class="mute">Expiry Date: '+mmyy(b.expiry)+'</span></div>'+
     '<div class="r"><b>'+qtyText(b.qty,b.upp)+'</b><br><span class="mute">'+b.upp+' unit(s) per pack</span></div></div>'+
-    '<div class="rates"><div><span>MRP (incl GST)</span><b>'+inr(bm)+'</b></div><div><span>Purchase Rate</span><b>'+inr(b.purchase_rate)+'</b></div>'+
+    '<div class="rates"><div><span>Effective MRP (incl GST)</span><b>'+inr(bm)+'</b></div><div><span>Purchase Rate</span><b>'+inr(b.purchase_rate)+'</b></div>'+
     '<div><span>Net Rate</span><b>'+inr(b.net_rate)+'</b></div><div><span>Margin</span><b>'+mg.toFixed(2)+'%</b></div></div>';
-  $('#sl-rate').value=bm>0?bm:'';calcSale()
+  $('#sl-rate').value=bm>0?bm:'';
+  var curDisc=currentBillDiscPct();
+  if(curDisc!=null)$('#sl-disc').value=curDisc;
+  calcSale()
 }
 
 $('#sl-fefo').onchange=function(){
@@ -358,8 +384,11 @@ $('#sl-list').onclick=function(e){
 };
 
 function calcSale(){
-  var b=sale.b,upp=b?(b.upp||1):1,r=n($('#sl-rate').value)*(1-n($('#sl-disc').value)/100);
-  var amt=n($('#sl-pk').value)*r+n($('#sl-un').value)*r/upp;
+  var b=sale.b,upp=(b&&b.upp>1)?b.upp:1;
+  var totUnits=n($('#sl-pk').value)*upp+n($('#sl-un').value);
+  var r=n($('#sl-rate').value);
+  var unitRate=upp>1?r/upp:r;
+  var amt=totUnits*unitRate*(1-n($('#sl-disc').value)/100);
   var cost=b?(n(b.net_rate)||n(b.purchase_rate)):0;
   var mg=(b&&r>0&&cost>0)?(r-cost)/r*100:0;
   $('#sl-mg').textContent=mg.toFixed(2)+'%';$('#sl-am').textContent=inr(amt);return amt
@@ -367,10 +396,26 @@ function calcSale(){
 ['sl-pk','sl-un','sl-rate','sl-disc'].forEach(function(id){$('#'+id).oninput=calcSale});
 
 function lb(l){for(var i=0;i<l.bs.length;i++){if(l.bs[i].batch===l.batch)return l.bs[i]}return null}
-function lu(l){var b=lb(l);return n(l.packs)*(b?b.upp:1)+n(l.units)}
+function lu(l){var b=lb(l),upp=(b&&b.upp>1)?b.upp:1;return n(l.packs)*upp+n(l.units)}
 function used(batch){var t=0;sale.cart.forEach(function(l){if(l.batch===batch)t+=lu(l)});return t}
-function lAmt(l){var b=lb(l),upp=b?b.upp:1,r=n(l.rate)*(1-n(l.disc)/100);return n(l.packs)*r+n(l.units)*r/upp}
-function lMg(l){var b=lb(l),r=n(l.rate)*(1-n(l.disc)/100),cost=b?(n(b.net_rate)||n(b.purchase_rate)):0;return(b&&r>0&&cost>0)?(r-cost)/r*100:0}
+function lAmt(l){
+  var b=lb(l),upp=(b&&b.upp>1)?b.upp:1;
+  var totUnits=n(l.packs)*upp+n(l.units);
+  var unitRate=upp>1?n(l.rate)/upp:n(l.rate);
+  return totUnits*unitRate*(1-n(l.disc)/100);
+}
+function lGross(l){
+  var b=lb(l),upp=(b&&b.upp>1)?b.upp:1;
+  var totUnits=n(l.packs)*upp+n(l.units);
+  var unitRate=upp>1?n(l.rate)/upp:n(l.rate);
+  return totUnits*unitRate;
+}
+function lMg(l){
+  var b=lb(l),upp=(b&&b.upp>1)?b.upp:1;
+  var r=n(l.rate)*(1-n(l.disc)/100);
+  var cost=b?(n(b.net_rate)||n(b.purchase_rate)):0;
+  return(b&&r>0&&cost>0)?(r-cost)/r*100:0;
+}
 function mkLine(code,name,bs,b,units){
   var upp=(b&&b.upp>1)?b.upp:1,pk=0,un=units;
   if(upp>1){
@@ -378,7 +423,9 @@ function mkLine(code,name,bs,b,units){
     un=units-pk*upp;
   }
   var rate=batchMrp(b);
-  return {item:code,name:name,bs:bs,batch:b?b.batch:'',packs:pk,units:un,rate:rate,disc:0}
+  var curDisc=currentBillDiscPct();
+  var disc=(curDisc!=null)?curDisc:0;
+  return {item:code,name:name,bs:bs,batch:b?b.batch:'',packs:pk,units:un,rate:rate,disc:disc}
 }
 
 function cardHtml(l,i){
@@ -387,7 +434,7 @@ function cardHtml(l,i){
     '<label>Batch</label><select data-f="batch">'+opts+'</select>'+
     '<div class="g4"><div><label>Packs</label><input type="number" min="0" inputmode="numeric" data-f="packs" value="'+esc(l.packs)+'"></div>'+
     '<div><label>Loose units</label><input type="number" min="0" inputmode="numeric" data-f="units" value="'+esc(l.units)+'"></div>'+
-    '<div><label>MRP (incl GST)</label><input type="number" step="any" inputmode="decimal" data-f="rate" value="'+esc(l.rate)+'"></div>'+
+    '<div><label>Effective MRP (incl GST)</label><input type="number" step="any" inputmode="decimal" data-f="rate" value="'+esc(l.rate)+'"></div>'+
     '<div><label>Discount %</label><input type="number" step="any" inputmode="decimal" data-f="disc" value="'+esc(l.disc)+'"></div></div>'+
     '<div class="split" style="margin-top:8px"><span class="mute">Margin <b class="lm"></b></span><span>Amount <b class="la"></b></span></div>'+
     '<p class="hint lw" style="color:#b3261e" hidden></p></div>'
@@ -400,7 +447,7 @@ function checkCart(){
     if(!b)msg='Pick a batch.';
     else if(lu(l)<=0)msg='Set the quantity.';
     else if(used(l.batch)>b.qty)msg='Only '+qtyText(b.qty,b.upp)+' in stock for batch '+b.batch+'.';
-    else if(n(l.rate)<=0)msg='Enter MRP.';
+    else if(n(l.rate)<=0)msg='Enter Effective MRP.';
     card.querySelector('.la').textContent=inr(lAmt(l));card.querySelector('.lm').textContent=lMg(l).toFixed(2)+'%';
     w.textContent=msg;w.hidden=!msg;if(msg)ok=false
   });
@@ -420,23 +467,39 @@ $('#cart').oninput=$('#cart').onchange=function(e){
     var nb=lb(l);
     var nbm=batchMrp(nb);
     if(nbm>0)l.rate=nbm;
+    if(currentBillDiscPct()!=null)applyOverallDiscount();
     renderCart();
     return
   }
-  l[f]=t.value;checkCart()
+  l[f]=t.value;
+  if((f==='packs'||f==='units'||f==='rate')&&$('#bd-amt').value.trim()!==''){
+    applyOverallDiscount();
+  }
+  checkCart()
 };
 
-$('#cart').onclick=function(e){var b=e.target.closest('[data-rm]');if(b){sale.cart.splice(+b.dataset.rm,1);renderCart()}};
+$('#cart').onclick=function(e){
+  var b=e.target.closest('[data-rm]');
+  if(b){
+    sale.cart.splice(+b.dataset.rm,1);
+    if(currentBillDiscPct()!=null)applyOverallDiscount();
+    renderCart()
+  }
+};
 
 $('#sl-add').onclick=function(){
   var b=sale.b;if(!b){toast('Pick a batch first.',1);return}
-  var pk=n($('#sl-pk').value),un=n($('#sl-un').value),upp=b.upp||1,units=pk*upp+un;
+  var pk=n($('#sl-pk').value),un=n($('#sl-un').value),upp=(b&&b.upp>1)?b.upp:1,units=pk*upp+un;
   if(units<=0){toast('Enter quantity to sell.',1);return}
   if(units+used(b.batch)>b.qty){toast('Only '+qtyText(b.qty-used(b.batch),upp)+' left in batch '+b.batch+'.',1);return}
-  if(n($('#sl-rate').value)<=0){toast('Enter MRP.',1);return}
-  sale.cart.push({item:sale.item.code,name:sale.item.name,bs:sale.bs,batch:b.batch,packs:pk,units:un,rate:n($('#sl-rate').value),disc:n($('#sl-disc').value)});
+  if(n($('#sl-rate').value)<=0){toast('Enter Effective MRP.',1);return}
+  var disc=n($('#sl-disc').value);
+  var billPct=currentBillDiscPct();
+  if(billPct!=null && disc===0) disc=billPct;
+  sale.cart.push({item:sale.item.code,name:sale.item.name,bs:sale.bs,batch:b.batch,packs:pk,units:un,rate:n($('#sl-rate').value),disc:disc});
   sale.item=null;sale.b=null;sale.bs=[];$('#sl-item').hidden=true;
   ['sl-pk','sl-un'].forEach(function(id){$('#'+id).value=''});$('#sl-disc').value='0';$('#sl-q').value='';
+  if(currentBillDiscPct()!=null)applyOverallDiscount();
   renderCart();toast('');$('#sl-q').focus()
 };
 
@@ -515,6 +578,7 @@ function pull(e){
     })
   });
   p.then(function(){
+    if(currentBillDiscPct()!=null)applyOverallDiscount();
     renderCart();
     toast(added+' line(s) added from prescription. Review below.'+(notes.length?' Check: '+notes.join('; ')+'.':''),notes.length>0&&!added);
     $('#cart-card').scrollIntoView({block:'start',behavior:'smooth'})
@@ -522,8 +586,7 @@ function pull(e){
 }
 
 // Totals calculation
-function lGross(l){var b=lb(l),upp=b?b.upp:1;return n(l.packs)*n(l.rate)+n(l.units)*n(l.rate)/upp}
-function lCost(l){var b=lb(l);return b?lu(l)/(b.upp||1)*n(b.net_rate):0}
+function lCost(l){var b=lb(l),upp=(b&&b.upp>1)?b.upp:1;return b?lu(l)/upp*n(b.net_rate):0}
 function lGst(l){var b=lb(l),a=lAmt(l);return b?a-a/(1+n(b.gst)/100):0}
 function r2(v){return Math.round(v*100)/100}
 
@@ -543,19 +606,26 @@ document.querySelectorAll('#ns .sech[data-tg]').forEach(function(h){
 });
 
 $('#cc-amt').oninput=totals;
-$('#bd-pct').oninput=function(){if(this.value!=='')$('#bd-amt').value=''};
-$('#bd-amt').oninput=function(){if(this.value!=='')$('#bd-pct').value=''};
+$('#bd-pct').oninput=function(){if(this.value!=='') $('#bd-amt').value='';applyOverallDiscount();renderCart()};
+$('#bd-amt').oninput=function(){if(this.value!=='') $('#bd-pct').value='';applyOverallDiscount();renderCart()};
 
 $('#bd-apply').onclick=function(){
   var gross=0;sale.cart.forEach(function(l){gross+=lGross(l)});
   if(gross<=0){toast('Add items to the bill first.',1);return}
-  var pct=n($('#bd-pct').value),amt=n($('#bd-amt').value);
-  if(amt>0)pct=amt/gross*100;
+  var pctInput=$('#bd-pct').value.trim(),amtInput=$('#bd-amt').value.trim();
+  if(!pctInput&&!amtInput){
+    sale.cart.forEach(function(l){l.disc=0});
+    renderCart();
+    toast('Discount removed.');
+    return;
+  }
+  var pct=n(pctInput),amt=n(amtInput);
+  if(amtInput!=='')pct=amt>0?(amt/gross*100):0;
   if(pct<0||pct>100){toast('The discount must be between 0 and 100%.',1);return}
   pct=Math.round(pct*10000)/10000;
   sale.cart.forEach(function(l){l.disc=pct});
   renderCart();
-  toast(pct>0?'Discount of '+pct+'% applied to all drugs.':'Discount removed.')
+  toast(pct>0?'Discount of '+pct+'% applied to all products.':'Discount removed.')
 };
 
 $('#sl-done').onclick=function(){
