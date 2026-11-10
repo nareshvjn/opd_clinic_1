@@ -272,5 +272,30 @@ function clearDesk() {
                     '<td><input type="text" class="form-control form-control-sm clinic-input rx-drug text-start" placeholder="e.g. Tab Metformin 500mg"></td>' +
                     '<td><input type="text" class="form-control form-control-sm clinic-input rx-dosage" placeholder="1-0-1"></td>' +
                     '<td><input type="text" class="form-control form-control-sm clinic-input rx-period" placeholder="5 Days"></td>' +
-                    '<td><select class="form-select
+                    '<td><select class="form-select form-select-sm clinic-input rx-instruction">' +
+                    '<option value="After Food">After Food</option>' +
+                    '<option value="Before Food">Before Food</option>' +
+                    '<option value="With Food">With Food</option>' +
+                    '<option value="At Bedtime">At Bedtime</option>' +
+                    '</select></td>' +
+                    '<td><button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeMedicationRow(this)">×</button></td></tr>';
+}
+
+function saveEncounter() {
+  if (!activePatient) {
+    alert("Please select a patient from the queue first.");
+    return;
+  }
+  if (activeAppointmentName) {
+    window.location.href = "/consultation?appointment=" + encodeURIComponent(activeAppointmentName);
+  } else {
+    alert("Encounter saved.");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  loadAppointments();
+});
+</script>
+</div>
 
