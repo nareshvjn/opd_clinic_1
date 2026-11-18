@@ -85,6 +85,13 @@ for r in rows:
     enc_found = frappe.get_all("Patient Encounter",
         filters={"appointment": r.name, "docstatus": ["!=", 2]}, fields=["name"], limit=1)
     has_encounter = bool(enc_found or r.status in ["Closed", "Checked Out"])
+    vs_found = frappe.get_all("Vital Signs",
+        filters={"appointment": r.name, "docstatus": ["<", 2]}, fields=["name"], limit=1)
+    if not vs_found and r.patient:
+        vs_found = frappe.get_all("Vital Signs",
+            filters={"patient": r.patient, "signs_date": ["between", [str(date) + " 00:00:00", str(date) + " 23:59:59"]], "docstatus": ["<", 2]},
+            fields=["name"], limit=1)
+    has_vitals = bool(vs_found)
     t = str(r.appointment_time).split(":")
     out.append({
         "id": r.name, "patient": r.patient, "name": r.patient_name,
@@ -93,6 +100,7 @@ for r in rows:
         "time": t[0].zfill(2) + ":" + t[1], "duration": r.duration,
         "type": r.appointment_type, "status": r.status, "notes": r.notes or "", "invoice": inv,
         "has_encounter": has_encounter,
+        "has_vitals": has_vitals,
     })
 
 statuses = []

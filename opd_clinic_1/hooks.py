@@ -301,6 +301,7 @@ fixtures = [
                     "registration",
                     "sale-return",
                     "stock-import",
+                    "vitals",
                 ],
             ]
         ],

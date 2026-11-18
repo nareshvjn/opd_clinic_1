@@ -1,0 +1,299 @@
+<!-- title: Vitals Entry -->
+<div id="vt">
+<style>
+html,body{height:auto!important;min-height:100%!important;overflow-y:auto!important}
+#vt{--ink:#16324a;--mute:#5d7184;--line:#cfdad5;--bg:#f3f8f5;--ok:#1d7a5f;--err:#b3261e;--warn:#c47f17;display:flex;flex-direction:column;gap:14px;box-sizing:border-box;max-width:820px;margin:0 auto;padding:16px 12px 64px;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#vt *{box-sizing:border-box}
+#vt .pt{display:flex;gap:14px;align-items:center;padding:12px 16px;border-radius:12px;background:var(--ink);color:#fff}
+#vt .av{flex:none;width:44px;height:44px;border-radius:50%;background:#8cc9b5;color:var(--ink);display:grid;place-items:center;font-weight:800;font-size:1.1rem}
+#vt h1{font-size:1.3rem;margin:0;line-height:1.2}
+#vt .pt p{margin:2px 0 0;font-size:.88rem;opacity:.9}
+#vt .pt .ap{margin-left:auto;text-align:right;font-size:.85rem}
+#vt .pt .ap b{display:block;font-size:1.05rem}
+#vt a.back{color:#cfeee2;font-weight:600;text-decoration:none;font-size:.9rem}
+#vt a.back:hover{text-decoration:underline}
+#vt .card{padding:16px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
+#vt h2{font-size:1.05rem;margin:0 0 12px;font-weight:700}
+#vt label{display:block;font-size:.82rem;font-weight:600;margin:0 0 4px;color:var(--mute)}
+#vt input,#vt textarea{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);background:#fff}
+#vt input:focus,#vt textarea:focus,#vt button:focus-visible{outline:3px solid #8cc9b5;outline-offset:1px}
+#vt .vg{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+#vt .field-box{display:flex;flex-direction:column}
+#vt .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.76rem;font-weight:600;margin-top:4px}
+#vt .tag.ok{background:#e6f4ea;color:var(--ok)}
+#vt .tag.warn{background:#fff4e5;color:var(--warn)}
+#vt .tag.bad{background:#fdf0ef;color:var(--err)}
+#vt .bar{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+#vt button,#vt a.btn{padding:10px 18px;border:1.5px solid var(--ink);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+#vt button.go,#vt a.go{background:var(--ok);border-color:var(--ok);color:#fff}
+#vt button.go:hover,#vt a.go:hover{background:#16624c}
+#vt button:disabled{opacity:.6;cursor:not-allowed}
+#vt .note{padding:10px 14px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok);font-size:.9rem}
+#vt .note.bad{border-color:var(--err);background:#fdf0ef;color:var(--err)}
+#vt .hx-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.88rem}
+#vt .hx-table th,#vt .hx-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line)}
+#vt .hx-table th{background:var(--bg);font-weight:600;color:var(--mute)}
+#vt [hidden]{display:none!important}
+@media(max-width:560px){
+  #vt .pt{flex-wrap:wrap}
+  #vt .pt .ap{margin-left:0;text-align:left;width:100%;border-top:1px solid rgba(255,255,255,.2);padding-top:6px;margin-top:4px}
+}
+</style>
+
+<header class="pt">
+  <a class="back" href="/doctor-desk">&larr; Doctor desk</a>
+  <div class="av" id="av">&middot;</div>
+  <div>
+    <h1 id="pn">Loading patient&hellip;</h1>
+    <p id="pm"></p>
+  </div>
+  <div class="ap" id="ap"></div>
+</header>
+
+<div id="msg" class="note bad" role="alert" hidden></div>
+
+<div class="card" id="vitals-card" hidden>
+  <h2>Vital Signs Recording</h2>
+  <div class="vg">
+    <div class="field-box">
+      <label for="v-temperature">Temperature (&deg;F)</label>
+      <input id="v-temperature" type="number" step="0.1" inputmode="decimal" placeholder="98.6">
+      <span id="tag-temp" class="tag" hidden></span>
+    </div>
+    <div class="field-box">
+      <label for="v-pulse">Pulse (bpm)</label>
+      <input id="v-pulse" type="number" inputmode="numeric" placeholder="72">
+      <span id="tag-pulse" class="tag" hidden></span>
+    </div>
+    <div class="field-box">
+      <label for="v-bp_systolic">BP Systolic (mmHg)</label>
+      <input id="v-bp_systolic" type="number" inputmode="numeric" placeholder="120">
+    </div>
+    <div class="field-box">
+      <label for="v-bp_diastolic">BP Diastolic (mmHg)</label>
+      <input id="v-bp_diastolic" type="number" inputmode="numeric" placeholder="80">
+      <span id="tag-bp" class="tag" hidden></span>
+    </div>
+    <div class="field-box">
+      <label for="v-respiratory_rate">Respiratory Rate (/min)</label>
+      <input id="v-respiratory_rate" type="number" inputmode="numeric" placeholder="18">
+    </div>
+    <div class="field-box">
+      <label for="v-height">Height (cm)</label>
+      <input id="v-height" type="number" step="0.5" inputmode="decimal" placeholder="165">
+    </div>
+    <div class="field-box">
+      <label for="v-weight">Weight (kg)</label>
+      <input id="v-weight" type="number" step="0.1" inputmode="decimal" placeholder="65">
+    </div>
+    <div class="field-box">
+      <label for="v-bmi">BMI (Body Mass Index)</label>
+      <input id="v-bmi" readonly tabindex="-1" placeholder="Auto-calculated" style="background:#f9fbfb;font-weight:700">
+      <span id="tag-bmi" class="tag" hidden></span>
+    </div>
+  </div>
+
+  <div style="margin-top:14px">
+    <label for="v-note">Clinical Observations / Vitals Note (optional)</label>
+    <textarea id="v-note" rows="2" placeholder="e.g. Patient rested 5 mins before BP; normal regular pulse..."></textarea>
+  </div>
+
+  <div class="bar">
+    <a class="btn" href="/doctor-desk">Back to Desk</a>
+    <button type="button" class="btn" id="btn-save">Save Vitals</button>
+    <button type="button" class="btn go" id="btn-save-consult">Save &amp; Go to Consultation &rarr;</button>
+  </div>
+</div>
+
+<div class="card" id="hx-card" hidden>
+  <h2>Previous Vitals History</h2>
+  <div style="overflow-x:auto">
+    <table class="hx-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>BP</th>
+          <th>Pulse</th>
+          <th>Temp</th>
+          <th>Weight</th>
+          <th>Height</th>
+          <th>BMI</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="hx-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector('#vt '+s)};
+var q=new URLSearchParams(location.search),
+    A=q.get('appointment')||'',
+    P=q.get('patient')||'',
+    D=q.get('practitioner')||'',
+    csrf='';
+
+var VK=['temperature','pulse','bp_systolic','bp_diastolic','respiratory_rate','height','weight'];
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function fmt(t){var p=String(t).split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
+function showMsg(t,ok){var e=$('#msg');e.textContent=t||'';e.className='note'+(ok?'':' bad');e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
+
+function call(method,params,post){
+  var p=new URLSearchParams(params||{}),o={headers:{Accept:'application/json'}};
+  if(post){o.method='POST';o.body=p;var t=csrf||(window.frappe&&frappe.csrf_token)||window.csrf_token;if(t)o.headers['X-Frappe-CSRF-Token']=t}
+  return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){
+        var t='Something went wrong. Please try again.';
+        try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message.replace(/<[^>]+>/g,'')}catch(e){}
+        if(/invalid request|not logged in/i.test(t)){
+          window.location.replace('/login?redirect-to='+encodeURIComponent(location.pathname+location.search));
+          return;
+        }
+        throw new Error(t);
+      }
+      return j.message;
+    });
+  });
+}
+
+function updateBmi(){
+  var h=parseFloat($('#v-height').value),w=parseFloat($('#v-weight').value);
+  var bmiEl=$('#v-bmi'),tEl=$('#tag-bmi');
+  if(h>0&&w>0){
+    var bmi=(w/Math.pow(h/100,2));
+    bmiEl.value=bmi.toFixed(1);
+    tEl.hidden=false;
+    if(bmi<18.5){tEl.className='tag warn';tEl.textContent='Underweight'}
+    else if(bmi<25){tEl.className='tag ok';tEl.textContent='Normal weight'}
+    else if(bmi<30){tEl.className='tag warn';tEl.textContent='Overweight'}
+    else{tEl.className='tag bad';tEl.textContent='Obese'}
+  } else {
+    bmiEl.value='';tEl.hidden=true;
+  }
+}
+
+function updateBp(){
+  var s=parseInt($('#v-bp_systolic').value,10),d=parseInt($('#v-bp_diastolic').value,10);
+  var tEl=$('#tag-bp');
+  if(!isNaN(s)&&!isNaN(d)&&s>0&&d>0){
+    tEl.hidden=false;
+    if(s<120&&d<80){tEl.className='tag ok';tEl.textContent='Normal BP'}
+    else if(s<=129&&d<80){tEl.className='tag warn';tEl.textContent='Elevated BP'}
+    else if(s<=139||d<=89){tEl.className='tag warn';tEl.textContent='Stage 1 HTN'}
+    else{tEl.className='tag bad';tEl.textContent='Stage 2 HTN'}
+  } else {
+    tEl.hidden=true;
+  }
+}
+
+function updatePulse(){
+  var p=parseInt($('#v-pulse').value,10),tEl=$('#tag-pulse');
+  if(!isNaN(p)&&p>0){
+    tEl.hidden=false;
+    if(p<60){tEl.className='tag warn';tEl.textContent='Bradycardia (<60)'}
+    else if(p<=100){tEl.className='tag ok';tEl.textContent='Normal (60-100)'}
+    else{tEl.className='tag bad';tEl.textContent='Tachycardia (>100)'}
+  } else {tEl.hidden=true}
+}
+
+function updateTemp(){
+  var v=parseFloat($('#v-temperature').value),tEl=$('#tag-temp');
+  if(!isNaN(v)&&v>0){
+    tEl.hidden=false;
+    if(v>=100.4){tEl.className='tag bad';tEl.textContent='Fever (≥100.4°F)'}
+    else if(v>99.5){tEl.className='tag warn';tEl.textContent='Low-grade fever'}
+    else if(v<95){tEl.className='tag warn';tEl.textContent='Hypothermia (<95°F)'}
+    else{tEl.className='tag ok';tEl.textContent='Normal (97-99°F)'}
+  } else {tEl.hidden=true}
+}
+
+$('#v-height').oninput=$('#v-weight').oninput=updateBmi;
+$('#v-bp_systolic').oninput=$('#v-bp_diastolic').oninput=updateBp;
+$('#v-pulse').oninput=updatePulse;
+$('#v-temperature').oninput=updateTemp;
+
+function getPayload(){
+  var o={};
+  VK.forEach(function(k){
+    var v=$('#v-'+k).value.trim();
+    if(v) o[k]=v;
+  });
+  var n=$('#v-note').value.trim();
+  if(n) o.note=n;
+  return o;
+}
+
+function save(thenConsult){
+  showMsg('');
+  var bSave=$('#btn-save'),bCons=$('#btn-save-consult');
+  bSave.disabled=bCons.disabled=true;
+  var vObj=getPayload();
+  call('vitals_save',{appointment:A,patient:P,vitals:JSON.stringify(vObj)},true).then(function(r){
+    showMsg('Vitals saved successfully!',true);
+    if(thenConsult){
+      var qStr='patient='+encodeURIComponent(P)+'&appointment='+encodeURIComponent(A)+(D?'&practitioner='+encodeURIComponent(D):'');
+      window.location.href='/consultation?'+qStr;
+    } else {
+      setTimeout(function(){showMsg('')},3000);
+      bSave.disabled=bCons.disabled=false;
+    }
+  }).catch(function(e){
+    showMsg(e.message);
+    bSave.disabled=bCons.disabled=false;
+  });
+}
+
+$('#btn-save').onclick=function(){save(false)};
+$('#btn-save-consult').onclick=function(){save(true)};
+
+function init(){
+  if(!P&&!A){showMsg('No patient or appointment provided in URL.');return}
+  call('vitals_load',{appointment:A,patient:P,practitioner:D}).then(function(r){
+    csrf=r.csrf||csrf;
+    P=r.patient.id;
+    if(r.practitioner) D=r.practitioner;
+    var p=r.patient,w=(p.name||'').split(/\s+/);
+    $('#av').textContent=((w[0]||'?')[0]+(w[1]?w[1][0]:'')).toUpperCase();
+    $('#pn').textContent=p.name;
+    $('#pm').textContent=['Age '+(p.age==null?'not recorded':p.age),p.sex,p.mobile?'Mobile '+p.mobile:''].filter(Boolean).join('   ');
+    if(r.appointment&&r.appointment.id){
+      $('#ap').innerHTML='<b>'+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'');
+    }
+
+    if(r.vitals){
+      VK.forEach(function(k){
+        if(r.vitals[k]!=null) $('#v-'+k).value=r.vitals[k];
+      });
+      if(r.vitals.nutrition_note) $('#v-note').value=r.vitals.nutrition_note;
+      updateBmi();updateBp();updatePulse();updateTemp();
+    }
+
+    if(r.history&&r.history.length){
+      $('#hx-rows').innerHTML=r.history.map(function(h){
+        var bp = (h.bp_systolic&&h.bp_diastolic)?(h.bp_systolic+'/'+h.bp_diastolic):'-';
+        return '<tr>'+
+          '<td><b>'+esc(h.date)+'</b> <span style="color:#5d7184">'+esc(h.time)+'</span></td>'+
+          '<td>'+esc(bp)+'</td>'+
+          '<td>'+(h.pulse?h.pulse+' bpm':'-')+'</td>'+
+          '<td>'+(h.temperature?h.temperature+' °F':'-')+'</td>'+
+          '<td>'+(h.weight?h.weight+' kg':'-')+'</td>'+
+          '<td>'+(h.height?h.height+' cm':'-')+'</td>'+
+          '<td>'+(h.bmi?h.bmi:'-')+'</td>'+
+          '<td><span style="font-size:.82rem;color:#5d7184">'+esc(h.note||'-')+'</span></td>'+
+        '</tr>';
+      }).join('');
+      $('#hx-card').hidden=false;
+    }
+
+    $('#vitals-card').hidden=false;
+  }).catch(function(e){showMsg(e.message)});
+}
+
+init();
+})();
+</script>
+</div>

@@ -93,7 +93,12 @@ elif appt_id:
         }
     v = frappe.get_all("Vital Signs", filters={"appointment": appt_id, "docstatus": ["<", 2]},
         fields=["name", "docstatus", "temperature", "pulse", "respiratory_rate",
-                "bp_systolic", "bp_diastolic", "height", "weight"], limit=1)
+                "bp_systolic", "bp_diastolic", "height", "weight", "bmi", "signs_date"], limit=1)
+    if not v and patient_id:
+        v = frappe.get_all("Vital Signs", filters={"patient": patient_id, "docstatus": ["<", 2]},
+            fields=["name", "docstatus", "temperature", "pulse", "respiratory_rate",
+                    "bp_systolic", "bp_diastolic", "height", "weight", "bmi", "signs_date"],
+            order_by="signs_date desc", limit=1)
     if v:
         vit = v[0]
 

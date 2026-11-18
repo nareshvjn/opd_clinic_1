@@ -326,6 +326,13 @@ else:
 if complete:
     if vs and vs.docstatus == 0:
         vs.submit()
+    elif appt_id:
+        unsub_vs = frappe.get_all("Vital Signs", filters={"appointment": appt_id, "docstatus": 0}, fields=["name"], limit=1)
+        if unsub_vs:
+            try:
+                frappe.get_doc("Vital Signs", unsub_vs[0].name).submit()
+            except Exception:
+                pass
     enc.submit()
 
 frappe.response["message"] = {"encounter": enc.name, "completed": complete}

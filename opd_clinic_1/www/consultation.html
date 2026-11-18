@@ -110,17 +110,13 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
     <div id="hx"></div>
   </section>
 
-  <section class="card" id="sec-vitals">
-    <h2>Vitals</h2>
-    <div class="vg">
-      <div><label for="v-temperature">Temp (&deg;F)</label><input id="v-temperature" type="number" step="any" inputmode="decimal" placeholder="98.6"></div>
-      <div><label for="v-pulse">Pulse (/min)</label><input id="v-pulse" type="number" inputmode="numeric"></div>
-      <div><label for="v-bp_systolic">BP systolic</label><input id="v-bp_systolic" type="number" inputmode="numeric"></div>
-      <div><label for="v-bp_diastolic">BP diastolic</label><input id="v-bp_diastolic" type="number" inputmode="numeric"></div>
-      <div><label for="v-respiratory_rate">Resp (/min)</label><input id="v-respiratory_rate" type="number" inputmode="numeric"></div>
-      <div><label for="v-height">Height (cm)</label><input id="v-height" type="number" step="any" inputmode="decimal"></div>
-      <div><label for="v-weight">Weight (kg)</label><input id="v-weight" type="number" step="any" inputmode="decimal"></div>
-      <div><label for="v-bmi">BMI</label><input id="v-bmi" readonly tabindex="-1"></div>
+  <section class="card" id="sec-vitals" style="grid-column:1/-1;background:#f8faf9;padding:10px 14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <b style="color:var(--ok);font-size:.9rem">Vitals:</b>
+        <span id="vitals-display" style="font-size:.88rem">Not recorded</span>
+      </div>
+      <a class="hx-btn" id="vitals-link" href="#" target="_blank" rel="noopener">Record / Edit Vitals &#8599;</a>
     </div>
   </section>
 
@@ -255,17 +251,10 @@ $('#meds').oninput=$('#meds').onchange=function(e){
 };
 $('#add-med').onclick=function(){M.push(blankMed());renderMeds()};
 
-function bmi(){
-  var h=parseFloat($('#v-height').value),w=parseFloat($('#v-weight').value);
-  $('#v-bmi').value=(h>0&&w>0)?(w/Math.pow(h/100,2)).toFixed(1):''
-}
-$('#v-height').oninput=$('#v-weight').oninput=bmi;
-
-function vitals(){var o={};VK.forEach(function(k){o[k]=$('#v-'+k).value});return o}
 function payload(complete){
   return {appointment:A,patient:P,practitioner:D,comment:$('#notes').value,complete:complete?'1':'0',amend:amend?'1':'0',
     symptoms:JSON.stringify(T.sym),diagnosis:JSON.stringify(T.dx),labs:JSON.stringify(T.lab),
-    drugs:JSON.stringify(M.filter(function(m){return m.drug.trim()})),vitals:JSON.stringify(vitals())}
+    drugs:JSON.stringify(M.filter(function(m){return m.drug.trim()})),vitals:'{}'}
 }
 
 function init(r){
@@ -280,7 +269,25 @@ function init(r){
   if(!(L.medications.length+L.items.length))$('#med-hint').textContent='No medicines saved yet. Type a medicine name to add a new one.';
   var e=r.encounter;
   if(e){window.currentEncounter=e.name;T.sym=e.symptoms||[];T.dx=e.diagnosis||[];T.lab=e.labs||[];M=e.drugs||[];$('#notes').value=e.comment||''}
-  if(r.vitals){VK.forEach(function(k){if(r.vitals[k])$('#v-'+k).value=r.vitals[k]});bmi()}
+  var vitLink='/vitals?'+(A?'appointment='+encodeURIComponent(A)+'&':'')+'patient='+encodeURIComponent(P)+(D?'&practitioner='+encodeURIComponent(D):'');
+  $('#vitals-link').href=vitLink;
+  if(r.vitals){
+    var v=r.vitals,parts=[];
+    if(v.bp_systolic||v.bp_diastolic)parts.push('BP: '+(v.bp_systolic||'-')+'/'+(v.bp_diastolic||'-')+' mmHg');
+    if(v.pulse)parts.push('Pulse: '+v.pulse+'/min');
+    if(v.temperature)parts.push('Temp: '+v.temperature+' \u00B0F');
+    if(v.respiratory_rate)parts.push('Resp: '+v.respiratory_rate+'/min');
+    if(v.weight)parts.push('Wt: '+v.weight+' kg');
+    if(v.height)parts.push('Ht: '+v.height+' cm');
+    if(v.bmi)parts.push('BMI: '+v.bmi);
+    if(parts.length){
+      $('#vitals-display').innerHTML='<strong>'+parts.join(' &nbsp;|&nbsp; ')+'</strong>';
+    }else{
+      $('#vitals-display').textContent='Not recorded for this visit';
+    }
+  }else{
+    $('#vitals-display').textContent='Not recorded for this visit';
+  }
   ['sym','dx','lab'].forEach(renderTags);renderMeds();
 
   var curEncId = (e && e.name) || E || window.currentEncounter || '';
