@@ -148,6 +148,8 @@
   <div id="ia-body" class="sbody" hidden>
     <div class="rxd"><span>Items before discount</span><b id="ia-gross"></b></div>
     <div class="rxd"><span>Discount</span><b id="ia-disc"></b></div>
+    <div class="rxd"><span>Items net total</span><b id="ia-net"></b></div>
+    <div class="rxd" id="ia-chg-row" hidden><span>Custom charge</span><b id="ia-chg"></b></div>
     <div class="rxd"><span>GST included</span><b id="ia-gst"></b></div>
   </div>
 
@@ -327,9 +329,10 @@ function renderItem(){
 
 function batchMrp(b){
   if(!b)return 0;
-  var gst=n(b.gst);
-  var base=n(b.mrp)>0?n(b.mrp):(n(b.purchase_rate)||n(b.net_rate));
-  if(base>0)return Math.round(base*(1+gst/100)*100)/100;
+  if(n(b.mrp)>0)return n(b.mrp);
+  var p=n(b.purchase_rate)||n(b.net_rate);
+  var gst=(n(b.gst)>0)?n(b.gst):5;
+  if(p>0)return Math.round(p*(1+gst/100)*100)/100;
   return 0;
 }
 
@@ -585,15 +588,20 @@ function pull(e){
 }
 
 // Totals calculation
-function lCost(l){var b=lb(l),upp=(b&&b.upp>1)?b.upp:1;return b?lu(l)/upp*n(b.net_rate):0}
-function lGst(l){var b=lb(l),a=lAmt(l);return b?a-a/(1+n(b.gst)/100):0}
+function lCost(l){var b=lb(l),upp=(b&&b.upp>1)?b.upp:1,c=b?(n(b.net_rate)||n(b.purchase_rate)):0;return b?lu(l)/upp*c:0}
+function lGst(l){var b=lb(l),a=lAmt(l),g=(b&&n(b.gst)>0)?n(b.gst):5;return b?a-a/(1+g/100):0}
 function r2(v){return Math.round(v*100)/100}
 
 function totals(){
   var gross=0,net=0,cost=0,gst=0;
   sale.cart.forEach(function(l){gross+=lGross(l);net+=lAmt(l);cost+=lCost(l);gst+=lGst(l)});
   var chg=Math.max(0,n($('#cc-amt').value)),total=r2(net+chg),pay=Math.round(total),ro=r2(pay-total),prof=net-gst-cost;
-  $('#ia-amt').textContent=inr(net);$('#ia-gross').textContent=inr(gross);$('#ia-disc').textContent=(gross-net>0.004?'-':'')+inr(gross-net);$('#ia-gst').textContent=inr(gst);
+  $('#ia-amt').textContent=inr(total);
+  $('#ia-gross').textContent=inr(gross);
+  $('#ia-disc').textContent=(gross-net>0.004?'-':'')+inr(gross-net);
+  var ne=$('#ia-net');if(ne)ne.textContent=inr(net);
+  var cr=$('#ia-chg-row');if(cr){cr.hidden=(chg<=0);var ca=$('#ia-chg');if(ca)ca.textContent=inr(chg)}
+  $('#ia-gst').textContent=inr(gst);
   $('#sp-amt').textContent=inr(prof);$('#sp-pct').textContent=(net>0?prof/net*100:0).toFixed(2)+'%';
   $('#cc-show').textContent=inr(chg);
   $('#ro-amt').textContent=(ro<0?'-':(ro>0?'+':''))+inr(Math.abs(ro));

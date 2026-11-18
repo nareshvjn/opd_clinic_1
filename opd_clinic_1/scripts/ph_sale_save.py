@@ -122,10 +122,17 @@ for ln in lines:
 
     si.append("items", item_row)
 
+si.run_method("set_missing_values")
+if not si.debit_to:
+    si.debit_to = co.default_receivable_account
+
 if charge_amt > 0:
     charge_acc = co.default_income_account
+    if not charge_acc:
+        charge_acc = frappe.db.get_value("Account", {"account_type": "Income Account", "company": company, "is_group": 0}, "name")
+    if not charge_acc:
+        charge_acc = frappe.db.get_value("Account", {"account_name": ["like", "%Income%"], "company": company, "is_group": 0}, "name")
     si.append("taxes", {
-        "category": "Total",
         "charge_type": "Actual",
         "account_head": charge_acc,
         "description": charge_name or "Custom Charge",
@@ -133,23 +140,19 @@ if charge_amt > 0:
         "cost_center": co.cost_center
     })
 
+si.run_method("calculate_taxes_and_totals")
+
 # Payment
 if mode and mode != "Credit":
     pos_acc = frappe.db.get_value("Mode of Payment Account", {"parent": mode, "company": company}, "default_account")
     if pos_acc:
         si.is_pos = 1
+        pay_amt = si.rounded_total or si.grand_total
         si.append("payments", {
             "mode_of_payment": mode,
             "account": pos_acc,
-            "amount": 0  # set_missing_values fills grand_total
+            "amount": pay_amt
         })
-
-si.run_method("set_missing_values")
-if not si.debit_to:
-    si.debit_to = co.default_receivable_account
-
-if si.is_pos and si.payments:
-    si.payments[0].amount = si.rounded_total or si.grand_total
 
 si.insert(ignore_permissions=True)
 si.submit()
