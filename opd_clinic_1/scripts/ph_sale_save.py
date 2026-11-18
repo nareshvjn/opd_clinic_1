@@ -103,9 +103,7 @@ for ln in lines:
         upp = 1
     qty = num(ln.get("packs")) * upp + num(ln.get("units"))
     rate_incl = num(ln.get("rate"))
-    gst = num(b.get("gst_rate") or b.get("custom_gst_rate") or 0)
-    rate_excl = rate_incl / (1 + gst / 100.0) if gst else rate_incl
-    rate_unit = rate_excl / upp
+    rate_unit = rate_incl / upp
 
     item_row = {
         "item_code": b.item,
