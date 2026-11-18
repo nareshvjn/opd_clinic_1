@@ -254,8 +254,9 @@ function checkEditMode(){
   var p=Promise.resolve();
   (d.items||[]).forEach(function(it){
     p=p.then(function(){
-      return getBatches(it.item).then(function(bs){
-        var b=bs.filter(function(x){return x.batch===it.batch})[0];
+      return getBatches(it.item).then(function(rawBs){
+        var bs = Array.isArray(rawBs) ? rawBs : ((rawBs && Array.isArray(rawBs.batches)) ? rawBs.batches : []);
+        var b = bs.filter(function(x){return x.batch===it.batch})[0];
         var origUnits = (it.packs||0)*(it.upp||1) + (it.units||0);
         if(!b){
           b={batch:it.batch,upp:it.upp||1,mrp:it.rate,net_rate:it.net_rate||it.rate,qty:origUnits,expiry:it.expiry||''};
@@ -273,10 +274,24 @@ function checkEditMode(){
           rate:it.rate,
           disc:it.disc||0
         });
-      })
+      }).catch(function(err){
+        console.warn('Failed loading batch for', it, err);
+        var origUnits = (it.packs||0)*(it.upp||1) + (it.units||0);
+        var b={batch:it.batch,upp:it.upp||1,mrp:it.rate,net_rate:it.net_rate||it.rate,qty:origUnits,expiry:it.expiry||''};
+        sale.cart.push({
+          item:it.item,
+          name:it.name,
+          bs:[b],
+          batch:it.batch||b.batch,
+          packs:it.packs,
+          units:it.units,
+          rate:it.rate,
+          disc:it.disc||0
+        });
+      });
     })
   });
-  p.then(function(){renderCart()});
+  p.then(function(){renderCart()}).catch(function(){renderCart()});
 }
 
 $('#btn-cancel-edit').onclick=function(){
@@ -300,8 +315,9 @@ $('#sl-q').oninput=debounce(function(){
 $('#sl-res').onclick=function(e){
   var b=e.target.closest('button.res');if(!b)return;
   call('ph_batches',{item:b.dataset.code}).then(function(r){
+    var list = Array.isArray(r) ? r : ((r && Array.isArray(r.batches)) ? r.batches : []);
     sale.item={code:b.dataset.code,name:b.dataset.name};
-    sale.bs=r.batches.filter(function(x){return x.qty>0});
+    sale.bs=list.filter(function(x){return x.qty>0});
     sale.b=sale.bs[0]||null;$('#sl-fefo').checked=true;$('#sl-list').hidden=true;
     $('#sl-res').innerHTML='';renderItem()
   }).catch(function(e){toast(e.message,1)})
@@ -547,14 +563,14 @@ function renderRx(){
 $('#rx-list').onclick=function(e){var b=e.target.closest('button[data-i]');if(b)pull(rxList[+b.dataset.i])};
 
 function getBatches(code){
-  if(bcache[code])return Promise.resolve(bcache[code]);
+  if(bcache[code] && Array.isArray(bcache[code])) return Promise.resolve(bcache[code]);
   return call('ph_batches',{item:code}).then(function(r){
-    var list=(r&&r.batches)?r.batches:[];
-    bcache[code]=list.filter(function(b){return n(b.qty)>0});
-    return bcache[code];
+    var list = Array.isArray(r) ? r : ((r && Array.isArray(r.batches)) ? r.batches : []);
+    bcache[code] = list;
+    return list;
   }).catch(function(e){
     console.warn('Failed to fetch batches for', code, e);
-    bcache[code]=[];
+    bcache[code] = [];
     return bcache[code];
   });
 }
@@ -565,11 +581,13 @@ function pull(e){
     p=p.then(function(){
       var iname=d.item_name||d.drug||d.item;
       if(!d.item){notes.push(iname+' (not in pharmacy)');return}
-      return getBatches(d.item).then(function(bs){
-        if(!bs.length){notes.push(iname+' (out of stock)');return}
-        if(d.units<=0){sale.cart.push(mkLine(d.item,iname,bs,bs[0],0));added++;notes.push(iname+' (set quantity)');return}
+      return getBatches(d.item).then(function(rawBs){
+        var bs = Array.isArray(rawBs) ? rawBs : ((rawBs && Array.isArray(rawBs.batches)) ? rawBs.batches : []);
+        var inStock = bs.filter(function(b){return n(b.qty)>0});
+        if(!inStock.length){notes.push(iname+' (out of stock)');return}
+        if(d.units<=0){sale.cart.push(mkLine(d.item,iname,bs,inStock[0],0));added++;notes.push(iname+' (set quantity)');return}
         var left=d.units;
-        bs.forEach(function(b){
+        inStock.forEach(function(b){
           var avail=b.qty-used(b.batch);if(left<=0||avail<=0)return;
           var take=Math.min(left,avail);sale.cart.push(mkLine(d.item,iname,bs,b,take));left-=take;added++
         });

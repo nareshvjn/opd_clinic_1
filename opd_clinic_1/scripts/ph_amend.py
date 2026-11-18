@@ -78,7 +78,7 @@ if doctype == "Sales Invoice":
     custom_charge = 0.0
     custom_charge_name = ""
     for tx in (doc.taxes or []):
-        if tx.category == "Total" and tx.charge_type == "Actual":
+        if tx.charge_type == "Actual" or (tx.tax_amount and not tx.rate):
             custom_charge = float(tx.tax_amount or 0)
             custom_charge_name = tx.description or ""
             break
