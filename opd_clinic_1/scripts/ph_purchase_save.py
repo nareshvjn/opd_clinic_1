@@ -193,6 +193,7 @@ pi.set_warehouse = wh
 pi.disable_rounded_total = 0
 
 tot_gst = 0.0
+tot_items_subtotal = 0.0
 
 for ln in lines:
     upp = int(num(ln.get("upp")))
@@ -242,6 +243,7 @@ for ln in lines:
 
     # Line subtotal is calculated strictly on billed quantity
     line_subtotal = (billed_qty / upp) * net
+    tot_items_subtotal += line_subtotal
     # Effective rate per unit so that ERPNext stock valuation matches total billed line amount
     unit_rate = (line_subtotal / total_qty) if total_qty > 0 else 0.0
 
@@ -311,10 +313,14 @@ if tot_gst > 0:
 
 disc_pct = num(f.get("discount_percentage"))
 disc_amt = num(f.get("discount_amount"))
+sub_incl = tot_items_subtotal + tot_gst
+disc_val = 0.0
 if disc_pct > 0:
+    disc_val = sub_incl * (disc_pct / 100.0)
     pi.apply_discount_on = "Grand Total"
     pi.additional_discount_percentage = disc_pct
 elif disc_amt > 0:
+    disc_val = disc_amt
     pi.apply_discount_on = "Grand Total"
     pi.discount_amount = disc_amt
 
@@ -335,6 +341,30 @@ if courier > 0:
         "cost_center": co.cost_center
     })
 
+# Round off to nearby whole number
+exact_grand = max(0.0, sub_incl - disc_val + courier)
+target_grand = round(exact_grand)
+round_adj = round(target_grand - exact_grand, 2)
+
+if abs(round_adj) >= 0.005:
+    round_acc = (
+        frappe.db.get_value("Company", company, "round_off_account")
+        or frappe.db.get_value("Account", {
+            "account_name": ["in", ["Round Off", "Rounding Adjustment", "Round off"]],
+            "company": company,
+            "is_group": 0
+        }, "name")
+        or co.stock_received_but_not_billed
+    )
+    pi.append("taxes", {
+        "category": "Total",
+        "charge_type": "Actual",
+        "account_head": round_acc,
+        "description": "Round Off",
+        "tax_amount": round_adj,
+        "cost_center": co.cost_center
+    })
+
 pi.run_method("set_missing_values")
 if not pi.credit_to:
     pi.credit_to = co.default_payable_account
@@ -349,6 +379,9 @@ if payment_status == "Paid" and paid_amt > 0:
         paid_from_acc = frappe.db.get_value("Account", {"account_type": "Cash", "company": company, "is_group": 0}, "name")
         
     if paid_from_acc:
+        actual_outstanding = float(pi.outstanding_amount if (pi.outstanding_amount is not None and pi.outstanding_amount > 0) else (pi.rounded_total or pi.grand_total or 0))
+        alloc_amt = min(paid_amt, actual_outstanding) if actual_outstanding > 0 else paid_amt
+
         pe = frappe.new_doc("Payment Entry")
         pe.payment_type = "Pay"
         pe.company = company
@@ -358,20 +391,19 @@ if payment_status == "Paid" and paid_amt > 0:
         pe.mode_of_payment = pay_mode
         pe.paid_from = paid_from_acc
         pe.paid_to = pi.credit_to
-        pe.paid_amount = paid_amt
-        pe.received_amount = paid_amt
+        pe.paid_amount = alloc_amt
+        pe.received_amount = alloc_amt
         pe.reference_no = pi.bill_no or pi.name
         pe.reference_date = pi.bill_date or paid_date
-        inv_tot = float(pi.rounded_total) if (pi.rounded_total and pi.rounded_total > 0) else round(float(pi.grand_total or 0))
         pe.append("references", {
             "reference_doctype": "Purchase Invoice",
             "reference_name": pi.name,
-            "total_amount": inv_tot,
-            "outstanding_amount": inv_tot,
-            "allocated_amount": paid_amt
+            "total_amount": actual_outstanding,
+            "outstanding_amount": actual_outstanding,
+            "allocated_amount": alloc_amt
         })
         pe.insert(ignore_permissions=True)
         pe.submit()
 
-final_tot = float(pi.rounded_total) if (pi.rounded_total and pi.rounded_total > 0) else round(float(pi.grand_total or 0))
+final_tot = float(pi.rounded_total) if (pi.rounded_total and pi.rounded_total > 0) else float(pi.grand_total or 0)
 frappe.response["message"] = {"invoice": pi.name, "total": final_tot}
