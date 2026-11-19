@@ -667,7 +667,8 @@ $('#pu-save').onclick=function(){
     due_date:$('#pu-due-date').value,
     paid_date:$('#pu-paid-date').value,
     payment_mode:$('#pu-pay-mode').value,
-    paid_amount:$('#pu-paid-amt').value
+    paid_amount:$('#pu-paid-amt').value,
+    target_grand:($('#pu-tot').textContent.replace(/[^0-9.]/g,''))||'0'
   };
   if(editingInvoice){
     payload.amend_invoice=editingInvoice;
@@ -677,7 +678,15 @@ $('#pu-save').onclick=function(){
     $('#edit-banner').style.display='none';
     $('#pu-save').textContent='Save purchase';
     var rc=$('#pu-receipt');rc.hidden=false;
-    rc.innerHTML='<h2>Purchase saved</h2>Invoice <b>'+esc(r.invoice)+'</b>, total <b>'+inr(r.total)+'</b>.<p style="margin-top:10px;display:flex;gap:12px"><a class="btn" style="text-decoration:none;background:#5d7184" href="/app/purchase-invoice/'+encodeURIComponent(r.invoice)+'" target="_blank" rel="noopener">Open in ERPNext</a><button type="button" class="btn" id="pu-another">New purchase</button></p>';
+    rc.innerHTML='<h2 style="margin:0 0 10px 0;font-size:1.15rem;font-weight:700">Purchase saved</h2>' +
+      '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">' +
+        '<div style="font-size:.9rem;color:#475569">Invoice: <b style="color:#0f172a">'+esc(r.invoice)+'</b></div>' +
+        '<div style="font-size:.95rem;color:#475569">Total amount: <b style="color:#1b5e20;font-size:1.1rem">'+inr(r.total)+'</b></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">' +
+        '<a class="btn" style="text-decoration:none;background:#5d7184" href="/app/purchase-invoice/'+encodeURIComponent(r.invoice)+'" target="_blank" rel="noopener">Open in ERPNext</a>' +
+        '<button type="button" class="btn" id="pu-another">New purchase</button>' +
+      '</div>';
     pu=[];renderPu();$('#pu-bill').value='';$('#pu-disc-pct').value='';$('#pu-disc-amt').value='';$('#pu-courier').value='';
     puPaidAmountManuallySet=false;resetPuEditMode();toast('');
     rc.scrollIntoView({block:'nearest'});

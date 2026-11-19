@@ -341,10 +341,17 @@ if courier > 0:
         "cost_center": co.cost_center
     })
 
-# Round off to nearby whole number
+# Determine target grand total (rounded to nearest whole rupee)
+client_target = num(f.get("target_grand"))
 exact_grand = max(0.0, sub_incl - disc_val + courier)
-target_grand = round(exact_grand)
-round_adj = round(target_grand - exact_grand, 2)
+target_grand = client_target if client_target > 0 else round(exact_grand)
+
+pi.run_method("set_missing_values")
+pi.run_method("calculate_taxes_and_totals")
+
+# Compute difference against ERPNext's current calculated grand total
+current_grand = float(pi.grand_total or (pi.net_total + (pi.total_taxes_and_charges or 0)))
+round_adj = round(target_grand - current_grand, 2)
 
 if abs(round_adj) >= 0.005:
     round_acc = (
@@ -364,8 +371,8 @@ if abs(round_adj) >= 0.005:
         "tax_amount": round_adj,
         "cost_center": co.cost_center
     })
+    pi.run_method("calculate_taxes_and_totals")
 
-pi.run_method("set_missing_values")
 if not pi.credit_to:
     pi.credit_to = co.default_payable_account
 
