@@ -27,6 +27,15 @@
   #np #toast{padding:10px 14px;border-radius:8px;font-size:.9rem;margin:8px 0;background:#e6f4ea;color:#1e8e3e}
   #np #toast.bad{background:#fdf0ef;color:#b3261e}
   #np .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #np .g2-split{display:grid;grid-template-columns:1fr 140px;gap:8px}
+  #np .curr-wrap{display:flex;position:relative;align-items:center}
+  #np .curr-wrap .curr-sym{position:absolute;left:10px;color:#555;font-weight:600;pointer-events:none;font-size:15px}
+  #np .curr-wrap input{padding-left:24px !important}
+  #np .margin-bar{display:flex;justify-content:space-between;align-items:center;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;padding:10px 14px;margin-top:14px}
+  #np .margin-bar .m-lbl{font-size:.82rem;color:#2e7d32;font-weight:600}
+  #np .margin-bar .m-val{font-size:1.15rem;color:#1b5e20;font-weight:700}
+  #np .margin-bar .amt-lbl{font-size:.82rem;color:#555;font-weight:600;text-align:right}
+  #np .margin-bar .amt-val{font-size:1.15rem;color:#1c1b1f;font-weight:700;text-align:right}
   #np .sum{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid #eee;font-size:.92rem}
   #np .scroll{overflow-x:auto}
   #np table{width:100%;border-collapse:collapse;font-size:.88rem}
@@ -36,6 +45,7 @@
   #np th.n{text-align:right}
   @media(max-width:520px){
     #np .g2{grid-template-columns:1fr}
+    #np .g2-split{grid-template-columns:1fr 1fr}
   }
 </style>
 
@@ -59,6 +69,7 @@
 <div id="toast" role="status" hidden></div>
 <datalist id="dl-prod"></datalist>
 <datalist id="dl-sup"></datalist>
+<datalist id="dl-batch"></datalist>
 
 <!-- Supplier & Bill -->
 <div class="card">
@@ -146,7 +157,7 @@
 (function(){
 var $=function(s){return document.querySelector('#np '+s)};
 var csrf='',wh='',pu=[],editPuIdx=-1,editingInvoice=null;
-var prodCache=[],puPaidAmountManuallySet=false;
+var prodBatchesCache=[],puPaidAmountManuallySet=false;
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function n(v){v=parseFloat(v);return isNaN(v)?0:v}
@@ -154,6 +165,37 @@ function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigi
 function mmyy(d){if(!d)return '-';var p=d.split('-');return p[1]+'/'+p[0].slice(2)}
 function toast(t,bad){var e=$('#toast');e.textContent=t||'';e.className=bad?'bad':'';e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
 function debounce(fn){var t;return function(){clearTimeout(t);t=setTimeout(fn,250)}}
+
+function parseMmyy(val){
+  if(!val) return '';
+  val = val.trim();
+  if(/^\d{4}-\d{2}/.test(val)){
+    var p = val.split('-');
+    var y = parseInt(p[0], 10), mo = parseInt(p[1], 10);
+    var ld = new Date(y, mo, 0).getDate();
+    return y + '-' + String(mo).padStart(2,'0') + '-' + String(ld).padStart(2,'0');
+  }
+  var clean = val.replace(/\s+/g,'');
+  var m = clean.match(/^(\d{1,2})\/?(\d{2}|\d{4})$/);
+  if(!m) return '';
+  var mo = parseInt(m[1], 10);
+  var yr = parseInt(m[2], 10);
+  if(mo < 1 || mo > 12) return '';
+  if(yr < 100) yr += 2000;
+  var ld = new Date(yr, mo, 0).getDate();
+  return yr + '-' + String(mo).padStart(2,'0') + '-' + String(ld).padStart(2,'0');
+}
+
+function toMmyy(d){
+  if(!d) return '';
+  var p = d.split('-');
+  if(p.length >= 2){
+    var mo = p[1].padStart(2,'0');
+    var yr = p[0].slice(-2);
+    return mo + ' / ' + yr;
+  }
+  return d;
+}
 
 function call(method,params,post){
   var p=new URLSearchParams(params||{}),o={headers:{Accept:'application/json'}};
@@ -170,51 +212,176 @@ function call(method,params,post){
 }
 
 function form(p){
-  var gst=[0,5,12,18,28].map(function(g){return '<option'+(g===5?' selected':'')+' value="'+g+'">'+g+'%</option>'}).join('');
-  return '<div class="g2"><div><label for="'+p+'-bno">Batch no</label><input id="'+p+'-bno" autocomplete="off"></div>'+
-  '<div><label for="'+p+'-exp">Batch expiry (month/year)</label><input id="'+p+'-exp" type="month"></div></div>'+
-  '<div class="g2"><div><label for="'+p+'-hsn">HSN code</label><input id="'+p+'-hsn" inputmode="numeric" value="3004"></div>'+
-  '<div><label for="'+p+'-gst">Batch GST rate</label><select id="'+p+'-gst">'+gst+'</select></div></div>'+
-  '<label for="'+p+'-mrp">MRP including GST</label><input id="'+p+'-mrp" type="number" step="any" inputmode="decimal">'+
-  '<label for="'+p+'-rate">Purchase rate</label><div class="g2"><input id="'+p+'-rate" type="number" step="any" inputmode="decimal">'+
-  '<select id="'+p+'-basis" aria-label="Rate basis"><option value="excl">Excluding GST</option><option value="incl">Including GST</option></select></div>'+
-  '<label for="'+p+'-disc">Purchase discount (%)</label><input id="'+p+'-disc" type="number" step="any" inputmode="decimal" value="0">'+
-  '<div class="g2"><div><label for="'+p+'-upp">Unit per pack</label><input id="'+p+'-upp" type="number" min="1" inputmode="numeric" value="1"></div>'+
-  '<p class="hint" style="align-self:end">e.g. 10 tablets per strip</p></div>'+
-  '<div class="g2"><div><label for="'+p+'-packs">Number of packs</label><input id="'+p+'-packs" type="number" min="0" inputmode="numeric"></div>'+
-  '<div><label for="'+p+'-units">Loose units if any</label><input id="'+p+'-units" type="number" min="0" inputmode="numeric" value="0"></div></div>'+
-  '<div class="sum" style="margin-top:8px"><span>Margin <b id="'+p+'-mg">0.00%</b></span><span>Amount <b id="'+p+'-am">\u20B90.00</b></span></div>';
+  var gstOptions=[0,5,12,18,28].map(function(g){return '<option'+(g===5?' selected':'')+' value="'+g+'">'+g+'%</option>'}).join('');
+  return '<div class="g2">'+
+    '<div><label for="'+p+'-bno">Batch No</label><input id="'+p+'-bno" list="dl-batch" autocomplete="off" placeholder="e.g. B2401"></div>'+
+    '<div><label for="'+p+'-exp">MM / YY</label><input id="'+p+'-exp" autocomplete="off" placeholder="MM / YY" maxlength="7"></div>'+
+  '</div>'+
+  '<div class="g2">'+
+    '<div><label for="'+p+'-hsn">HSN Code *</label><input id="'+p+'-hsn" autocomplete="off" placeholder="30049087" value="30049087"></div>'+
+    '<div><label for="'+p+'-gst">Batch GST Rate *</label><select id="'+p+'-gst">'+gstOptions+'</select></div>'+
+  '</div>'+
+  '<div>'+
+    '<label for="'+p+'-upp">Unit per pack *</label>'+
+    '<input id="'+p+'-upp" type="number" min="1" inputmode="numeric" value="10">'+
+    '<div class="hint" style="color:#5f6368;font-size:.8rem;margin-top:4px">&#128161; For a 10 tablets strip, units per pack is 10</div>'+
+  '</div>'+
+  '<div class="g2">'+
+    '<div><label for="'+p+'-billed-packs">Billed Qty in Packs</label><input id="'+p+'-billed-packs" type="number" min="0" step="any" inputmode="decimal" placeholder="No of strips"></div>'+
+    '<div><label for="'+p+'-free-packs">Free Qty in Packs</label><input id="'+p+'-free-packs" type="number" min="0" step="any" inputmode="decimal" placeholder="No of strips" value="0"></div>'+
+  '</div>'+
+  '<div style="margin-top:6px">'+
+    '<details style="font-size:.84rem;color:#555">'+
+      '<summary style="cursor:pointer;padding:2px 0;user-select:none;color:#1a73e8;font-weight:500">+ Optional loose units (if any)</summary>'+
+      '<div style="margin-top:6px;max-width:220px">'+
+        '<label for="'+p+'-units" style="font-size:.8rem;margin-top:0">Loose units (tablets)</label>'+
+        '<input id="'+p+'-units" type="number" min="0" inputmode="numeric" value="0">'+
+      '</div>'+
+    '</details>'+
+  '</div>'+
+  '<div>'+
+    '<label for="'+p+'-mrp">MRP Including GST *</label>'+
+    '<div class="curr-wrap"><span class="curr-sym">&#8377;</span><input id="'+p+'-mrp" type="number" step="any" inputmode="decimal" placeholder="0.00"></div>'+
+  '</div>'+
+  '<div>'+
+    '<label for="'+p+'-rate">Purchase Rate *</label>'+
+    '<div class="g2-split">'+
+      '<div class="curr-wrap"><span class="curr-sym">&#8377;</span><input id="'+p+'-rate" type="number" step="any" inputmode="decimal" placeholder="0.00"></div>'+
+      '<select id="'+p+'-basis" aria-label="Rate basis"><option value="excl" selected>Excluding gst</option><option value="incl">Including gst</option></select>'+
+    '</div>'+
+  '</div>'+
+  '<div>'+
+    '<label for="'+p+'-disc">Discount</label>'+
+    '<div class="g2-split">'+
+      '<input id="'+p+'-disc" type="number" step="any" min="0" inputmode="decimal" value="0">'+
+      '<select id="'+p+'-disc-type" aria-label="Discount type"><option value="percent" selected>In Percent</option><option value="rupees">In Rupees</option></select>'+
+    '</div>'+
+  '</div>'+
+  '<div class="margin-bar">'+
+    '<div><div class="m-lbl">Your Margin</div><div class="m-val" id="'+p+'-mg">0.00%</div></div>'+
+    '<div><div class="amt-lbl">Amount</div><div class="amt-val" id="'+p+'-am">&#8377;0.00</div></div>'+
+  '</div>';
 }
 
 function g(p,k){return $('#'+p+'-'+k)}
+
 function read(p){
-  var m=g(p,'exp').value,exp='';
-  if(m){var y=+m.slice(0,4),mo=+m.slice(5,7);exp=y+'-'+String(mo).padStart(2,'0')+'-'+String(new Date(y,mo,0).getDate()).padStart(2,'0')}
-  var gstEl=g(p,'gst');
-  var gstVal=(gstEl&&gstEl.value)?gstEl.value:'5';
-  return {batch:g(p,'bno').value.trim(),expiry:exp,hsn:(g(p,'hsn').value||'3004').trim(),gst:gstVal,mrp:g(p,'mrp').value,
-  rate:g(p,'rate').value,basis:g(p,'basis').value,upp:g(p,'upp').value||'1',packs:g(p,'packs').value||'0',
-  units:g(p,'units').value||'0',disc:(g(p,'disc')||{}).value||'0'}
+  var expRaw = g(p,'exp').value;
+  var exp = parseMmyy(expRaw);
+  var gstEl = g(p,'gst');
+  var gstVal = (gstEl && gstEl.value) ? gstEl.value : '5';
+  var billedPacks = g(p,'billed-packs').value || '0';
+  var freePacks = g(p,'free-packs').value || '0';
+  var units = g(p,'units').value || '0';
+  var upp = g(p,'upp').value || '10';
+  var discType = g(p,'disc-type') ? g(p,'disc-type').value : 'percent';
+
+  return {
+    batch: g(p,'bno').value.trim(),
+    expiry: exp,
+    expiry_mmyy: expRaw.trim(),
+    hsn: (g(p,'hsn').value || '30049087').trim(),
+    gst: gstVal,
+    upp: upp,
+    billed_packs: billedPacks,
+    packs: billedPacks,
+    free_packs: freePacks,
+    units: units,
+    mrp: g(p,'mrp').value,
+    rate: g(p,'rate').value,
+    basis: g(p,'basis').value,
+    disc: (g(p,'disc') || {}).value || '0',
+    disc_type: discType
+  };
 }
 
 function calc(p){
-  var d=read(p),gst=n(d.gst),excl=d.basis==='incl'?n(d.rate)/(1+gst/100):n(d.rate);
-  var net=excl*(1-n(d.disc)/100),mrpx=n(d.mrp)/(1+gst/100),upp=Math.max(1,n(d.upp));
-  var mg=mrpx>0?(mrpx-net)/mrpx*100:0,amt=(n(d.packs)+n(d.units)/upp)*net;
-  g(p,'mg').textContent=mg.toFixed(2)+'%';g(p,'am').textContent=inr(amt);
-  return {net:net,amt:amt,gst:gst}
+  var d = read(p);
+  var gst = n(d.gst);
+  var rawRate = n(d.rate);
+  var mrp = n(d.mrp);
+  var disc = n(d.disc);
+  var upp = Math.max(1, n(d.upp));
+  var billedPacks = n(d.billed_packs);
+  var freePacks = n(d.free_packs);
+  var units = n(d.units);
+
+  var netExcl = 0, netIncl = 0;
+  if(d.basis === 'incl'){
+    var rawIncl = rawRate;
+    if(d.disc_type === 'rupees'){
+      netIncl = Math.max(0, rawIncl - disc);
+    } else {
+      netIncl = Math.max(0, rawIncl * (1 - disc / 100));
+    }
+    netExcl = gst > 0 ? (netIncl / (1 + gst / 100)) : netIncl;
+  } else {
+    var rawExcl = rawRate;
+    if(d.disc_type === 'rupees'){
+      netExcl = Math.max(0, rawExcl - disc);
+    } else {
+      netExcl = Math.max(0, rawExcl * (1 - disc / 100));
+    }
+    netIncl = netExcl * (1 + gst / 100);
+  }
+
+  // Margin %: ((MRP - Net_Incl) / MRP) * 100
+  var margin = mrp > 0 ? ((mrp - netIncl) / mrp) * 100 : 0;
+
+  // Billed quantity only! Free quantity is strictly NOT billed
+  var billedQtyInPacks = billedPacks + (units / upp);
+  var amt = billedQtyInPacks * netExcl;
+
+  var mgEl = g(p, 'mg');
+  var amEl = g(p, 'am');
+  if(mgEl) mgEl.textContent = margin.toFixed(2) + '%';
+  if(amEl) amEl.textContent = inr(amt);
+
+  return {
+    net: netExcl,
+    net_incl: netIncl,
+    amt: amt,
+    gst: gst,
+    margin: margin
+  };
 }
 
 function clearForm(p){
-  ['bno','exp','mrp','rate','packs'].forEach(function(k){g(p,k).value=''});
-  g(p,'hsn').value='3004';g(p,'gst').value='5';g(p,'basis').value='excl';
-  g(p,'upp').value='1';g(p,'units').value='0';if(g(p,'disc'))g(p,'disc').value='0';
-  calc(p)
+  ['bno','exp','mrp','rate','billed-packs','free-packs','units'].forEach(function(k){
+    var el = g(p, k);
+    if(el) el.value = '';
+  });
+  if(g(p,'free-packs')) g(p,'free-packs').value = '0';
+  if(g(p,'units')) g(p,'units').value = '0';
+  if(g(p,'hsn')) g(p,'hsn').value = '30049087';
+  if(g(p,'gst')) g(p,'gst').value = '5';
+  if(g(p,'basis')) g(p,'basis').value = 'excl';
+  if(g(p,'upp')) g(p,'upp').value = '10';
+  if(g(p,'disc')) g(p,'disc').value = '0';
+  if(g(p,'disc-type')) g(p,'disc-type').value = 'percent';
+  calc(p);
 }
 
-$('#f-pu').innerHTML=form('pu');
-$('#f-pu').oninput=function(){calc('pu')};
-$('#f-pu').onchange=$('#f-pu').oninput;
+$('#f-pu').innerHTML = form('pu');
+
+// Format MM / YY as user types
+$('#pu-exp').addEventListener('input', function(e){
+  var v = this.value.replace(/\D/g, '').slice(0, 4);
+  if (v.length > 2) {
+    this.value = v.slice(0, 2) + ' / ' + v.slice(2);
+  } else if (v.length === 2 && e.inputType !== 'deleteContentBackward') {
+    this.value = v + ' / ';
+  } else {
+    this.value = v;
+  }
+  calc('pu');
+});
+
+$('#f-pu').oninput = function(e){
+  if(e.target && e.target.id === 'pu-exp') return;
+  calc('pu');
+};
+$('#f-pu').onchange = $('#f-pu').oninput;
 
 var todayStr = new Date().toISOString().slice(0,10);
 $('#pu-bdate').value = todayStr;
@@ -285,11 +452,56 @@ $('#btn-cancel-invoice-edit').onclick=function(){
 
 $('#wh').onchange=function(){wh=this.value};
 
+function loadProductBatches(itemCode){
+  if(!itemCode){
+    $('#dl-batch').innerHTML = '';
+    prodBatchesCache = [];
+    return;
+  }
+  call('ph_batches', {item: itemCode}).then(function(r){
+    var batches = r.batches || [];
+    prodBatchesCache = batches;
+    $('#dl-batch').innerHTML = batches.map(function(b){
+      return '<option value="' + esc(b.name) + '">' +
+        (b.expiry ? 'Exp: ' + mmyy(b.expiry) : '') +
+        (b.mrp ? ' | MRP: \u20B9' + b.mrp : '') +
+        (b.upp > 1 ? ' | ' + b.upp + '/pk' : '') +
+        '</option>';
+    }).join('');
+  }).catch(function(){});
+}
+
+function checkBatchMatch(val){
+  if(!val || !prodBatchesCache.length) return;
+  var found = prodBatchesCache.find(function(b){ return b.name.toLowerCase() === val.toLowerCase(); });
+  if(found){
+    if(found.expiry) g('pu','exp').value = toMmyy(found.expiry);
+    if(found.hsn) g('pu','hsn').value = found.hsn;
+    if(found.gst != null) g('pu','gst').value = String(found.gst);
+    if(found.upp) g('pu','upp').value = found.upp;
+    if(found.mrp) g('pu','mrp').value = found.mrp;
+    if(found.pur || found.rate) g('pu','rate').value = found.pur || found.rate;
+    g('pu','basis').value = 'excl';
+    calc('pu');
+  }
+}
+
 $('#pu-prod').oninput=debounce(function(){
-  call('ph_products',{q:$('#pu-prod').value.trim()}).then(function(r){
-    $('#dl-prod').innerHTML=r.products.map(function(p){return '<option value="'+esc(p.name)+'">'}).join('')
-  }).catch(function(){})
+  var val = $('#pu-prod').value.trim();
+  call('ph_products',{q:val}).then(function(r){
+    $('#dl-prod').innerHTML=r.products.map(function(p){return '<option value="'+esc(p.name)+'">'}).join('');
+    loadProductBatches(val);
+  }).catch(function(){});
 });
+
+$('#pu-prod').onchange=function(){
+  loadProductBatches(this.value.trim());
+};
+
+$('#pu-bno').oninput=function(){
+  checkBatchMatch(this.value.trim());
+};
+$('#pu-bno').onchange=$('#pu-bno').oninput;
 
 function calcPuTotals(){
   var subExcl=0,totGst=0;
@@ -314,15 +526,30 @@ function calcPuTotals(){
   if(!puPaidAmountManuallySet){
     $('#pu-paid-amt').value = grand > 0 ? grand.toFixed(2) : '';
   }
-  return {sub:subExcl,gst:totGst,subIncl:subIncl,disc:discVal,courier:courier,grand:grand}
+  return {sub:subExcl,gst:totGst,subIncl:subIncl,disc:discVal,courier:courier,grand:grand};
 }
 
 function renderPu(){
   $('#pu-card').hidden=!pu.length;
   $('#pu-lines').innerHTML=pu.map(function(l,i){
-    return '<tr><td>'+esc(l.product)+'</td><td>'+esc(l.batch)+'</td><td>'+mmyy(l.expiry)+'</td><td>'+esc(l.packs)+' p, '+esc(l.units)+' u</td><td>'+esc(l.gst)+'%</td><td class="n">'+inr(l.net)+'</td><td class="n">'+inr(l.amount)+'</td><td><button type="button" class="link" data-edit="'+i+'">Edit</button> | <button type="button" class="link" data-rm="'+i+'">Remove</button></td></tr>'
+    var bPacks = n(l.billed_packs != null ? l.billed_packs : l.packs);
+    var fPacks = n(l.free_packs);
+    var uQty = n(l.units);
+    var qtyStr = bPacks + ' p';
+    if(fPacks > 0) qtyStr += ' <span style="color:#1b5e20;font-weight:600">(+' + fPacks + ' free)</span>';
+    if(uQty > 0) qtyStr += ', ' + uQty + ' u';
+    return '<tr>'+
+      '<td><b>'+esc(l.product)+'</b><br><small style="color:#777">HSN: '+esc(l.hsn||'-')+'</small></td>'+
+      '<td>'+esc(l.batch)+'</td>'+
+      '<td>'+mmyy(l.expiry)+'</td>'+
+      '<td>'+qtyStr+'</td>'+
+      '<td>'+esc(l.gst)+'%</td>'+
+      '<td class="n">'+inr(l.net)+'</td>'+
+      '<td class="n"><b>'+inr(l.amount)+'</b></td>'+
+      '<td><button type="button" class="link" data-edit="'+i+'">Edit</button> | <button type="button" class="link" data-rm="'+i+'">Remove</button></td>'+
+      '</tr>';
   }).join('');
-  calcPuTotals()
+  calcPuTotals();
 }
 
 $('#pu-disc-pct').oninput=function(){if(this.value!=='')$('#pu-disc-amt').value='';calcPuTotals()};
@@ -335,7 +562,9 @@ function resetPuEditMode(){
   $('#pu-add').textContent='Add line';
   $('#pu-cancel-edit').style.display='none';
   clearForm('pu');
-  $('#pu-prod').value=''
+  $('#pu-prod').value='';
+  $('#dl-batch').innerHTML='';
+  prodBatchesCache=[];
 }
 $('#pu-cancel-edit').onclick=resetPuEditMode;
 
@@ -348,43 +577,56 @@ $('#pu-lines').onclick=function(e){
     $('#pu-add').textContent='Update line';
     $('#pu-cancel-edit').style.display='inline-block';
     $('#pu-prod').value=item.product;
-    g('pu','bno').value=item.batch;
-    g('pu','exp').value=(item.expiry||'').slice(0,7);
-    g('pu','hsn').value=item.hsn||'3004';
-    g('pu','gst').value=String(item.gst||'5');
+    g('pu','bno').value=item.batch||'';
+    g('pu','exp').value=item.expiry_mmyy||toMmyy(item.expiry)||'';
+    g('pu','hsn').value=item.hsn||'30049087';
+    g('pu','gst').value=String(item.gst!=null?item.gst:'5');
+    g('pu','upp').value=item.upp||'10';
+    g('pu','billed-packs').value=item.billed_packs!=null?item.billed_packs:(item.packs||'0');
+    g('pu','free-packs').value=item.free_packs||'0';
+    g('pu','units').value=item.units||'0';
     g('pu','mrp').value=item.mrp||'';
     g('pu','rate').value=item.rate||'';
     g('pu','basis').value=item.basis||'excl';
-    g('pu','upp').value=item.upp||'1';
-    g('pu','packs').value=item.packs||'0';
-    g('pu','units').value=item.units||'0';
     if(g('pu','disc'))g('pu','disc').value=item.disc||'0';
+    if(g('pu','disc-type'))g('pu','disc-type').value=item.disc_type||'percent';
     calc('pu');
+    loadProductBatches(item.product);
     $('#pu-prod').scrollIntoView({block:'center',behavior:'smooth'});
-    return
+    return;
   }
   var b=e.target.closest('[data-rm]');
   if(b){
     var rmIdx=+b.dataset.rm;
     if(editPuIdx===rmIdx)resetPuEditMode();
     pu.splice(rmIdx,1);
-    renderPu()
+    renderPu();
   }
 };
 
 $('#pu-add').onclick=function(){
   var prod=$('#pu-prod').value.trim(),d=read('pu');
-  if(!prod||!d.batch||!d.expiry){toast('Enter product, batch no and expiry.',1);return}
-  if(n(d.packs)+n(d.units)<=0){toast('Enter quantity received.',1);return}
-  if(n(d.rate)<=0||n(d.mrp)<=0){toast('Enter MRP and purchase rate.',1);return}
-  var c=calc('pu');d.product=prod;d.amount=c.amt;d.net=c.net;d.gst=c.gst;
+  if(!prod){toast('Please enter or select a product name.',1);return}
+  if(!d.batch){toast('Please enter the batch number.',1);return}
+  if(!d.expiry){toast('Please enter a valid expiry date (MM / YY).',1);return}
+  if(n(d.billed_packs)+n(d.free_packs)+n(d.units)<=0){toast('Enter at least 1 billed pack or free pack.',1);return}
+  if(n(d.mrp)<=0){toast('Please enter MRP including GST.',1);return}
+  if(n(d.rate)<=0){toast('Please enter purchase rate.',1);return}
+
+  var c=calc('pu');
+  d.product=prod;
+  d.amount=c.amt;
+  d.net=c.net;
+  d.net_incl=c.net_incl;
+  d.margin=c.margin;
+  d.gst=c.gst;
 
   if(editPuIdx>=0&&editPuIdx<pu.length){
-    pu[editPuIdx]=d;toast('Line updated.');resetPuEditMode()
+    pu[editPuIdx]=d;toast('Line updated.');resetPuEditMode();
   }else{
-    pu.push(d);clearForm('pu');$('#pu-prod').value='';toast('')
+    pu.push(d);clearForm('pu');$('#pu-prod').value='';$('#dl-batch').innerHTML='';prodBatchesCache=[];toast('');
   }
-  renderPu()
+  renderPu();
 };
 
 $('#pu-save').onclick=function(){
@@ -419,11 +661,10 @@ $('#pu-save').onclick=function(){
     puPaidAmountManuallySet=false;resetPuEditMode();toast('');
     rc.scrollIntoView({block:'nearest'});
     $('#pu-another').onclick=function(){rc.hidden=true;window.scrollTo({top:0,behavior:'smooth'})};
-  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false})
+  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false});
 };
 
 calc('pu');
 })();
 </script>
 </div>
-

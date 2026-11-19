@@ -199,33 +199,62 @@ for ln in lines:
         upp = 1
     gst = num(ln.get("gst"))
     rate = num(ln.get("rate"))
-    if ln.get("basis") == "incl":
-        rate = rate / (1 + gst / 100)
-    net = rate * (1 - num(ln.get("disc")) / 100)
-    qty = num(ln.get("packs")) * upp + num(ln.get("units"))
-    if qty <= 0:
+    basis = ln.get("basis") or "excl"
+    disc_val = num(ln.get("disc"))
+    disc_type = (ln.get("disc_type") or "percent").lower()
+
+    if ln.get("net") is not None and num(ln.get("net")) >= 0 and not (rate > 0 and num(ln.get("net")) == 0 and disc_val == 0):
+        net = num(ln.get("net"))
+    else:
+        if basis == "incl":
+            rate_incl = rate
+            if disc_type in ["rupees", "amount", "rs", "in rupees"]:
+                rate_incl = max(0.0, rate_incl - disc_val)
+            else:
+                rate_incl = max(0.0, rate_incl * (1 - disc_val / 100.0))
+            net = rate_incl / (1 + gst / 100.0) if gst > 0 else rate_incl
+        else:
+            if disc_type in ["rupees", "amount", "rs", "in rupees"]:
+                net = max(0.0, rate - disc_val)
+            else:
+                net = max(0.0, rate * (1 - disc_val / 100.0))
+
+    billed_packs = num(ln.get("billed_packs") if ln.get("billed_packs") is not None else ln.get("packs"))
+    free_packs = num(ln.get("free_packs"))
+    units = num(ln.get("units"))
+
+    # Total quantity added to inventory stock (billed + free)
+    total_qty = (billed_packs + free_packs) * upp + units
+    # Quantity billed for payment (free quantity is excluded)
+    billed_qty = billed_packs * upp + units
+
+    if total_qty <= 0:
         frappe.throw("Enter a quantity for " + (ln.get("product") or "every line") + ".")
-        
+
     item = ensure_item((ln.get("product") or "").strip())
     raw_batch = (ln.get("batch") or "").strip()
     exp = (ln.get("expiry") or "").strip()
     hsn = (ln.get("hsn") or "").strip()
     mrp = num(ln.get("mrp"))
-    
+
     batch_name = ensure_batch(item, raw_batch, exp, hsn, gst, mrp, rate, net, upp)
-    
+
+    # Line subtotal is calculated strictly on billed quantity
+    line_subtotal = (billed_qty / upp) * net
+    # Effective rate per unit so that ERPNext stock valuation matches total billed line amount
+    unit_rate = (line_subtotal / total_qty) if total_qty > 0 else 0.0
+
     item_row = {
         "item_code": item,
-        "qty": qty,
-        "rate": net / upp,
+        "qty": total_qty,
+        "rate": unit_rate,
         "warehouse": wh,
         "batch_no": batch_name,
         "expense_account": co.stock_received_but_not_billed,
         "cost_center": co.cost_center
     }
     pi.append("items", item_row)
-    
-    line_subtotal = (qty / upp) * net
+
     tot_gst += line_subtotal * (gst / 100.0)
 
 if tot_gst > 0:

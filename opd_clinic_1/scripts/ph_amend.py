@@ -116,6 +116,8 @@ elif doctype == "Purchase Invoice":
 
         packs = int(it.qty // upp)
         units = int(round(it.qty % upp))
+        pack_rate = float(b.purchase_rate or (it.rate * upp)) if (batch_no and frappe.db.exists("Batch", batch_no)) else float(it.rate * upp)
+        net_pack_rate = float(b.net_rate or pack_rate) if (batch_no and frappe.db.exists("Batch", batch_no)) else pack_rate
         items.append({
             "product": it.item_name or it.item_code,
             "batch": batch_no,
@@ -123,14 +125,17 @@ elif doctype == "Purchase Invoice":
             "hsn": hsn,
             "gst": str(gst),
             "mrp": mrp,
-            "rate": it.rate * upp,
+            "rate": pack_rate,
             "basis": "excl",
             "upp": upp,
             "packs": packs,
+            "billed_packs": packs,
+            "free_packs": 0,
             "units": units,
             "disc": 0,
+            "disc_type": "percent",
             "amount": it.amount,
-            "net": it.rate * upp
+            "net": net_pack_rate
         })
 
     pay_status = "Paid"
