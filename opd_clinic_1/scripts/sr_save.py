@@ -21,16 +21,35 @@ def num(v):
         return 0.0
 
 f = frappe.form_dict
-invoice = (f.get("invoice") or "").strip()
-lines = json.loads(f.get("lines") or "[]")
-reason = (f.get("reason") or "Wrong Medicine").strip()
-mode = (f.get("mode") or "").strip()
+invoice      = (f.get("invoice") or "").strip()
+amend_return = (f.get("amend_return") or "").strip()
+lines        = json.loads(f.get("lines") or "[]")
+reason       = (f.get("reason") or "Wrong Medicine").strip()
+mode         = (f.get("mode") or "").strip()
+
+if amend_return:
+    if not frappe.db.exists("Sales Invoice", amend_return):
+        frappe.throw("Original return note not found: " + amend_return)
+    # Cancel linked payment entries if any to prevent TimestampMismatchError
+    pes = frappe.db.sql("""
+        select distinct parent from `tabPayment Entry Reference`
+        where reference_doctype='Sales Invoice' and reference_name=%s and docstatus=1
+    """, amend_return, as_dict=True)
+    for p in pes:
+        pe_doc = frappe.get_doc("Payment Entry", p.parent)
+        if pe_doc.docstatus == 1:
+            pe_doc.cancel()
+    old_ret = frappe.get_doc("Sales Invoice", amend_return)
+    if not invoice:
+        invoice = old_ret.return_against
+    if old_ret.docstatus == 1:
+        old_ret.cancel()
 
 if not invoice or not lines:
     frappe.throw("Invoice and at least one return line are required.")
 
 if not frappe.db.exists("Sales Invoice", invoice):
-    frappe.throw("Invoice not found.")
+    frappe.throw("Invoice not found: " + invoice)
 
 si = frappe.get_doc("Sales Invoice", invoice)
 if si.docstatus != 1:
@@ -100,5 +119,6 @@ ret.submit()
 
 frappe.response["message"] = {
     "return_invoice": ret.name,
-    "total": abs(ret.rounded_total or ret.grand_total)
+    "total": abs(ret.rounded_total or ret.grand_total),
+    "amended": bool(amend_return)
 }

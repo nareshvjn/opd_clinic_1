@@ -295,7 +295,7 @@ $('#sl-date-search').onclick=function(){
           '<div class="inv-total">'+inr(iv.total)+'</div>'+
           '<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">'+
             '<a class="btn sm subtle" href="/printview?doctype=Sales%20Invoice&name='+encodeURIComponent(iv.name)+'&trigger_print=1" target="_blank" rel="noopener">Print</a>'+
-            (iv.is_return?'':'<button type="button" class="btn sm" data-edit-sale="'+esc(iv.name)+'">Edit</button>')+
+            (iv.is_return?'<a class="btn sm" href="/sale-return?edit='+encodeURIComponent(iv.name)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-sale="'+esc(iv.name)+'">Edit</button>')+
             '<a class="btn sm subtle" href="/app/sales-invoice/'+encodeURIComponent(iv.name)+'" target="_blank" rel="noopener">Open</a>'+
           '</div>'+
         '</div>'+
