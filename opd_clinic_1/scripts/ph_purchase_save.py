@@ -147,7 +147,6 @@ if not supplier_in or not wh or not lines:
 if amend_invoice:
     if not frappe.db.exists("Purchase Invoice", amend_invoice):
         frappe.throw("Original purchase invoice not found: " + amend_invoice)
-    old_pi = frappe.get_doc("Purchase Invoice", amend_invoice)
     pes = frappe.db.sql("""
         select distinct parent from `tabPayment Entry Reference`
         where reference_doctype='Purchase Invoice' and reference_name=%s and docstatus=1
@@ -156,6 +155,9 @@ if amend_invoice:
         pe_doc = frappe.get_doc("Payment Entry", p.parent)
         if pe_doc.docstatus == 1:
             pe_doc.cancel()
+
+    # Load / reload after cancelling linked Payment Entries to avoid TimestampMismatchError
+    old_pi = frappe.get_doc("Purchase Invoice", amend_invoice)
     if old_pi.docstatus == 1:
         old_pi.cancel()
 
