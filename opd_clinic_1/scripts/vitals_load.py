@@ -18,6 +18,14 @@ if not ok:
 f = frappe.form_dict
 appt_id = (f.get("appointment") or "").strip()
 patient_id = (f.get("patient") or "").strip()
+vitals_id = (f.get("vitals_id") or f.get("name") or "").strip()
+
+if vitals_id and frappe.db.exists("Vital Signs", vitals_id):
+    v_doc = frappe.get_doc("Vital Signs", vitals_id)
+    if not patient_id:
+        patient_id = v_doc.patient
+    if not appt_id and v_doc.appointment:
+        appt_id = v_doc.appointment
 
 if not patient_id and appt_id and frappe.db.exists("Patient Appointment", appt_id):
     patient_id = frappe.db.get_value("Patient Appointment", appt_id, "patient") or ""
@@ -51,9 +59,16 @@ if appt_id and frappe.db.exists("Patient Appointment", appt_id):
         "status": a.status or ""
     }
 
-# Current vitals for this appointment
+# Current vitals for this appointment or specified vitals_id
 current_vs = {}
-if appt_id:
+if vitals_id and frappe.db.exists("Vital Signs", vitals_id):
+    v = frappe.get_all("Vital Signs", filters={"name": vitals_id},
+        fields=["name", "docstatus", "temperature", "pulse", "respiratory_rate",
+                "bp_systolic", "bp_diastolic", "height", "weight", "bmi",
+                "signs_date", "nutrition_note"], limit=1)
+    if v:
+        current_vs = v[0]
+elif appt_id:
     v = frappe.get_all("Vital Signs", filters={"appointment": appt_id, "docstatus": ["<", 2]},
         fields=["name", "docstatus", "temperature", "pulse", "respiratory_rate",
                 "bp_systolic", "bp_diastolic", "height", "weight", "bmi",
@@ -71,7 +86,7 @@ elif appt_id:
     h_filters["appointment"] = ["!=", appt_id]
 
 prev = frappe.get_all("Vital Signs", filters=h_filters,
-    fields=["name", "signs_date", "creation", "temperature", "pulse", "respiratory_rate",
+    fields=["name", "docstatus", "signs_date", "creation", "temperature", "pulse", "respiratory_rate",
             "bp_systolic", "bp_diastolic", "height", "weight", "bmi", "nutrition_note"],
     order_by="creation desc", limit=10)
 
@@ -79,6 +94,7 @@ for p in prev:
     dt = str(p.get("signs_date") or p.get("creation") or "")
     history.append({
         "name": p.name,
+        "docstatus": p.docstatus,
         "date": dt[:10],
         "time": dt[11:16] if len(dt) > 16 else "",
         "temperature": p.temperature,

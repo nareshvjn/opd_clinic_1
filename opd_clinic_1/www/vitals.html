@@ -30,6 +30,10 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 #vt button:disabled{opacity:.6;cursor:not-allowed}
 #vt .note{padding:10px 14px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok);font-size:.9rem}
 #vt .note.bad{border-color:var(--err);background:#fdf0ef;color:var(--err)}
+#vt .edit-badge{display:flex;align-items:center;justify-content:space-between;background:#eef6f3;border:1.5px solid #8cc9b5;padding:8px 12px;border-radius:8px;margin-bottom:14px;font-size:.88rem;flex-wrap:wrap;gap:8px}
+#vt .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.76rem;font-weight:700;text-transform:uppercase;background:var(--ok);color:#fff}
+#vt .badge.sub{background:#16324a}
+#vt button.sm,#vt a.sm{padding:4px 10px;font-size:.82rem;border-radius:6px;font-weight:600}
 #vt .hx-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.88rem}
 #vt .hx-table th,#vt .hx-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line)}
 #vt .hx-table th{background:var(--bg);font-weight:600;color:var(--mute)}
@@ -53,7 +57,20 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 <div id="msg" class="note bad" role="alert" hidden></div>
 
 <div class="card" id="vitals-card" hidden>
-  <h2>Vital Signs Recording</h2>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+    <h2 style="margin:0">Vital Signs Recording</h2>
+    <button type="button" class="btn sm" id="btn-clear-new" hidden>+ Record New Vitals</button>
+  </div>
+
+  <div id="edit-banner" class="edit-badge" hidden>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="badge" id="badge-status">Draft</span>
+      <span>Editing: <b id="edit-docname">VS-00001</b></span>
+      <span id="edit-date" style="color:var(--mute);font-size:.84rem"></span>
+    </div>
+    <span style="font-size:.82rem;color:var(--ok);font-weight:600">Changes will update this record</span>
+  </div>
+
   <div class="vg">
     <div class="field-box">
       <label for="v-temperature">Temperature (&deg;F)</label>
@@ -119,6 +136,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
           <th>Height</th>
           <th>BMI</th>
           <th>Note</th>
+          <th style="text-align:center">Action</th>
         </tr>
       </thead>
       <tbody id="hx-rows"></tbody>
@@ -133,7 +151,10 @@ var q=new URLSearchParams(location.search),
     A=q.get('appointment')||'',
     P=q.get('patient')||'',
     D=q.get('practitioner')||'',
-    csrf='';
+    V=q.get('vitals')||q.get('name')||'',
+    csrf='',
+    currentVitalsId='',
+    recordsMap={};
 
 var VK=['temperature','pulse','bp_systolic','bp_diastolic','respiratory_rate','height','weight'];
 
@@ -239,19 +260,65 @@ function getPayload(){
   return o;
 }
 
+function loadRecord(v){
+  if(!v) return;
+  currentVitalsId = v.name || '';
+  VK.forEach(function(k){
+    $('#v-'+k).value = (v[k] != null) ? v[k] : '';
+  });
+  $('#v-note').value = v.nutrition_note || v.note || '';
+  updateBmi();updateBp();updatePulse();updateTemp();
+
+  if(currentVitalsId){
+    $('#edit-banner').hidden = false;
+    $('#btn-clear-new').hidden = false;
+    $('#edit-docname').textContent = currentVitalsId;
+    $('#edit-date').textContent = (v.date || '') + (v.time ? ' ' + v.time : '');
+    $('#badge-status').textContent = (v.docstatus === 1) ? 'Submitted' : 'Draft';
+    $('#badge-status').className = 'badge' + (v.docstatus === 1 ? ' sub' : '');
+    $('#btn-save').textContent = 'Update Vitals';
+  } else {
+    $('#edit-banner').hidden = true;
+    $('#btn-clear-new').hidden = true;
+    $('#btn-save').textContent = 'Save Vitals';
+  }
+}
+
+function clearToNew(){
+  currentVitalsId = '';
+  VK.forEach(function(k){ $('#v-'+k).value = ''; });
+  $('#v-note').value = '';
+  updateBmi();updateBp();updatePulse();updateTemp();
+  $('#edit-banner').hidden = true;
+  $('#btn-clear-new').hidden = true;
+  $('#btn-save').textContent = 'Save Vitals';
+  showMsg('Ready to record new vitals.', true);
+  setTimeout(function(){ showMsg(''); }, 2000);
+}
+
+$('#btn-clear-new').onclick = clearToNew;
+
 function save(thenConsult){
   showMsg('');
   var bSave=$('#btn-save'),bCons=$('#btn-save-consult');
   bSave.disabled=bCons.disabled=true;
   var vObj=getPayload();
-  call('vitals_save',{appointment:A,patient:P,vitals:JSON.stringify(vObj)},true).then(function(r){
-    showMsg('Vitals saved successfully!',true);
+  call('vitals_save',{
+    appointment: A,
+    patient: P,
+    vitals_id: currentVitalsId,
+    vitals: JSON.stringify(vObj)
+  }, true).then(function(r){
+    var isUpdate = !!currentVitalsId;
+    currentVitalsId = r.vitals;
+    showMsg(isUpdate ? 'Vitals updated successfully!' : 'Vitals saved successfully!', true);
     if(thenConsult){
       var qStr='patient='+encodeURIComponent(P)+'&appointment='+encodeURIComponent(A)+(D?'&practitioner='+encodeURIComponent(D):'');
       window.location.href='/consultation?'+qStr;
     } else {
       setTimeout(function(){showMsg('')},3000);
       bSave.disabled=bCons.disabled=false;
+      init();
     }
   }).catch(function(e){
     showMsg(e.message);
@@ -263,8 +330,8 @@ $('#btn-save').onclick=function(){save(false)};
 $('#btn-save-consult').onclick=function(){save(true)};
 
 function init(){
-  if(!P&&!A){showMsg('No patient or appointment provided in URL.');return}
-  call('vitals_load',{appointment:A,patient:P,practitioner:D}).then(function(r){
+  if(!P&&!A&&!V){showMsg('No patient or appointment provided in URL.');return}
+  call('vitals_load',{appointment:A,patient:P,practitioner:D,vitals_id:V}).then(function(r){
     csrf=r.csrf||csrf;
     P=r.patient.id;
     if(r.practitioner) D=r.practitioner;
@@ -276,16 +343,17 @@ function init(){
       $('#ap').innerHTML='<b>'+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'');
     }
 
-    if(r.vitals){
-      VK.forEach(function(k){
-        if(r.vitals[k]!=null) $('#v-'+k).value=r.vitals[k];
-      });
-      if(r.vitals.nutrition_note) $('#v-note').value=r.vitals.nutrition_note;
-      updateBmi();updateBp();updatePulse();updateTemp();
+    recordsMap = {};
+    if(r.vitals && r.vitals.name){
+      recordsMap[r.vitals.name] = r.vitals;
+      loadRecord(r.vitals);
+    } else {
+      clearToNew();
     }
 
     if(r.history&&r.history.length){
       $('#hx-rows').innerHTML=r.history.map(function(h){
+        recordsMap[h.name] = h;
         var bp = (h.bp_systolic&&h.bp_diastolic)?(h.bp_systolic+'/'+h.bp_diastolic):'-';
         return '<tr>'+
           '<td><b>'+esc(h.date)+'</b> <span style="color:#5d7184">'+esc(h.time)+'</span></td>'+
@@ -296,14 +364,29 @@ function init(){
           '<td>'+(h.height?h.height+' cm':'-')+'</td>'+
           '<td>'+(h.bmi?h.bmi:'-')+'</td>'+
           '<td><span style="font-size:.82rem;color:#5d7184">'+esc(h.note||'-')+'</span></td>'+
+          '<td style="text-align:center"><button type="button" class="btn sm btn-edit-row" data-id="'+esc(h.name)+'">Edit ✎</button></td>'+
         '</tr>';
       }).join('');
       $('#hx-card').hidden=false;
+    } else {
+      $('#hx-card').hidden=true;
     }
 
     $('#vitals-card').hidden=false;
   }).catch(function(e){showMsg(e.message)});
 }
+
+$('#hx-rows').onclick = function(e){
+  var btn = e.target.closest('.btn-edit-row');
+  if(!btn) return;
+  var rec = recordsMap[btn.dataset.id];
+  if(rec){
+    loadRecord(rec);
+    $('#vitals-card').scrollIntoView({behavior:'smooth', block:'start'});
+    showMsg('Loaded vitals record ' + rec.name + ' for editing.', true);
+    setTimeout(function(){ showMsg(''); }, 2500);
+  }
+};
 
 init();
 })();
