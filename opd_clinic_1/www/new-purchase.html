@@ -462,7 +462,8 @@ function loadProductBatches(itemCode){
     var batches = r.batches || [];
     prodBatchesCache = batches;
     $('#dl-batch').innerHTML = batches.map(function(b){
-      return '<option value="' + esc(b.name) + '">' +
+      var bName = b.batch || b.name || '';
+      return '<option value="' + esc(bName) + '">' +
         (b.expiry ? 'Exp: ' + mmyy(b.expiry) : '') +
         (b.mrp ? ' | MRP: \u20B9' + b.mrp : '') +
         (b.upp > 1 ? ' | ' + b.upp + '/pk' : '') +
@@ -472,15 +473,20 @@ function loadProductBatches(itemCode){
 }
 
 function checkBatchMatch(val){
-  if(!val || !prodBatchesCache.length) return;
-  var found = prodBatchesCache.find(function(b){ return b.name.toLowerCase() === val.toLowerCase(); });
+  if(!val || !prodBatchesCache || !prodBatchesCache.length) return;
+  var target = String(val).trim().toLowerCase();
+  var found = prodBatchesCache.find(function(b){
+    var bn = String(b.batch || b.name || '').trim().toLowerCase();
+    return bn === target;
+  });
   if(found){
     if(found.expiry) g('pu','exp').value = toMmyy(found.expiry);
-    if(found.hsn) g('pu','hsn').value = found.hsn;
+    if(found.hsn) g('pu','hsn').value = found.hsn || '3004';
     if(found.gst != null) g('pu','gst').value = String(found.gst);
     if(found.upp) g('pu','upp').value = found.upp;
     if(found.mrp) g('pu','mrp').value = found.mrp;
-    if(found.pur || found.rate) g('pu','rate').value = found.pur || found.rate;
+    var pRate = found.purchase_rate || found.pur || found.rate || '';
+    if(pRate) g('pu','rate').value = pRate;
     g('pu','basis').value = 'excl';
     calc('pu');
   }
