@@ -278,7 +278,7 @@ function renderBills(){
         '<div>'+pendingText+'</div>'+
         '<div class="actions">'+
           '<a class="btn sm subtle" href="/printview?doctype=Purchase%20Invoice&name='+encodeURIComponent(iv.name)+'&trigger_print=1" target="_blank" rel="noopener">Print</a>'+
-          (isRet?'':'<button type="button" class="btn sm" data-edit-purchase="'+esc(iv.name)+'">Edit</button>')+
+          (isRet?'<a class="btn sm" href="/purchase-return?edit='+encodeURIComponent(iv.name)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-purchase="'+esc(iv.name)+'">Edit</button>')+
           '<a class="btn sm subtle" href="/app/purchase-invoice/'+encodeURIComponent(iv.name)+'" target="_blank" rel="noopener">Open in ERPNext</a>'+
         '</div>'+
       '</div>'+

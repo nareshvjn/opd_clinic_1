@@ -18,6 +18,7 @@
   #pr .btn:disabled{opacity:.5;cursor:default}
   #pr .btn.go{background:#188038}
   #pr .btn.red{background:#b3261e}
+  #pr .btn.sm{padding:6px 12px;font-size:.84rem}
   #pr .link{background:none;border:none;color:#1a73e8;font:15px system-ui;cursor:pointer;padding:0;text-decoration:underline}
   #pr .back-link{color:#1a73e8;font-size:.9rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px}
   #pr .hint{font-size:.82rem;color:#777;margin-top:6px}
@@ -77,8 +78,13 @@
   <div id="pr-list" style="margin-top:12px"></div>
 </div>
 
-<!-- Step 2A: New Return Form (for regular invoices) -->
+<!-- Step 2A: Return Form (for new returns or editing existing return) -->
 <div class="card" id="step-inv" hidden>
+  <div id="edit-return-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:10px 14px;border-radius:8px;font-size:.88rem;font-weight:600;margin-bottom:12px;justify-content:space-between;align-items:center">
+    <span>Editing return note <b id="edit-ret-name"></b>. Original return stays active until you save.</span>
+    <button type="button" id="btn-cancel-ret-edit" class="btn sm" style="background:#dc2626;color:#fff;padding:4px 10px;font-size:.8rem;border:none;border-radius:6px;cursor:pointer">Cancel</button>
+  </div>
+
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <h2 id="inv-title" style="margin:0"></h2>
     <button type="button" class="link" id="inv-clear">&#8592; Back</button>
@@ -141,7 +147,7 @@
     </table>
   </div>
   <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
-    <button type="button" class="btn" id="vr-edit" style="flex:1">Edit return (Cancel & redo)</button>
+    <button type="button" class="btn" id="vr-edit" style="flex:1">Edit return</button>
     <button type="button" class="btn red" id="vr-cancel" style="flex:1">Cancel return</button>
   </div>
 </div>
@@ -158,7 +164,7 @@
 <script>
 (function(){
 var $=function(s){return document.querySelector('#pr '+s)};
-var csrf='',inv=null;
+var csrf='',inv=null,editingReturn=null;
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function n(v){v=parseFloat(v);return isNaN(v)?0:v}
@@ -233,15 +239,20 @@ $('#pr-search').onclick=function(){
 $('#pr-list').onclick=function(e){
   var row=e.target.closest('.inv-row');
   if(!row)return;
-  loadInvoice(row.dataset.inv);
+  loadInvoice(row.dataset.inv, false);
 };
 
-function loadInvoice(name){
-  toast('');
+function loadInvoice(name, autoEdit){
+  toast('Loading...');
   call('pr_load',{invoice:name}).then(function(r){
     inv=r;
+    toast('');
     if(inv.is_return){
-      showReturnView();
+      if(autoEdit){
+        enterEditModeForReturn();
+      }else{
+        showReturnView();
+      }
     }else{
       showInvoice();
     }
@@ -249,6 +260,8 @@ function loadInvoice(name){
 }
 
 function showReturnView(){
+  editingReturn=null;
+  $('#edit-return-banner').style.display='none';
   $('#step-find').hidden=true;
   $('#step-inv').hidden=true;
   $('#step-submit').hidden=true;
@@ -271,6 +284,62 @@ function showReturnView(){
   }).join('');
 }
 
+function enterEditModeForReturn(){
+  if(!inv || !inv.is_return) return;
+  editingReturn = inv.invoice;
+  $('#step-find').hidden=true;
+  $('#step-view-return').hidden=true;
+
+  $('#edit-return-banner').style.display='flex';
+  $('#edit-ret-name').textContent=inv.invoice;
+
+  $('#inv-title').textContent='Edit Return Note: '+inv.invoice;
+  $('#inv-info').innerHTML=
+    '<span>Date: '+esc(fmtDate(inv.date))+'</span>'+
+    '<span>Supplier: '+esc(inv.supplier)+'</span>'+
+    (inv.bill_no?'<span>Bill no: '+esc(inv.bill_no)+'</span>':'')+
+    '<span>Original invoice: '+esc(inv.return_against)+'</span>';
+  $('#inv-hint').textContent='Adjust return quantity for each item (0 to skip or remove). Max includes items in this return.';
+
+  var itemsToRender = (inv.edit_items && inv.edit_items.length) ? inv.edit_items : inv.items;
+  $('#ret-lines').innerHTML=itemsToRender.map(function(it,i){
+    var initQty = it.return_qty != null ? it.return_qty : (it.qty != null ? it.qty : 0);
+    var maxQ = it.max_qty != null ? it.max_qty : (it.bought_qty != null ? it.bought_qty : initQty);
+    return '<tr>'+
+      '<td>'+esc(it.item_name)+'</td>'+
+      '<td>'+esc(it.batch_no||'-')+'<br><span class="mute" style="font-size:.78rem">Exp '+mmyy(it.expiry)+'</span></td>'+
+      '<td class="n">'+(it.bought_qty != null ? it.bought_qty : '-')+'</td>'+
+      '<td class="n"><input type="number" min="0" max="'+maxQ+'" step="1" inputmode="numeric" value="'+initQty+'" data-i="'+i+'" class="rq"></td>'+
+      '</tr>';
+  }).join('');
+
+  if(inv.reason){
+    $('#ret-reason').value=inv.reason;
+  }
+  $('#ret-submit').textContent='Save return changes';
+  $('#step-inv').hidden=false;
+  $('#step-submit').hidden=false;
+  calcTotal();
+  $('#step-inv').scrollIntoView({block:'start',behavior:'smooth'});
+}
+
+$('#vr-edit').onclick=function(){
+  enterEditModeForReturn();
+};
+
+$('#btn-cancel-ret-edit').onclick=function(){
+  if(!confirm('Cancel editing this return note? Any unsaved adjustments will be discarded.')) return;
+  editingReturn=null;
+  $('#edit-return-banner').style.display='none';
+  if(inv && inv.is_return){
+    showReturnView();
+  } else {
+    $('#step-inv').hidden=true;
+    $('#step-submit').hidden=true;
+    $('#step-find').hidden=false;
+  }
+};
+
 // Cancel Return Note
 $('#vr-cancel').onclick=function(){
   if(!confirm('Cancel this return note? The returned stock will be deducted back from your store.')) return;
@@ -283,19 +352,31 @@ $('#vr-cancel').onclick=function(){
   }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false});
 };
 
-// Edit Return Note: Cancel existing note, then reload original invoice into return view
-$('#vr-edit').onclick=function(){
-  if(!confirm('This will cancel the current return note and let you enter new return quantities. Continue?')) return;
-  var orig=inv.return_against;
-  var b=this;b.disabled=true;
-  call('pr_cancel',{invoice:inv.invoice},true).then(function(){
-    $('#step-view-return').hidden=true;
-    loadInvoice(orig);
-  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false});
+$('#vr-back').onclick=function(){
+  inv=null;
+  editingReturn=null;
+  $('#edit-return-banner').style.display='none';
+  $('#step-inv').hidden=true;
+  $('#step-submit').hidden=true;
+  $('#step-view-return').hidden=true;
+  $('#step-done').hidden=true;
+  $('#step-find').hidden=false;
+  toast('');
 };
 
-$('#vr-back').onclick=$('#inv-clear').onclick=function(){
+$('#inv-clear').onclick=function(){
+  if(editingReturn){
+    if(!confirm('Cancel editing this return note?')) return;
+    editingReturn=null;
+    $('#edit-return-banner').style.display='none';
+    if(inv && inv.is_return){
+      showReturnView();
+      return;
+    }
+  }
   inv=null;
+  editingReturn=null;
+  $('#edit-return-banner').style.display='none';
   $('#step-inv').hidden=true;
   $('#step-submit').hidden=true;
   $('#step-view-return').hidden=true;
@@ -306,6 +387,8 @@ $('#vr-back').onclick=$('#inv-clear').onclick=function(){
 
 $('#done-new').onclick=function(){
   inv=null;
+  editingReturn=null;
+  $('#edit-return-banner').style.display='none';
   $('#step-inv').hidden=true;
   $('#step-submit').hidden=true;
   $('#step-view-return').hidden=true;
@@ -316,6 +399,9 @@ $('#done-new').onclick=function(){
 };
 
 function showInvoice(){
+  editingReturn=null;
+  $('#edit-return-banner').style.display='none';
+  $('#ret-submit').textContent='Submit return';
   $('#step-find').hidden=true;
   $('#step-view-return').hidden=true;
   $('#inv-title').textContent='Purchase Invoice: '+inv.invoice;
@@ -343,9 +429,12 @@ function showInvoice(){
 function calcTotal(){
   if(!inv)return 0;
   var total=0;
+  var items = (editingReturn && inv.edit_items && inv.edit_items.length) ? inv.edit_items : inv.items;
   document.querySelectorAll('#pr .rq').forEach(function(inp,i){
-    var it=inv.items[i];
-    var qty=Math.min(Math.max(0,n(inp.value)),it.max_qty);
+    var it=items[i];
+    if(!it) return;
+    var maxQ = it.max_qty != null ? it.max_qty : it.bought_qty;
+    var qty=Math.min(Math.max(0,n(inp.value)),maxQ);
     inp.value=qty;
     total+=qty*it.rate;
   });
@@ -357,27 +446,47 @@ $('#ret-lines').oninput=calcTotal;
 
 $('#ret-submit').onclick=function(){
   if(!inv){toast('Search an invoice first.',1);return}
+  var items = (editingReturn && inv.edit_items && inv.edit_items.length) ? inv.edit_items : inv.items;
   var lines=[];
   document.querySelectorAll('#pr .rq').forEach(function(inp,i){
-    var it=inv.items[i];
-    var qty=Math.min(Math.max(0,n(inp.value)),it.max_qty);
+    var it=items[i];
+    if(!it) return;
+    var maxQ = it.max_qty != null ? it.max_qty : it.bought_qty;
+    var qty=Math.min(Math.max(0,n(inp.value)),maxQ);
     if(qty>0) lines.push({item_code:it.item_code,batch_no:it.batch_no,qty:qty,rate:it.rate,warehouse:it.warehouse});
   });
   if(!lines.length){toast('Enter at least one item quantity to return.',1);return}
   var b=this;b.disabled=true;toast('');
-  call('pr_save',{
-    invoice:inv.invoice,
-    lines:JSON.stringify(lines),
-    reason:$('#ret-reason').value
-  },true).then(function(r){
+  var payload = {
+    invoice: editingReturn ? inv.return_against : inv.invoice,
+    lines: JSON.stringify(lines),
+    reason: $('#ret-reason').value
+  };
+  if(editingReturn){
+    payload.amend_return = editingReturn;
+  }
+  call('pr_save', payload, true).then(function(r){
+    editingReturn = null;
+    $('#edit-return-banner').style.display='none';
     $('#step-done').hidden=false;
-    $('#done-msg').innerHTML='Return note <b>'+esc(r.return_invoice)+'</b> created. Credit amount: <b>'+inr(r.total)+'</b>. Stock has been deducted.';
+    var actionText = r.amended ? 'updated successfully' : 'created';
+    $('#done-msg').innerHTML='Return note <b>'+esc(r.return_invoice)+'</b> '+actionText+'. Credit amount: <b>'+inr(r.total)+'</b>. Stock has been adjusted.';
     $('#step-inv').hidden=true;
     $('#step-submit').hidden=true;
     $('#step-done').scrollIntoView({block:'start',behavior:'smooth'});
     toast('')
   }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false})
 };
+
+// Check URL query parameters on load
+var params = new URLSearchParams(window.location.search);
+var editParam = params.get('edit') || params.get('return');
+var invParam = params.get('invoice');
+if(editParam){
+  loadInvoice(editParam.trim(), true);
+} else if(invParam){
+  loadInvoice(invParam.trim(), false);
+}
 
 })();
 </script>
