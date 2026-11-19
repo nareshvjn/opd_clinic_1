@@ -8,8 +8,10 @@ You can install this app using the [bench](https://github.com/frappe/bench) CLI:
 
 ```bash
 cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch develop
-bench install-app opd_clinic_1
+bench get-app https://github.com/nareshvjn/opd_clinic_1 --branch develop
+bench --site $NAME_OF_YOUR_SITE install-app opd_clinic_1
+bench --site $NAME_OF_YOUR_SITE migrate
+bench --site $NAME_OF_YOUR_SITE clear-cache
 ```
 
 ### Contributing
