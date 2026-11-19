@@ -19,6 +19,7 @@
   #pr .btn.go{background:#188038}
   #pr .btn.red{background:#b3261e}
   #pr .btn.sm{padding:6px 12px;font-size:.84rem}
+  #pr .btn.subtle{background:#f1f3f4;color:#1c1b1f;border:1px solid #c4c7c5}
   #pr .link{background:none;border:none;color:#1a73e8;font:15px system-ui;cursor:pointer;padding:0;text-decoration:underline}
   #pr .back-link{color:#1a73e8;font-size:.9rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px}
   #pr .hint{font-size:.82rem;color:#777;margin-top:6px}
@@ -80,9 +81,12 @@
 
 <!-- Step 2A: Return Form (for new returns or editing existing return) -->
 <div class="card" id="step-inv" hidden>
-  <div id="edit-return-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:10px 14px;border-radius:8px;font-size:.88rem;font-weight:600;margin-bottom:12px;justify-content:space-between;align-items:center">
+  <div id="edit-return-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:10px 14px;border-radius:8px;font-size:.88rem;font-weight:600;margin-bottom:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <span>Editing return note <b id="edit-ret-name"></b>. Original return stays active until you save.</span>
-    <button type="button" id="btn-cancel-ret-edit" class="btn sm" style="background:#dc2626;color:#fff;padding:4px 10px;font-size:.8rem;border:none;border-radius:6px;cursor:pointer">Cancel</button>
+    <div style="display:flex;gap:6px">
+      <button type="button" id="btn-cancel-ret-edit" class="btn sm subtle" style="background:#fff;border:1px solid #d97706;color:#92400e;padding:5px 10px;font-size:.8rem;border-radius:6px;cursor:pointer">Discard edits</button>
+      <button type="button" id="btn-banner-cancel-return" class="btn sm red" style="padding:5px 10px;font-size:.8rem;border-radius:6px;cursor:pointer">Cancel return note</button>
+    </div>
   </div>
 
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -121,9 +125,10 @@
     <span>Return amount (credit)</span>
     <b id="ret-total">&#8377;0.00</b>
   </div>
-  <p style="margin-top:14px">
-    <button type="button" class="btn go" id="ret-submit" style="width:100%">Submit return</button>
-  </p>
+  <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+    <button type="button" class="btn go" id="ret-submit" style="flex:2">Submit return</button>
+    <button type="button" class="btn red" id="ret-cancel-note" style="flex:1;display:none">Cancel this return</button>
+  </div>
 </div>
 
 <!-- Step 2B: View / Edit / Cancel an Existing Return Note -->
@@ -262,6 +267,7 @@ function loadInvoice(name, autoEdit){
 function showReturnView(){
   editingReturn=null;
   $('#edit-return-banner').style.display='none';
+  $('#ret-cancel-note').style.display='none';
   $('#step-find').hidden=true;
   $('#step-inv').hidden=true;
   $('#step-submit').hidden=true;
@@ -317,6 +323,7 @@ function enterEditModeForReturn(){
     $('#ret-reason').value=inv.reason;
   }
   $('#ret-submit').textContent='Save return changes';
+  $('#ret-cancel-note').style.display='inline-block';
   $('#step-inv').hidden=false;
   $('#step-submit').hidden=false;
   calcTotal();
@@ -328,9 +335,10 @@ $('#vr-edit').onclick=function(){
 };
 
 $('#btn-cancel-ret-edit').onclick=function(){
-  if(!confirm('Cancel editing this return note? Any unsaved adjustments will be discarded.')) return;
+  if(!confirm('Discard changes made during editing? The original return note will remain unchanged.')) return;
   editingReturn=null;
   $('#edit-return-banner').style.display='none';
+  $('#ret-cancel-note').style.display='none';
   if(inv && inv.is_return){
     showReturnView();
   } else {
@@ -340,22 +348,42 @@ $('#btn-cancel-ret-edit').onclick=function(){
   }
 };
 
-// Cancel Return Note
-$('#vr-cancel').onclick=function(){
-  if(!confirm('Cancel this return note? The returned stock will be deducted back from your store.')) return;
-  var b=this;b.disabled=true;
-  call('pr_cancel',{invoice:inv.invoice},true).then(function(r){
+function doCancelReturn(invoiceName){
+  var target = invoiceName || editingReturn || (inv && inv.invoice);
+  if(!target) return;
+  if(!confirm('Cancel this return note ('+target+')? The returned stock will be deducted back from your store and this return note will be cancelled.')) return;
+  toast('Cancelling return note...');
+  call('pr_cancel',{invoice:target},true).then(function(r){
+    editingReturn=null;
+    inv=null;
+    $('#edit-return-banner').style.display='none';
+    $('#ret-cancel-note').style.display='none';
+    $('#step-inv').hidden=true;
+    $('#step-submit').hidden=true;
     $('#step-view-return').hidden=true;
     $('#step-done').hidden=false;
     $('#done-msg').innerHTML='Return note <b>'+esc(r.invoice)+'</b> has been cancelled successfully.';
+    $('#step-done').scrollIntoView({block:'start',behavior:'smooth'});
     toast('');
-  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false});
+  }).catch(function(e){toast(e.message,1)});
+}
+
+// Cancel Return Note buttons
+$('#vr-cancel').onclick=function(){
+  doCancelReturn(inv && inv.invoice);
+};
+$('#ret-cancel-note').onclick=function(){
+  doCancelReturn(editingReturn || (inv && inv.invoice));
+};
+$('#btn-banner-cancel-return').onclick=function(){
+  doCancelReturn(editingReturn || (inv && inv.invoice));
 };
 
 $('#vr-back').onclick=function(){
   inv=null;
   editingReturn=null;
   $('#edit-return-banner').style.display='none';
+  $('#ret-cancel-note').style.display='none';
   $('#step-inv').hidden=true;
   $('#step-submit').hidden=true;
   $('#step-view-return').hidden=true;
@@ -366,9 +394,10 @@ $('#vr-back').onclick=function(){
 
 $('#inv-clear').onclick=function(){
   if(editingReturn){
-    if(!confirm('Cancel editing this return note?')) return;
+    if(!confirm('Discard changes and stop editing this return note?')) return;
     editingReturn=null;
     $('#edit-return-banner').style.display='none';
+    $('#ret-cancel-note').style.display='none';
     if(inv && inv.is_return){
       showReturnView();
       return;
@@ -377,6 +406,7 @@ $('#inv-clear').onclick=function(){
   inv=null;
   editingReturn=null;
   $('#edit-return-banner').style.display='none';
+  $('#ret-cancel-note').style.display='none';
   $('#step-inv').hidden=true;
   $('#step-submit').hidden=true;
   $('#step-view-return').hidden=true;
@@ -389,6 +419,7 @@ $('#done-new').onclick=function(){
   inv=null;
   editingReturn=null;
   $('#edit-return-banner').style.display='none';
+  $('#ret-cancel-note').style.display='none';
   $('#step-inv').hidden=true;
   $('#step-submit').hidden=true;
   $('#step-view-return').hidden=true;
@@ -401,6 +432,7 @@ $('#done-new').onclick=function(){
 function showInvoice(){
   editingReturn=null;
   $('#edit-return-banner').style.display='none';
+  $('#ret-cancel-note').style.display='none';
   $('#ret-submit').textContent='Submit return';
   $('#step-find').hidden=true;
   $('#step-view-return').hidden=true;
@@ -468,6 +500,7 @@ $('#ret-submit').onclick=function(){
   call('pr_save', payload, true).then(function(r){
     editingReturn = null;
     $('#edit-return-banner').style.display='none';
+    $('#ret-cancel-note').style.display='none';
     $('#step-done').hidden=false;
     var actionText = r.amended ? 'updated successfully' : 'created';
     $('#done-msg').innerHTML='Return note <b>'+esc(r.return_invoice)+'</b> '+actionText+'. Credit amount: <b>'+inr(r.total)+'</b>. Stock has been adjusted.';
