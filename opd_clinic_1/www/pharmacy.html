@@ -55,6 +55,12 @@
   #ph .inv-row b{display:block;font-size:.95rem}
   #ph .inv-row span{font-size:.8rem;color:#777}
   #ph .inv-row .inv-total{font-weight:700;color:#188038;white-space:nowrap}
+  #ph .dist-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;background:#fff;text-decoration:none;color:inherit;cursor:pointer;transition:all .15s ease}
+  #ph .dist-row:hover{background:#f8fafc;border-color:#94a3b8;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+  #ph .dist-name{font-weight:700;font-size:1rem;color:#0f172a}
+  #ph .dist-meta{font-size:.82rem;color:#64748b;margin-top:2px}
+  #ph .dist-pending{font-weight:700;font-size:1.05rem;color:#b91c1c;text-align:right}
+  #ph .dist-pending.zero{color:#15803d}
   #ph .badge-return{background:#fdf0ef;color:#b3261e;font-size:0.75rem;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600}
   #ph .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   #ph .split{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
@@ -114,6 +120,23 @@
   <div class="action-bar">
     <a href="/new-purchase" class="btn go">+ New purchase</a>
     <a href="/purchase-return" class="btn subtle">Purchase return</a>
+  </div>
+
+  <div class="card">
+    <div class="split" style="align-items:center;margin-bottom:6px">
+      <div>
+        <h2 style="margin:0">Distributors</h2>
+        <p class="hint" style="margin:2px 0 0">Pending balances & recent bills. Click to view all invoices.</p>
+      </div>
+      <div id="dist-tot-box" style="text-align:right;display:none">
+        <span class="hint" style="display:block;font-size:.78rem">Total Pending</span>
+        <b id="dist-total-pending" style="color:#b91c1c;font-size:1.1rem">&#8377;0.00</b>
+      </div>
+    </div>
+    <input id="dist-search" type="search" placeholder="Search distributor name..." style="margin-top:8px;margin-bottom:12px">
+    <div id="dist-list">
+      <p class="hint">Loading distributors...</p>
+    </div>
   </div>
 
   <div class="card">
@@ -203,7 +226,10 @@ document.querySelectorAll('#ph .tabs button').forEach(function(b){
     toast('');
     if(b.dataset.t==='list'&&!ls.rows.length) loadList();
     if(b.dataset.t==='sale'&&!$('#sl-list').innerHTML) $('#sl-date-search').click();
-    if(b.dataset.t==='purchase'&&!$('#pu-list').innerHTML) $('#pu-date-search').click();
+    if(b.dataset.t==='purchase'){
+      loadDistributors();
+      if(!$('#pu-list').innerHTML) $('#pu-date-search').click();
+    }
   }
 });
 
@@ -360,6 +386,65 @@ $('#pu-list').onclick=function(e){
     }).catch(function(err){toast(err.message,1)});
   }
 };
+
+// ==========================
+// DISTRIBUTORS SECTION
+// ==========================
+var allDistributors=[];
+
+function loadDistributors(){
+  $('#dist-list').innerHTML='<p class="hint">Loading distributors...</p>';
+  call('ph_distributors').then(function(r){
+    allDistributors=r.distributors||[];
+    var totPending=n(r.total_pending);
+    var totBox=$('#dist-tot-box');
+    if(totBox){
+      totBox.style.display='block';
+      $('#dist-total-pending').textContent=inr(totPending);
+    }
+    renderDistributors();
+  }).catch(function(e){
+    $('#dist-list').innerHTML='<p class="hint" style="color:#b3261e">Could not load distributors: '+esc(e.message)+'</p>';
+  });
+}
+
+function renderDistributors(){
+  var q=($('#dist-search').value||'').trim().toLowerCase();
+  var filtered=allDistributors.filter(function(d){
+    if(!q) return true;
+    return (d.supplier_name||'').toLowerCase().indexOf(q)!==-1 ||
+           (d.supplier||'').toLowerCase().indexOf(q)!==-1;
+  });
+
+  if(!filtered.length){
+    $('#dist-list').innerHTML='<p class="hint">No distributors found.</p>';
+    return;
+  }
+
+  $('#dist-list').innerHTML=filtered.map(function(d){
+    var hasPending=n(d.pending_amount)>0.005;
+    var pendText=hasPending?inr(d.pending_amount):'All Paid';
+    var pendClass=hasPending?'dist-pending':'dist-pending zero';
+    var lastDateText=d.last_bill_date?fmtDate(d.last_bill_date):'No bills yet';
+    var billText=d.bill_count+(d.bill_count===1?' bill':' bills');
+
+    return '<a href="/distributor-bills?distributor='+encodeURIComponent(d.supplier)+'" class="dist-row">'+
+      '<div style="flex:1;min-width:0;padding-right:10px">'+
+        '<div class="dist-name">'+esc(d.supplier_name||d.supplier)+'</div>'+
+        '<div class="dist-meta">'+
+          '<span>Last bill: <b>'+lastDateText+'</b></span> &bull; <span>'+billText+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="text-align:right;white-space:nowrap">'+
+        '<div style="font-size:.78rem;color:#64748b;margin-bottom:1px">Pending Amount</div>'+
+        '<div class="'+pendClass+'">'+pendText+'</div>'+
+      '</div>'+
+      '<div style="color:#94a3b8;font-size:1.3rem;padding-left:10px">&#8250;</div>'+
+    '</a>';
+  }).join('');
+}
+
+$('#dist-search').oninput=renderDistributors;
 
 // ==========================
 // STOCK LIST SECTION

@@ -1,0 +1,318 @@
+<!-- title: Distributor Bills -->
+<div id="db">
+<script>
+(function(){
+  var _f = window.fetch;
+  window.fetch = function(url, opts){
+    return _f(url, opts).then(function(r){
+      if(!r.ok && String(url).indexOf('/api/method/')!==-1){
+        r.clone().json().then(function(j){
+          var t='';
+          try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message;}catch(e){}
+          if(/invalid request|not logged in/i.test(t)||r.status===403)
+            window.location.replace('/login?redirect-to='+encodeURIComponent(location.pathname+location.search));
+        }).catch(function(){});
+      }
+      return r;
+    });
+  };
+})();
+</script>
+<script>
+  function s(t){var d=document.createElement('div');d.style.cssText='padding:10px;margin:8px 0;background:#fdf0ef;color:#b3261e;border-left:4px solid #b3261e;font:14px system-ui;word-break:break-word';d.textContent=t;var p=document.getElementById('db');p.insertBefore(d,p.firstChild)}
+  window.addEventListener('error',function(e){if(e.filename&&e.filename.indexOf('bundle')<0&&e.filename.indexOf('website_script')<0)s('Error: '+e.message+' (line '+e.lineno+':'+e.colno+')')});
+</script>
+<style>
+  #db *{box-sizing:border-box;margin:0;padding:0}
+  #db{font:15px/1.5 system-ui,sans-serif;color:#1c1b1f;max-width:760px;margin:0 auto;padding:14px 10px 80px}
+  #db .back-link{color:#1a73e8;font-size:.9rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px}
+  #db .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+  #db h1{font-size:1.35rem;font-weight:700;color:#0f172a}
+  #db .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:14px}
+  #db .btn{background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:9px 16px;font:600 14px system-ui;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px;text-align:center}
+  #db .btn:disabled{opacity:.5;cursor:default}
+  #db .btn.go{background:#188038}
+  #db .btn.subtle{background:#f1f3f4;color:#1c1b1f;border:1px solid #c4c7c5}
+  #db .btn.sm{padding:4px 10px;font-size:.8rem;border-radius:6px;font-weight:600}
+  #db .hint{font-size:.82rem;color:#777;margin-top:4px}
+  #db #toast{padding:10px 14px;border-radius:8px;font-size:.9rem;margin:8px 0;background:#e6f4ea;color:#1e8e3e}
+  #db #toast.bad{background:#fdf0ef;color:#b3261e}
+
+  /* Metric cards */
+  #db .metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+  #db .metric-box{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:left}
+  #db .metric-box.warn{background:#fff1f2;border-color:#fecdd3}
+  #db .metric-box.ok{background:#f0fdf4;border-color:#bbf7d0}
+  #db .m-lbl{font-size:.78rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+  #db .m-val{font-size:1.25rem;font-weight:700;margin-top:2px;color:#0f172a}
+  #db .metric-box.warn .m-val{color:#b91c1c}
+  #db .metric-box.ok .m-val{color:#15803d}
+
+  /* Filter pills */
+  #db .filter-pills{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+  #db .pill{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:20px;padding:5px 12px;font-size:.82rem;font-weight:600;color:#475569;cursor:pointer;white-space:nowrap;user-select:none}
+  #db .pill.active{background:#1a73e8;color:#fff;border-color:#1a73e8}
+
+  #db input[type="search"]{width:100%;border:1px solid #c4c7c5;border-radius:8px;padding:9px 12px;font:15px system-ui;background:#fff;color:#1c1b1f;margin-bottom:12px}
+  #db input[type="search"]:focus{outline:2px solid #1a73e8;border-color:transparent}
+
+  /* Bill item card */
+  #db .bill-card{border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff;transition:border-color .15s ease}
+  #db .bill-card:hover{border-color:#94a3b8}
+  #db .bill-card.status-unpaid{border-left:4px solid #b91c1c}
+  #db .bill-card.status-paid{border-left:4px solid #15803d}
+  #db .bill-card.status-part{border-left:4px solid #d97706}
+  #db .bill-card.status-return{border-left:4px solid #6b7280;background:#fafafa}
+
+  #db .badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.75rem;font-weight:700;text-transform:uppercase}
+  #db .badge.paid{background:#dcfce7;color:#15803d}
+  #db .badge.unpaid{background:#fee2e2;color:#b91c1c}
+  #db .badge.part{background:#fef3c7;color:#b45309}
+  #db .badge.return{background:#f3f4f6;color:#4b5563}
+
+  #db .bill-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px}
+  #db .bill-no{font-weight:700;font-size:.98rem;color:#0f172a}
+  #db .inv-id{font-size:.8rem;color:#64748b;margin-left:4px;font-weight:500}
+  #db .bill-dates{font-size:.82rem;color:#64748b;margin-bottom:8px}
+
+  #db .bill-amounts{display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dashed #e2e8f0;padding-top:8px;margin-top:6px;gap:8px;flex-wrap:wrap}
+  #db .b-tot{font-size:1.05rem;font-weight:700;color:#0f172a}
+  #db .b-pending{font-size:.9rem;font-weight:700;color:#b91c1c}
+  #db .b-pending.ok{color:#15803d}
+
+  #db .actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+</style>
+
+<a href="/pharmacy#purchase" class="back-link">&#8592; Back to Pharmacy</a>
+
+<div class="top">
+  <div>
+    <h1 id="dist-name">Loading distributor...</h1>
+    <p class="hint" id="dist-sub">Purchase invoices & payment records</p>
+  </div>
+  <a id="btn-new-pur" href="/new-purchase" class="btn go">+ New purchase</a>
+</div>
+
+<div id="toast" role="status" hidden></div>
+
+<!-- KPI Cards -->
+<div class="metrics-grid">
+  <div class="metric-box warn" id="box-pend">
+    <div class="m-lbl">Pending Amount</div>
+    <div class="m-val" id="kpi-pend">&#8377;0.00</div>
+  </div>
+  <div class="metric-box">
+    <div class="m-lbl">Total Purchases</div>
+    <div class="m-val" id="kpi-tot">&#8377;0.00</div>
+  </div>
+  <div class="metric-box">
+    <div class="m-lbl">Total Bills</div>
+    <div class="m-val" id="kpi-bills">0</div>
+  </div>
+  <div class="metric-box">
+    <div class="m-lbl">Last Bill Date</div>
+    <div class="m-val" id="kpi-last" style="font-size:1.05rem">-</div>
+  </div>
+</div>
+
+<!-- Bills Card -->
+<div class="card">
+  <div class="filter-pills">
+    <button type="button" class="pill active" data-filter="all">All bills</button>
+    <button type="button" class="pill" data-filter="unpaid">Pending / Due</button>
+    <button type="button" class="pill" data-filter="paid">Paid</button>
+    <button type="button" class="pill" data-filter="return">Returns</button>
+  </div>
+
+  <input id="bill-search" type="search" placeholder="Search by Bill No or Invoice ID...">
+
+  <div id="bills-list">
+    <p class="hint">Loading bills...</p>
+  </div>
+</div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector('#db '+s)};
+var allInvoices=[],distId='',distName='';
+var currentFilter='all';
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function n(v){v=parseFloat(v);return isNaN(v)?0:v}
+function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtDate(d){
+  if(!d) return '-';
+  var p=d.split('-');
+  if(p.length<3) return d;
+  var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return p[2]+' '+months[parseInt(p[1],10)-1]+' '+p[0];
+}
+function toast(t,bad){var e=$('#toast');e.textContent=t||'';e.className=bad?'bad':'';e.hidden=!t}
+
+function call(method,params,post){
+  var p=new URLSearchParams(params||{}),o={headers:{Accept:'application/json'}};
+  if(post){o.method='POST';o.body=p;var t=(window.frappe&&frappe.csrf_token)||window.csrf_token;if(t)o.headers['X-Frappe-CSRF-Token']=t}
+  return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){
+        var t='Something went wrong. Please try again.';
+        try{var msgs=JSON.parse(j._server_messages);var last=JSON.parse(msgs[msgs.length-1]);t=(last.message||last).replace(/<[^>]+>/g,'')}catch(e){}
+        if(/invalid request|not logged in/i.test(t)){window.location.replace('/login?redirect-to='+encodeURIComponent(window.location.pathname+window.location.search));return}
+        throw new Error(t);
+      }
+      return j.message;
+    });
+  });
+}
+
+// Get distributor from URL
+var params=new URLSearchParams(window.location.search);
+distId=params.get('distributor')||params.get('supplier')||'';
+
+if(!distId){
+  $('#dist-name').textContent='No distributor selected';
+  $('#bills-list').innerHTML='<p class="hint">Please select a distributor from the <a href="/pharmacy#purchase">Pharmacy page</a>.</p>';
+  return;
+}
+
+$('#btn-new-pur').href='/new-purchase?supplier='+encodeURIComponent(distId);
+
+function loadBills(){
+  $('#bills-list').innerHTML='<p class="hint">Loading bills...</p>';
+  call('ph_distributor_bills',{supplier:distId}).then(function(r){
+    distName=r.distributor.name||distId;
+    $('#dist-name').textContent=distName;
+    document.title=distName+' - Bills';
+
+    var sum=r.summary||{};
+    var pending=n(sum.total_pending);
+    $('#kpi-pend').textContent=inr(pending);
+    if(pending<=0.005){
+      $('#box-pend').className='metric-box ok';
+      $('#kpi-pend').textContent='All Paid';
+    }else{
+      $('#box-pend').className='metric-box warn';
+    }
+    $('#kpi-tot').textContent=inr(sum.total_purchased);
+    $('#kpi-bills').textContent=sum.bill_count;
+    $('#kpi-last').textContent=sum.last_bill_date?fmtDate(sum.last_bill_date):'-';
+
+    allInvoices=r.invoices||[];
+    renderBills();
+  }).catch(function(e){
+    toast(e.message,1);
+    $('#bills-list').innerHTML='<p class="hint" style="color:#b3261e">'+esc(e.message)+'</p>';
+  });
+}
+
+function renderBills(){
+  var q=($('#bill-search').value||'').trim().toLowerCase();
+  var filtered=allInvoices.filter(function(iv){
+    // Status filter
+    if(currentFilter==='unpaid'&&iv.status!=='Unpaid'&&iv.status!=='Partially Paid') return false;
+    if(currentFilter==='paid'&&iv.status!=='Paid') return false;
+    if(currentFilter==='return'&&!iv.is_return) return false;
+
+    // Search query
+    if(q){
+      var match=(iv.bill_no||'').toLowerCase().indexOf(q)!==-1 ||
+                (iv.name||'').toLowerCase().indexOf(q)!==-1;
+      if(!match) return false;
+    }
+    return true;
+  });
+
+  if(!filtered.length){
+    $('#bills-list').innerHTML='<p class="hint">No bills found for the selected filter.</p>';
+    return;
+  }
+
+  $('#bills-list').innerHTML=filtered.map(function(iv){
+    var isRet=Boolean(iv.is_return);
+    var statusBadge='';
+    var cardClass='bill-card';
+
+    if(isRet){
+      statusBadge='<span class="badge return">Return</span>';
+      cardClass+=' status-return';
+    }else if(iv.status==='Paid'){
+      statusBadge='<span class="badge paid">Paid</span>';
+      cardClass+=' status-paid';
+    }else if(iv.status==='Partially Paid'){
+      statusBadge='<span class="badge part">Partially Paid</span>';
+      cardClass+=' status-part';
+    }else{
+      statusBadge='<span class="badge unpaid">Unpaid / Due</span>';
+      cardClass+=' status-unpaid';
+    }
+
+    var billLabel=iv.bill_no?('Bill #'+esc(iv.bill_no)):esc(iv.name);
+    var subId=iv.bill_no?('<span class="inv-id">('+esc(iv.name)+')</span>'):'';
+    var dateLabel='Bill date: <b>'+fmtDate(iv.bill_date)+'</b>';
+    if(iv.posting_date && iv.posting_date!==iv.bill_date){
+      dateLabel+=' &bull; Posted: '+fmtDate(iv.posting_date);
+    }
+    if(iv.due_date && iv.status!=='Paid' && !isRet){
+      dateLabel+=' &bull; <span style="color:#b91c1c">Due: '+fmtDate(iv.due_date)+'</span>';
+    }
+
+    var pendingText='';
+    if(!isRet){
+      if(n(iv.outstanding)>0.005){
+        pendingText='<span style="font-size:.82rem;color:#64748b">Pending: </span><b class="b-pending">'+inr(iv.outstanding)+'</b>';
+      }else{
+        pendingText='<b class="b-pending ok">Paid</b>';
+      }
+    }
+
+    return '<div class="'+cardClass+'">'+
+      '<div class="bill-header">'+
+        '<div>'+
+          '<span class="bill-no">'+billLabel+'</span>'+subId+
+          statusBadge+
+        '</div>'+
+        '<div class="b-tot">'+inr(iv.total)+'</div>'+
+      '</div>'+
+      '<div class="bill-dates">'+dateLabel+'</div>'+
+      '<div class="bill-amounts">'+
+        '<div>'+pendingText+'</div>'+
+        '<div class="actions">'+
+          '<a class="btn sm subtle" href="/printview?doctype=Purchase%20Invoice&name='+encodeURIComponent(iv.name)+'&trigger_print=1" target="_blank" rel="noopener">Print</a>'+
+          (isRet?'':'<button type="button" class="btn sm" data-edit-purchase="'+esc(iv.name)+'">Edit</button>')+
+          '<a class="btn sm subtle" href="/app/purchase-invoice/'+encodeURIComponent(iv.name)+'" target="_blank" rel="noopener">Open in ERPNext</a>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// Edit handler
+$('#bills-list').onclick=function(e){
+  var ed=e.target.closest('[data-edit-purchase]');
+  if(ed){
+    var invName=ed.dataset.editPurchase;
+    if(!confirm('Edit purchase invoice '+invName+'? This will load the purchase so you can make adjustments. The original invoice stays active until you save.')) return;
+    toast('Loading purchase...');
+    call('ph_amend',{doctype:'Purchase Invoice',name:invName},true).then(function(r){
+      sessionStorage.setItem('edit_purchase',JSON.stringify(r));
+      window.location.href='/new-purchase';
+    }).catch(function(err){toast(err.message,1)});
+  }
+};
+
+// Filter pills
+document.querySelectorAll('#db .filter-pills .pill').forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll('#db .filter-pills .pill').forEach(function(x){x.classList.remove('active')});
+    b.classList.add('active');
+    currentFilter=b.dataset.filter;
+    renderBills();
+  };
+});
+
+$('#bill-search').oninput=function(){renderBills()};
+
+loadBills();
+})();
+</script>
+</div>

@@ -413,6 +413,9 @@ call('ph_meta').then(function(m){
   var pcm=pModes.filter(function(x){return /^cash$/i.test(x)})[0];
   if(pcm) $('#pu-pay-mode').value=pcm;
   checkEditMode();
+  var urlParams = new URLSearchParams(window.location.search);
+  var supParam = urlParams.get('supplier');
+  if(supParam && !$('#pu-sup').value) $('#pu-sup').value = supParam;
 }).catch(function(e){toast(e.message,1)});
 
 function checkEditMode(){
