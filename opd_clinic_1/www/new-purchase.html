@@ -218,7 +218,7 @@ function form(p){
     '<div><label for="'+p+'-exp">MM / YY</label><input id="'+p+'-exp" autocomplete="off" placeholder="MM / YY" maxlength="7"></div>'+
   '</div>'+
   '<div class="g2">'+
-    '<div><label for="'+p+'-hsn">HSN Code *</label><input id="'+p+'-hsn" autocomplete="off" placeholder="30049087" value="30049087"></div>'+
+    '<div><label for="'+p+'-hsn">HSN Code *</label><input id="'+p+'-hsn" autocomplete="off" placeholder="3004" value="3004"></div>'+
     '<div><label for="'+p+'-gst">Batch GST Rate *</label><select id="'+p+'-gst">'+gstOptions+'</select></div>'+
   '</div>'+
   '<div>'+
@@ -280,7 +280,7 @@ function read(p){
     batch: g(p,'bno').value.trim(),
     expiry: exp,
     expiry_mmyy: expRaw.trim(),
-    hsn: (g(p,'hsn').value || '30049087').trim(),
+    hsn: (g(p,'hsn').value || '3004').trim(),
     gst: gstVal,
     upp: upp,
     billed_packs: billedPacks,
@@ -353,7 +353,7 @@ function clearForm(p){
   });
   if(g(p,'free-packs')) g(p,'free-packs').value = '0';
   if(g(p,'units')) g(p,'units').value = '0';
-  if(g(p,'hsn')) g(p,'hsn').value = '30049087';
+  if(g(p,'hsn')) g(p,'hsn').value = '3004';
   if(g(p,'gst')) g(p,'gst').value = '5';
   if(g(p,'basis')) g(p,'basis').value = 'excl';
   if(g(p,'upp')) g(p,'upp').value = '10';
@@ -579,7 +579,7 @@ $('#pu-lines').onclick=function(e){
     $('#pu-prod').value=item.product;
     g('pu','bno').value=item.batch||'';
     g('pu','exp').value=item.expiry_mmyy||toMmyy(item.expiry)||'';
-    g('pu','hsn').value=item.hsn||'30049087';
+    g('pu','hsn').value=item.hsn||'3004';
     g('pu','gst').value=String(item.gst!=null?item.gst:'5');
     g('pu','upp').value=item.upp||'10';
     g('pu','billed-packs').value=item.billed_packs!=null?item.billed_packs:(item.packs||'0');

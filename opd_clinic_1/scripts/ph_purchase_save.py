@@ -234,7 +234,7 @@ for ln in lines:
     item = ensure_item((ln.get("product") or "").strip())
     raw_batch = (ln.get("batch") or "").strip()
     exp = (ln.get("expiry") or "").strip()
-    hsn = (ln.get("hsn") or "").strip()
+    hsn = (ln.get("hsn") or "3004").strip()
     mrp = num(ln.get("mrp"))
 
     batch_name = ensure_batch(item, raw_batch, exp, hsn, gst, mrp, rate, net, upp)
