@@ -1,0 +1,4 @@
+.git
+compose.yaml
+Dockerfile
+*.log
