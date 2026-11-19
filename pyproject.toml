@@ -3,7 +3,7 @@ name = "opd_clinic_1"
 authors = [
     { name = "Naresh", email = "naresh@nkhub.in"}
 ]
-description = "ood"
+description = "opd"
 requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
