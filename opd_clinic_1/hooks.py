@@ -303,7 +303,6 @@ fixtures = [
             ]
         ],
     },
-    "Web Template",
     "Notification",
     "Email Template",
     "Print Format",
