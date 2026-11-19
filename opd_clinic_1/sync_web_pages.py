@@ -67,6 +67,7 @@ def sync():
     pages_by_name = {p.get("name"): p for p in pages if isinstance(p, dict) and p.get("name")}
     updated_count = 0
     added_count = 0
+    valid_target_names = set()
 
     # Scan for HTML / MD files in www/
     for filename in sorted(os.listdir(WWW_DIR)):
@@ -96,6 +97,7 @@ def sync():
         target_name = meta.get("name", slug)
         title = meta.get("title", slug.replace("-", " ").replace("_", " ").title())
         route = meta.get("route", slug)
+        valid_target_names.add(target_name)
 
         is_html = ext == ".html"
 
@@ -170,12 +172,17 @@ def sync():
             pages_by_name[target_name] = new_page
             added_count += 1
 
-    if updated_count > 0 or added_count > 0:
+    # Prune any pages in fixture that no longer exist in www/
+    valid_pages = [p for p in pages if p.get("name") in valid_target_names]
+    deleted_count = len(pages) - len(valid_pages)
+    pages = valid_pages
+
+    if updated_count > 0 or added_count > 0 or deleted_count > 0:
         os.makedirs(os.path.dirname(FIXTURE_PATH), exist_ok=True)
         with open(FIXTURE_PATH, "w", encoding="utf-8") as fp:
             json.dump(pages, fp, indent=1, ensure_ascii=False)
             fp.write("\n")
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Synced www/ -> web_page.json (Updated: {updated_count}, Added: {added_count})")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Synced www/ -> web_page.json (Updated: {updated_count}, Added: {added_count}, Pruned: {deleted_count})")
         return True
 
     return False

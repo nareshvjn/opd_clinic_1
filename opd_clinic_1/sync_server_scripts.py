@@ -100,6 +100,7 @@ def sync_scripts_to_fixture():
 
     updated_count = 0
     added_count = 0
+    valid_names = set()
 
     for filename in sorted(os.listdir(SCRIPTS_DIR)):
         if filename.startswith(".") or filename == "__init__.py" or not filename.endswith(".py"):
@@ -108,6 +109,7 @@ def sync_scripts_to_fixture():
         filepath = os.path.join(SCRIPTS_DIR, filename)
         meta, body, full_content = parse_script_file(filepath)
         name = meta["name"]
+        valid_names.add(name)
 
         # Note: In Frappe, storing the full file with comments preserves header when exported
         script_code = full_content
@@ -165,12 +167,16 @@ def sync_scripts_to_fixture():
             scripts_by_name[name] = new_doc
             added_count += 1
 
-    if updated_count > 0 or added_count > 0:
+    valid_scripts = [s for s in existing_scripts if s.get("name") in valid_names]
+    deleted_count = len(existing_scripts) - len(valid_scripts)
+    existing_scripts = valid_scripts
+
+    if updated_count > 0 or added_count > 0 or deleted_count > 0:
         os.makedirs(os.path.dirname(FIXTURE_PATH), exist_ok=True)
         with open(FIXTURE_PATH, "w", encoding="utf-8") as fp:
             json.dump(existing_scripts, fp, indent=1, ensure_ascii=False)
             fp.write("\n")
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Synced scripts/ -> server_script.json (Updated: {updated_count}, Added: {added_count})")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Synced scripts/ -> server_script.json (Updated: {updated_count}, Added: {added_count}, Pruned: {deleted_count})")
         return True
 
     return False
