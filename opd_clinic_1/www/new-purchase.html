@@ -15,6 +15,7 @@
   #np label{display:block;font-size:.82rem;font-weight:600;color:#555;margin-top:10px;margin-bottom:3px}
   #np label:first-child{margin-top:0}
   #np input,#np select{width:100%;border:1px solid #c4c7c5;border-radius:8px;padding:9px 11px;font:15px system-ui;background:#fff;color:#1c1b1f}
+  #np #pu-bno{text-transform:uppercase}
   #np input:focus,#np select:focus{outline:2px solid #1a73e8;border-color:transparent}
   #np .btn{background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:10px 18px;font:600 15px system-ui;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block;text-align:center}
   #np .btn:disabled{opacity:.5;cursor:default}
@@ -115,7 +116,10 @@
   </div>
   <div class="g2">
     <div><label for="pu-courier">Courier charges (&#8377;)</label><input id="pu-courier" type="number" min="0" step="any" inputmode="decimal" placeholder="&#8377;0.00"></div>
-    <div style="align-self:flex-end;text-align:right;padding-bottom:10px"><span class="mute">Grand total:</span> <b id="pu-tot" style="font-size:1.15rem">&#8377;0.00</b></div>
+    <div style="align-self:flex-end;text-align:right;padding-bottom:10px">
+      <div id="pu-round-wrap" style="font-size:.82rem;color:#777;margin-bottom:2px;display:none">Round off: <span id="pu-round-adj">&#8377;0.00</span></div>
+      <span class="mute">Grand total:</span> <b id="pu-tot" style="font-size:1.15rem">&#8377;0.00</b>
+    </div>
   </div>
 
   <h3 style="margin-top:18px;margin-bottom:8px">Payment details</h3>
@@ -214,7 +218,7 @@ function call(method,params,post){
 function form(p){
   var gstOptions=[0,5,12,18,28].map(function(g){return '<option'+(g===5?' selected':'')+' value="'+g+'">'+g+'%</option>'}).join('');
   return '<div class="g2">'+
-    '<div><label for="'+p+'-bno">Batch No</label><input id="'+p+'-bno" list="dl-batch" autocomplete="off" placeholder="e.g. B2401"></div>'+
+    '<div><label for="'+p+'-bno">Batch No</label><input id="'+p+'-bno" list="dl-batch" autocomplete="off" placeholder="e.g. B2401" style="text-transform:uppercase"></div>'+
     '<div><label for="'+p+'-exp">MM / YY</label><input id="'+p+'-exp" autocomplete="off" placeholder="MM / YY" maxlength="7"></div>'+
   '</div>'+
   '<div class="g2">'+
@@ -277,7 +281,7 @@ function read(p){
   var discType = g(p,'disc-type') ? g(p,'disc-type').value : 'percent';
 
   return {
-    batch: g(p,'bno').value.trim(),
+    batch: g(p,'bno').value.trim().toUpperCase(),
     expiry: exp,
     expiry_mmyy: expRaw.trim(),
     hsn: (g(p,'hsn').value || '3004').trim(),
@@ -505,6 +509,9 @@ $('#pu-prod').onchange=function(){
 };
 
 $('#pu-bno').oninput=function(){
+  var pos=this.selectionStart;
+  this.value=this.value.toUpperCase();
+  if(pos!=null){try{this.setSelectionRange(pos,pos)}catch(e){}}
   checkBatchMatch(this.value.trim());
 };
 $('#pu-bno').onchange=$('#pu-bno').oninput;
@@ -526,7 +533,15 @@ function calcPuTotals(){
   if(damt>0&&subIncl>0)dpct=damt/subIncl*100;
   var discVal=subIncl*(Math.min(100,dpct)/100);
   var courier=Math.max(0,n($('#pu-courier').value));
-  var grand=Math.max(0,subIncl-discVal+courier);
+  var exactGrand=Math.max(0,subIncl-discVal+courier);
+  var grand=Math.round(exactGrand);
+  var roundDiff=Math.round((grand-exactGrand)*100)/100;
+
+  var rw=$('#pu-round-wrap');
+  if(rw){
+    rw.style.display=(Math.abs(roundDiff)>=0.005)?'block':'none';
+    $('#pu-round-adj').textContent=(roundDiff>0?'+':'')+roundDiff.toFixed(2);
+  }
   $('#pu-tot').textContent=inr(grand);
 
   if(!puPaidAmountManuallySet){
@@ -583,7 +598,7 @@ $('#pu-lines').onclick=function(e){
     $('#pu-add').textContent='Update line';
     $('#pu-cancel-edit').style.display='inline-block';
     $('#pu-prod').value=item.product;
-    g('pu','bno').value=item.batch||'';
+    g('pu','bno').value=(item.batch||'').toUpperCase();
     g('pu','exp').value=item.expiry_mmyy||toMmyy(item.expiry)||'';
     g('pu','hsn').value=item.hsn||'3004';
     g('pu','gst').value=String(item.gst!=null?item.gst:'5');

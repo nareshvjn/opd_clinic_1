@@ -190,6 +190,7 @@ if payment_status == "Due" and due_date:
     pi.due_date = due_date
 pi.update_stock = 1
 pi.set_warehouse = wh
+pi.disable_rounded_total = 0
 
 tot_gst = 0.0
 
@@ -232,7 +233,7 @@ for ln in lines:
         frappe.throw("Enter a quantity for " + (ln.get("product") or "every line") + ".")
 
     item = ensure_item((ln.get("product") or "").strip())
-    raw_batch = (ln.get("batch") or "").strip()
+    raw_batch = (ln.get("batch") or "").strip().upper()
     exp = (ln.get("expiry") or "").strip()
     hsn = (ln.get("hsn") or "3004").strip()
     mrp = num(ln.get("mrp"))
@@ -361,14 +362,16 @@ if payment_status == "Paid" and paid_amt > 0:
         pe.received_amount = paid_amt
         pe.reference_no = pi.bill_no or pi.name
         pe.reference_date = pi.bill_date or paid_date
+        inv_tot = float(pi.rounded_total) if (pi.rounded_total and pi.rounded_total > 0) else round(float(pi.grand_total or 0))
         pe.append("references", {
             "reference_doctype": "Purchase Invoice",
             "reference_name": pi.name,
-            "total_amount": pi.rounded_total or pi.grand_total,
-            "outstanding_amount": pi.rounded_total or pi.grand_total,
+            "total_amount": inv_tot,
+            "outstanding_amount": inv_tot,
             "allocated_amount": paid_amt
         })
         pe.insert(ignore_permissions=True)
         pe.submit()
 
-frappe.response["message"] = {"invoice": pi.name, "total": pi.rounded_total or pi.grand_total}
+final_tot = float(pi.rounded_total) if (pi.rounded_total and pi.rounded_total > 0) else round(float(pi.grand_total or 0))
+frappe.response["message"] = {"invoice": pi.name, "total": final_tot}
