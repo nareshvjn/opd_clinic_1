@@ -159,7 +159,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 (function(){
 var $=function(s){return document.querySelector('#en '+s)};
 var q=new URLSearchParams(location.search),A=q.get('appointment')||'',P=q.get('patient')||'',D=q.get('practitioner')||'',E=q.get('encounter')||'';
-var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},NEW={sym:'complaints',dx:'diagnoses'},VK=['temperature','pulse','bp_systolic','bp_diastolic','respiratory_rate','height','weight'];
+var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},NEW={sym:'complaints',dx:'diagnoses'};
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function fmt(t){var p=String(t).split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
@@ -325,7 +325,6 @@ function init(r){
   $('#form').hidden=false;
   if(e&&e.docstatus===1){
     amend=true;
-    VK.forEach(function(k){$('#v-'+k).disabled=true});
     $('#draft').hidden=true;
     $('#complete').textContent='Save changes';
     var pb=$('#print-btn');
