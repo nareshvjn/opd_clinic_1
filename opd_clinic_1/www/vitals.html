@@ -181,10 +181,22 @@ function updateBp(){
   var tEl=$('#tag-bp');
   if(!isNaN(s)&&!isNaN(d)&&s>0&&d>0){
     tEl.hidden=false;
-    if(s<120&&d<80){tEl.className='tag ok';tEl.textContent='Normal BP'}
-    else if(s<=129&&d<80){tEl.className='tag warn';tEl.textContent='Elevated BP'}
-    else if(s<=139||d<=89){tEl.className='tag warn';tEl.textContent='Stage 1 HTN'}
-    else{tEl.className='tag bad';tEl.textContent='Stage 2 HTN'}
+    if(s>=140||d>=90){
+      tEl.className='tag bad';
+      tEl.textContent='Stage 2 HTN';
+    } else if(s>=130||d>=81){
+      tEl.className='tag warn';
+      tEl.textContent='Stage 1 HTN';
+    } else if(s>=121&&d<=80){
+      tEl.className='tag warn';
+      tEl.textContent='Elevated';
+    } else if(s<90||d<60){
+      tEl.className='tag warn';
+      tEl.textContent='Low BP';
+    } else {
+      tEl.className='tag ok';
+      tEl.textContent='Normal BP';
+    }
   } else {
     tEl.hidden=true;
   }
