@@ -348,6 +348,8 @@ client_target = num(f.get("target_grand"))
 exact_grand = max(0.0, sub_incl - disc_val + courier)
 target_grand = client_target if client_target > 0 else round(exact_grand)
 
+pi.remarks = json.dumps({"lines": lines, "target_grand": target_grand})
+
 pi.run_method("set_missing_values")
 pi.run_method("calculate_taxes_and_totals")
 

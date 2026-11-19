@@ -98,45 +98,81 @@ if doctype == "Sales Invoice":
 
 elif doctype == "Purchase Invoice":
     items = []
-    for it in doc.items:
-        batch_no = it.batch_no or ""
-        upp = 1
-        mrp = it.rate
-        gst = 0
-        exp = ""
-        hsn = "3004"
-        if batch_no and frappe.db.exists("Batch", batch_no):
-            b = frappe.get_doc("Batch", batch_no)
-            upp = int(b.units_per_pack or 1)
-            mrp = float(b.mrp or it.rate)
-            gst = float(b.gst_rate or 5)
-            hsn = b.hsn_code or "3004"
-            if b.expiry_date:
-                exp = str(b.expiry_date)
+    saved_lines = None
+    if doc.remarks:
+        try:
+            rdata = json.loads(doc.remarks)
+            if isinstance(rdata, dict) and "lines" in rdata and isinstance(rdata["lines"], list):
+                saved_lines = rdata["lines"]
+            elif isinstance(rdata, list):
+                saved_lines = rdata
+        except Exception:
+            pass
 
-        packs = int(it.qty // upp)
-        units = int(round(it.qty % upp))
-        pack_rate = float(b.purchase_rate or (it.rate * upp)) if (batch_no and frappe.db.exists("Batch", batch_no)) else float(it.rate * upp)
-        net_pack_rate = float(b.net_rate or pack_rate) if (batch_no and frappe.db.exists("Batch", batch_no)) else pack_rate
-        items.append({
-            "product": it.item_name or it.item_code,
-            "batch": batch_no,
-            "expiry": exp,
-            "hsn": hsn,
-            "gst": str(gst),
-            "mrp": mrp,
-            "rate": pack_rate,
-            "basis": "excl",
-            "upp": upp,
-            "packs": packs,
-            "billed_packs": packs,
-            "free_packs": 0,
-            "units": units,
-            "disc": 0,
-            "disc_type": "percent",
-            "amount": it.amount,
-            "net": net_pack_rate
-        })
+    if saved_lines:
+        items = saved_lines
+    else:
+        for it in doc.items:
+            batch_no = it.batch_no or ""
+            upp = 1
+            mrp = it.rate
+            gst = 0
+            exp = ""
+            hsn = "3004"
+            pack_rate = float(it.rate)
+            net_pack_rate = pack_rate
+            if batch_no and frappe.db.exists("Batch", batch_no):
+                b = frappe.get_doc("Batch", batch_no)
+                upp = int(b.units_per_pack or 1)
+                mrp = float(b.mrp or it.rate)
+                gst = float(b.gst_rate or 5)
+                hsn = b.hsn_code or "3004"
+                if b.expiry_date:
+                    exp = str(b.expiry_date)
+                pack_rate = float(b.purchase_rate or (it.rate * upp))
+                net_pack_rate = float(b.net_rate or pack_rate)
+            else:
+                pack_rate = float(it.rate * upp)
+                net_pack_rate = pack_rate
+
+            # Reconstruct billed vs free packs accurately
+            if net_pack_rate > 0 and it.amount > 0:
+                calc_billed = int(round(float(it.amount) / net_pack_rate))
+                calc_billed_qty = calc_billed * upp
+                if 0 < calc_billed_qty <= it.qty:
+                    billed_packs = calc_billed
+                    free_packs = int((it.qty - calc_billed_qty) // upp)
+                    units = int(round((it.qty - calc_billed_qty) % upp))
+                else:
+                    billed_packs = int(it.qty // upp)
+                    free_packs = 0
+                    units = int(round(it.qty % upp))
+            else:
+                billed_packs = int(it.qty // upp)
+                free_packs = 0
+                units = int(round(it.qty % upp))
+
+            line_amount = (billed_packs + (units / upp)) * net_pack_rate
+
+            items.append({
+                "product": it.item_name or it.item_code,
+                "batch": batch_no,
+                "expiry": exp,
+                "hsn": hsn,
+                "gst": str(gst),
+                "mrp": mrp,
+                "rate": pack_rate,
+                "basis": "excl",
+                "upp": upp,
+                "packs": billed_packs,
+                "billed_packs": billed_packs,
+                "free_packs": free_packs,
+                "units": units,
+                "disc": 0,
+                "disc_type": "percent",
+                "amount": round(line_amount, 2),
+                "net": net_pack_rate
+            })
 
     pay_status = "Paid"
     due_date = str(doc.due_date or "")
