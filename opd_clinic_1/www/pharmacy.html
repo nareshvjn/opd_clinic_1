@@ -499,7 +499,7 @@ function expState(d){
 function loadList(){
   var f=$('#ls-f').value;
   call('ph_stock_list',{q:$('#ls-q').value.trim(),warehouse:wh,zero:'1'}).then(function(r){
-    ls.rows=r.batches||[];renderList()
+    ls.rows=r.batches||r.products||[];renderList()
   }).catch(function(e){toast(e.message,1)})
 }
 
@@ -539,7 +539,8 @@ function renderList(){
     if(open){
       h+='<div class="bp"><div class="split" style="align-items:center;padding-top:4px;padding-bottom:6px"><span class="mute">Available batches</span><button type="button" class="link dg" data-'+(gp.batches[0].batch?'delall':'delitem')+'="'+esc(gp.item)+'" data-nm="'+esc(gp.name)+'">'+(gp.batches[0].batch?'Delete entire stock':'Delete item')+'</button></div>'+
       gp.batches.map(function(b){
-        if(!b.batch) return '<div class="sr"><span class="mute">Out of stock. No batches yet.</span><a class="btn sm go" style="text-decoration:none" href="/add-stock">Add stock</a></div>';
+        if(!b.batch && b.qty<=0) return '<div class="sr"><span class="mute">Out of stock. No batches yet.</span><a class="btn sm go" style="text-decoration:none" href="/add-stock">Add stock</a></div>';
+        if(!b.batch && b.qty>0) return '<div class="sr"><div><b>Stock without batch</b><br><span class="mute">'+qtyText(b.qty,b.upp)+'</span></div><div class="acts"><a class="btn sm go" style="text-decoration:none" href="/add-stock">Add batch</a></div></div>';
         var bs=expState(b.expiry);
         return '<div class="sr"><div><b>'+esc(b.batch)+'</b>'+(bs.k?'<span class="bt '+(bs.k==='expired'?'out':'warn')+'">'+bs.t+'</span>':'')+
           '<br><span class="mute">Exp '+mmyy(b.expiry)+', '+qtyText(b.qty,b.upp)+'</span><br><span class="mute">MRP '+inr(b.mrp)+', '+b.upp+' per pack</span></div>'+

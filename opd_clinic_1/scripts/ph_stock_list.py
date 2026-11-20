@@ -16,6 +16,14 @@ if not ok:
 
 def wh_qty(b, w):
     try:
+        r = frappe.call("erpnext.stock.doctype.batch.batch.get_batch_qty", batch_no=b, warehouse=w)
+        if isinstance(r, (int, float)):
+            return float(r)
+        if isinstance(r, list):
+            return sum(float(x.get("qty") or 0) for x in r)
+    except:
+        pass
+    try:
         res = frappe.db.sql("""select sum(actual_qty) from `tabStock Ledger Entry`
             where batch_no = %s and warehouse = %s and is_cancelled = 0""", (b, w))
         if res and res[0] and res[0][0] is not None:
@@ -74,9 +82,6 @@ try:
     filters = {}
     if meta.has_field("disabled"):
         filters["disabled"] = 0
-
-    if not show_zero and f_qty:
-        filters[f_qty] = [">", 0]
 
     or_filters = []
     if q:
@@ -152,38 +157,76 @@ try:
             "upp": upp
         })
 
-    if show_zero:
-        seen_items = set()
-        for x in out:
-            if x.get("item"):
-                seen_items.add(x["item"])
+    # Also include items without batches or items that have stock in Bin
+    seen_items = set()
+    for x in out:
+        if x.get("item"):
+            seen_items.add(x["item"])
 
-        iq = []
-        if q:
-            iq = [["Item", "item_name", "like", "%" + q + "%"], ["Item", "item_code", "like", "%" + q + "%"]]
-        items = frappe.get_all("Item", filters={"disabled": 0, "is_stock_item": 1}, or_filters=iq if iq else None,
-            fields=["name", "item_name", "item_group", "has_batch_no"], order_by="item_name asc", limit=500)
-        for it in items:
-            if it.name in seen_items:
-                continue
-            grp = (it.item_group or "").lower()
-            if it.item_group != "Drug" and not it.has_batch_no and "drug" not in grp and "med" not in grp:
-                continue
-            seen_items.add(it.name)
-            out.append({
-                "batch": "",
-                "item": it.name,
-                "name": it.item_name or it.name,
-                "expiry": "",
-                "qty": 0,
-                "mrp": 0,
-                "purchase_rate": 0,
-                "net_rate": 0,
-                "gst": 0,
-                "hsn": "",
-                "upp": 1
-            })
+    iq = []
+    if q:
+        iq = [["Item", "item_name", "like", "%" + q + "%"], ["Item", "item_code", "like", "%" + q + "%"]]
+    items = frappe.get_all("Item", filters={"disabled": 0, "is_stock_item": 1}, or_filters=iq if iq else None,
+        fields=["name", "item_name", "item_group", "has_batch_no"], order_by="item_name asc", limit=500)
+    for it in items:
+        if it.name in seen_items:
+            continue
+        grp = (it.item_group or "").lower()
+        if it.item_group != "Drug" and not it.has_batch_no and "drug" not in grp and "med" not in grp:
+            continue
+        seen_items.add(it.name)
+
+        bin_qty = 0.0
+        bin_val = 0.0
+        try:
+            if wh:
+                b_info = frappe.db.get_value("Bin", {"item_code": it.name, "warehouse": wh}, ["actual_qty", "valuation_rate"], as_dict=True)
+                if b_info:
+                    bin_qty = float(b_info.actual_qty or 0)
+                    bin_val = float(b_info.valuation_rate or 0)
+            else:
+                b_res = frappe.db.sql("select sum(actual_qty), max(valuation_rate) from `tabBin` where item_code = %s", (it.name,))
+                if b_res and b_res[0] and b_res[0][0] is not None:
+                    bin_qty = float(b_res[0][0] or 0)
+                    bin_val = float(b_res[0][1] or 0)
+        except:
+            pass
+
+        if bin_qty <= 0 and not show_zero:
+            continue
+
+        item_mrp = 0
+        try:
+            p = frappe.db.get_value("Item Price", {"item_code": it.name, "selling": 1, "price_list_rate": [">", 0]}, "price_list_rate")
+            if p:
+                item_mrp = float(p)
+        except:
+            pass
+        if not item_mrp:
+            sr = frappe.db.get_value("Item", it.name, "standard_rate")
+            if sr:
+                item_mrp = float(sr)
+
+        upp = parse_upp_from_name(it.item_name or it.name)
+
+        out.append({
+            "batch": "",
+            "item": it.name,
+            "name": it.item_name or it.name,
+            "expiry": "",
+            "qty": bin_qty if bin_qty > 0 else 0,
+            "mrp": item_mrp,
+            "purchase_rate": bin_val,
+            "net_rate": bin_val,
+            "gst": 5,
+            "hsn": "",
+            "upp": upp
+        })
+
 except Exception as e:
     frappe.log_error(title="ph_stock_list error", message=frappe.get_traceback())
 
-frappe.response["message"] = {"batches": out}
+frappe.response["message"] = {
+    "batches": out,
+    "products": out
+}
