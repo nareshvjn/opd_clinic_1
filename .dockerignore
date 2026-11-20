@@ -1,4 +1,15 @@
 .git
+.gitignore
+.dockerignore
 compose.yaml
-Dockerfile
+Dockerfile*
 *.log
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.agy-uploads/
+.geminiignore
+.pre-commit-config.yaml
+.eslintrc
+.editorconfig
