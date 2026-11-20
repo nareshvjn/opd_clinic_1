@@ -4,6 +4,7 @@ app_publisher = "Naresh"
 app_description = "opd"
 app_email = "naresh@nkhub.in"
 app_license = "mit"
+app_logo_url = "/files/logo.png"
 
 # Apps
 # ------------------
@@ -14,7 +15,7 @@ app_license = "mit"
 # add_to_apps_screen = [
 # 	{
 # 		"name": "opd_clinic_1",
-# 		"logo": "/assets/opd_clinic_1/logo.png",
+# 		"logo": "/files/logo.png",
 # 		"title": "ood_clinic_1",
 # 		"route": "/opd_clinic_1",
 # 		"has_permission": "opd_clinic_1.api.permission.has_app_permission"
