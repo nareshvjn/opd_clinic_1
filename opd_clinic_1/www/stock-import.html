@@ -1,5 +1,6 @@
 <!-- title: Stock Import -->
 <div id="si">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 #si{--ink:#16324a;--mute:#5d7184;--line:#cfdad5;--bg:#f3f8f5;--ok:#1d7a5f;--err:#b3261e;max-width:960px;margin:0 auto;padding:16px 4px 40px;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 #si *{box-sizing:border-box}
@@ -41,10 +42,10 @@
 <div><label for="def-class" style="margin-top:0">Default Medication Class</label><select id="def-class"></select></div>
 <div><label for="def-group" style="margin-top:0">Default Item Group</label><select id="def-group"></select></div>
 </div>
-<p class="hint">Columns supported in CSV/paste: <b>product, form, batch, expiry, hsn, gst, mrp, rate, upp, packs, units</b>. (Also supports optional: <b>generic, strength, unit</b>). If dosage form is not specified in a row, the Default Dosage Form selected above is used. Automatically creates both <b>Item</b> and <b>Medication</b> entries.</p>
-<p class="hint"><a id="tpl" download="stock-import-template.csv" href="#">Download a template</a></p>
-<label for="file">CSV file</label>
-<input id="file" type="file" accept=".csv,.txt,text/csv">
+<p class="hint">Columns supported in Excel/CSV/paste: <b>product, form, batch, expiry, hsn, gst, mrp, rate, upp, packs, units</b>. (Also supports optional: <b>generic, strength, unit</b>). If dosage form is not specified in a row, the Default Dosage Form selected above is used. Automatically creates both <b>Item</b> and <b>Medication</b> entries.</p>
+<p class="hint">Download template: <a id="tpl-xlsx" href="#" style="font-weight:700">Excel (.xlsx)</a> &nbsp;|&nbsp; <a id="tpl" download="stock-import-template.csv" href="#">CSV (.csv)</a></p>
+<label for="file">Excel or CSV file (.xlsx, .xls, .csv)</label>
+<input id="file" type="file" accept=".xlsx,.xls,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv">
 <label for="txt">Or paste rows (copied from Excel works too)</label>
 <textarea id="txt" rows="7" placeholder="product,form,batch,expiry,hsn,gst,mrp,rate,upp,packs,units"></textarea>
 <p style="margin:14px 0 0"><button type="button" class="btn" id="check">Check rows</button></p>
@@ -78,12 +79,40 @@ function call(method,params,post){
         throw new Error(t)}
       return j.message})})
 }
+
+function ensureXLSX(cb){
+  if(window.XLSX) return cb(window.XLSX);
+  note('Loading Excel engine...');
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=function(){ note(''); cb(window.XLSX); };
+  s.onerror=function(){
+    note('Could not load Excel file reader. Please check your internet connection or save as CSV.', 1);
+  };
+  document.head.appendChild(s);
+}
+
 $('#tpl').href='data:text/csv;charset=utf-8,'+encodeURIComponent(
   'product,form,batch,expiry,hsn,gst,mrp,rate,upp,packs,units\n'+
   'Paracetamol 650,Tablet,PST260406,2028-03,3004,5,244.25,180.00,15,10,0\n'+
   'Zyrtec Drops 10ml,Drops,ZD1123,03/2028,3004,12,95.50,70.00,1,24,0\n'+
   'Amoxicillin 250mg,Syrup,AMX991,2027-11,3004,5,120.00,85.00,1,15,0\n'
 );
+
+$('#tpl-xlsx').onclick=function(e){
+  e.preventDefault();
+  ensureXLSX(function(XLSX){
+    var ws = XLSX.utils.aoa_to_sheet([
+      ['product','form','batch','expiry','hsn','gst','mrp','rate','upp','packs','units'],
+      ['Paracetamol 650','Tablet','PST260406','2028-03','3004',5,244.25,180.00,15,10,0],
+      ['Zyrtec Drops 10ml','Drops','ZD1123','03/2028','3004',12,95.50,70.00,1,24,0],
+      ['Amoxicillin 250mg','Syrup','AMX991','2027-11','3004',5,120.00,85.00,1,15,0]
+    ]);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Stock");
+    XLSX.writeFile(wb, "stock-import-template.xlsx");
+  });
+};
 
 /* csv parsing (comma or tab, quotes allowed) */
 function parse(text){
@@ -122,6 +151,11 @@ function norm(h){return String(h).toLowerCase().replace(/[^a-z0-9% ]/g,' ').repl
 function expiry(v){
   v=String(v||'').trim();var m,y,mo;
   if(m=v.match(/^(\d{4})[-\/](\d{1,2})(?:[-\/]\d{1,2})?$/)){y=+m[1];mo=+m[2]}
+  else if(m=v.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/)){
+    var p1=+m[1],p2=+m[2];y=+m[3];
+    if(p2>12&&p1<=12) mo=p1;
+    else mo=p2;
+  }
   else if(m=v.match(/^(\d{1,2})[-\/](\d{2}|\d{4})$/)){mo=+m[1];y=+m[2];if(y<100)y+=2000}
   else return '';
   if(mo<1||mo>12)return '';
@@ -190,10 +224,45 @@ function show(){
       '</tr>'}).join('');
   $('#run').disabled=rows.length===bad
 }
+
 $('#file').onchange=function(){
   var f=this.files[0];if(!f)return;
-  var rd=new FileReader();rd.onload=function(){$('#txt').value=rd.result;note('')};rd.readAsText(f)
+  var isExcel = /\.(xlsx|xls)$/i.test(f.name);
+  if(isExcel){
+    note('Reading Excel file...');
+    ensureXLSX(function(XLSX){
+      var rd = new FileReader();
+      rd.onload = function(e){
+        try {
+          var data = new Uint8Array(e.target.result);
+          var wb = XLSX.read(data, {type: 'array', cellDates: true});
+          if(!wb.SheetNames || !wb.SheetNames.length) throw new Error('Excel workbook has no sheets.');
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var csv = XLSX.utils.sheet_to_csv(ws, {dateNF: 'yyyy-mm-dd'});
+          if(!csv || !csv.trim()) throw new Error('The first sheet in this Excel file is empty.');
+          $('#txt').value = csv;
+          note('Excel file loaded: ' + esc(f.name) + '. Checking rows...');
+          $('#check').click();
+        } catch(err){
+          note('Error reading Excel file: ' + err.message, 1);
+        }
+      };
+      rd.onerror = function(){
+        note('Failed to read file from disk.', 1);
+      };
+      rd.readAsArrayBuffer(f);
+    });
+  } else {
+    var rd = new FileReader();
+    rd.onload = function(){
+      $('#txt').value = rd.result;
+      note('File loaded: ' + esc(f.name) + '. Checking rows...');
+      $('#check').click();
+    };
+    rd.readAsText(f);
+  }
 };
+
 $('#check').onclick=function(){
   note('');$('#lg').hidden=true;
   try{
