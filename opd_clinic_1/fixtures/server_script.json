@@ -731,13 +731,13 @@
   "doctype_event": "Before Insert",
   "enable_rate_limit": 0,
   "event_frequency": "All",
-  "modified": "2026-11-21 07:28:14.506075",
+  "modified": "2026-11-21 14:51:18.531918",
   "module": "opd_clinic_1",
   "name": "patient_backfill_uid",
   "rate_limit_count": 5,
   "rate_limit_seconds": 86400,
   "reference_doctype": null,
-  "script": "# Server Script: patient_backfill_uid\n# type: API\n# doctype: -\n# event: Before Insert\n# api_method: patient_backfill_uid\n# allow_guest: 0\n# disabled: 0\n\nuser = frappe.session.user\nok = False\nfor r in [\"Healthcare Administrator\", \"System Manager\", \"Desk User\"]:\n    if frappe.db.exists(\"Has Role\", {\"parent\": user, \"role\": r}):\n        ok = True\nif not ok:\n    frappe.throw(\"Not permitted.\")\n\nmmyy = frappe.utils.now_datetime().strftime(\"%m%y\")\nprefix = \"JHAM-\" + mmyy + \"-\"\nrecords = frappe.get_all(\"Patient\", filters={\"uid\": [\"like\", prefix + \"%\"]}, fields=[\"uid\"], limit=10000)\nmax_seq = 0\nfor r in records:\n    u = r.get(\"uid\") or \"\"\n    parts = u.split(\"-\")\n    if len(parts) >= 3 and parts[-1].isdigit():\n        val = int(parts[-1])\n        if val > max_seq:\n            max_seq = val\n\nempty_patients = frappe.get_all(\"Patient\", filters={\"uid\": [\"in\", [\"\", None]]}, fields=[\"name\"], order_by=\"creation asc\", limit=1000)\ncount = 0\nfor p in empty_patients:\n    max_seq += 1\n    new_uid = prefix + str(max_seq).zfill(6)\n    frappe.db.set_value(\"Patient\", p.name, \"uid\", new_uid, update_modified=False)\n    count += 1\n\nfrappe.db.commit()\nfrappe.response[\"message\"] = {\"updated\": count}\n",
+  "script": "# Server Script: patient_backfill_uid\n# type: API\n# doctype: -\n# event: Before Insert\n# api_method: patient_backfill_uid\n# allow_guest: 0\n# disabled: 0\n\nuser = frappe.session.user\nok = False\nfor r in [\"Healthcare Administrator\", \"System Manager\", \"Desk User\"]:\n    if frappe.db.exists(\"Has Role\", {\"parent\": user, \"role\": r}):\n        ok = True\nif not ok:\n    frappe.throw(\"Not permitted.\")\n\nmmyy = frappe.utils.now_datetime().strftime(\"%m%y\")\nprefix = \"JHAM-\" + mmyy + \"-\"\n\n# Fetch all patients ordered by creation date to handle both NULL and empty string UIDs safely\npatients = frappe.get_all(\"Patient\", fields=[\"name\", \"uid\"], order_by=\"creation asc\", limit=10000)\n\nmax_seq = 0\nfor r in patients:\n    u = (r.get(\"uid\") or \"\").strip()\n    if u.startswith(prefix):\n        parts = u.split(\"-\")\n        if len(parts) >= 3 and parts[-1].isdigit():\n            val = int(parts[-1])\n            if val > max_seq:\n                max_seq = val\n\ncount = 0\nfor p in patients:\n    u = (p.get(\"uid\") or \"\").strip()\n    if not u:\n        max_seq += 1\n        new_uid = prefix + str(max_seq).zfill(6)\n        frappe.db.set_value(\"Patient\", p.name, \"uid\", new_uid, update_modified=False)\n        count += 1\n\nfrappe.db.commit()\nfrappe.response[\"message\"] = {\n    \"updated\": count,\n    \"message\": \"Successfully backfilled \" + str(count) + \" patient UIDs.\"\n}\n",
   "script_type": "API"
  }
 ]

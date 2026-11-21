@@ -16,23 +16,31 @@ if not ok:
 
 mmyy = frappe.utils.now_datetime().strftime("%m%y")
 prefix = "JHAM-" + mmyy + "-"
-records = frappe.get_all("Patient", filters={"uid": ["like", prefix + "%"]}, fields=["uid"], limit=10000)
-max_seq = 0
-for r in records:
-    u = r.get("uid") or ""
-    parts = u.split("-")
-    if len(parts) >= 3 and parts[-1].isdigit():
-        val = int(parts[-1])
-        if val > max_seq:
-            max_seq = val
 
-empty_patients = frappe.get_all("Patient", filters={"uid": ["in", ["", None]]}, fields=["name"], order_by="creation asc", limit=1000)
+# Fetch all patients ordered by creation date to handle both NULL and empty string UIDs safely
+patients = frappe.get_all("Patient", fields=["name", "uid"], order_by="creation asc", limit=10000)
+
+max_seq = 0
+for r in patients:
+    u = (r.get("uid") or "").strip()
+    if u.startswith(prefix):
+        parts = u.split("-")
+        if len(parts) >= 3 and parts[-1].isdigit():
+            val = int(parts[-1])
+            if val > max_seq:
+                max_seq = val
+
 count = 0
-for p in empty_patients:
-    max_seq += 1
-    new_uid = prefix + str(max_seq).zfill(6)
-    frappe.db.set_value("Patient", p.name, "uid", new_uid, update_modified=False)
-    count += 1
+for p in patients:
+    u = (p.get("uid") or "").strip()
+    if not u:
+        max_seq += 1
+        new_uid = prefix + str(max_seq).zfill(6)
+        frappe.db.set_value("Patient", p.name, "uid", new_uid, update_modified=False)
+        count += 1
 
 frappe.db.commit()
-frappe.response["message"] = {"updated": count}
+frappe.response["message"] = {
+    "updated": count,
+    "message": "Successfully backfilled " + str(count) + " patient UIDs."
+}
