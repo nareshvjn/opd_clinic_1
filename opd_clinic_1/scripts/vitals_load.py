@@ -37,6 +37,24 @@ if not frappe.db.exists("Patient", patient_id):
     frappe.throw("Patient not found: " + patient_id)
 
 patient = frappe.get_doc("Patient", patient_id)
+if not patient.uid:
+    mmyy = frappe.utils.now_datetime().strftime("%m%y")
+    prefix = "JHAM-" + mmyy + "-"
+    records = frappe.get_all("Patient", filters={"uid": ["like", prefix + "%"]}, fields={"uid"}, limit=10000)
+    max_seq = 0
+    for r in records:
+        u = r.get("uid") or ""
+        parts = u.split("-")
+        if len(parts) >= 3 and parts[-1].isdigit():
+            val = int(parts[-1])
+            if val > max_seq:
+                max_seq = val
+    new_uid = prefix + str(max_seq + 1).zfill(6)
+    try:
+        patient.db_set("uid", new_uid, update_modified=False)
+        patient.uid = new_uid
+    except:
+        pass
 today = frappe.utils.getdate(frappe.utils.today())
 age = None
 if patient.dob:
@@ -117,6 +135,7 @@ except:
 frappe.response["message"] = {
     "patient": {
         "id": patient.name,
+        "uid": patient.uid or patient.name,
         "name": patient.patient_name,
         "sex": patient.sex or "",
         "age": age,

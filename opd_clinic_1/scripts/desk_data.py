@@ -47,7 +47,7 @@ if rows:
     for r in rows:
         ids.append(r.patient)
     for p in frappe.get_all("Patient", filters={"name": ["in", ids]},
-            fields=["name", "dob", "sex", "mobile"]):
+            fields=["name", "dob", "sex", "mobile", "uid"]):
         info[p.name] = p
 
 def find_invoice(appt):
@@ -94,7 +94,7 @@ for r in rows:
     has_vitals = bool(vs_found)
     t = str(r.appointment_time).split(":")
     out.append({
-        "id": r.name, "patient": r.patient, "name": r.patient_name,
+        "id": r.name, "patient": r.patient, "uid": (p.uid if p and p.uid else r.patient), "name": r.patient_name,
         "age": age, "sex": sex, "mobile": mobile,
         "practitioner": r.practitioner, "practitioner_name": r.practitioner_name,
         "time": t[0].zfill(2) + ":" + t[1], "duration": r.duration,

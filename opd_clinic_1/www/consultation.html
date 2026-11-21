@@ -8,10 +8,10 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 #en a.back{color:#cfeee2;font-weight:600;text-decoration:none;font-size:.9rem;white-space:nowrap}
 #en .pt{flex:none;display:flex;gap:14px;align-items:center;padding:8px 14px;border-radius:12px;background:var(--ink);color:#fff}
 #en .av{flex:none;width:40px;height:40px;border-radius:50%;background:#8cc9b5;color:var(--ink);display:grid;place-items:center;font-weight:800}
-#en h1{font-size:1.25rem;margin:0;line-height:1.2}
-#en .pt p{margin:0;font-size:.88rem;opacity:.88}
-#en .pt .ap{margin-left:auto;text-align:right;font-size:.85rem}
-#en .pt .ap b{display:block;font-size:1rem}
+#en h1,#en #pn{font-size:1.25rem;margin:0;line-height:1.2;color:#ffffff !important;font-weight:700}
+#en .pt p,#en #pm{margin:0;font-size:.88rem;color:#cfeee2 !important;opacity:1}
+#en .pt .ap{margin-left:auto;text-align:right;font-size:.85rem;color:#fff}
+#en .pt .ap b{display:block;font-size:1rem;color:#fff}
 #en h2{font-size:.95rem;margin:0 0 8px}
 #en .card{padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
 #en label{display:block;font-size:.76rem;font-weight:600;margin:0 0 2px;color:var(--mute)}
@@ -262,7 +262,8 @@ function init(r){
   ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};
   var p=r.patient,words=(p.name||'').split(/\s+/);
   $('#av').textContent=((words[0]||'?')[0]+(words[1]?words[1][0]:'')).toUpperCase();
-  $('#pn').textContent=p.name;
+  var uidStr = p.uid || p.id || '';
+  $('#pn').innerHTML = esc(p.name) + (uidStr ? ' <span style="font-size:0.92rem;font-weight:600;color:#8cc9b5;letter-spacing:0.3px">(' + esc(uidStr) + ')</span>' : '');
   $('#pm').textContent=['Age '+(p.age==null?'not recorded':p.age),p.sex,p.mobile?'Mobile '+p.mobile:''].filter(Boolean).join('   ');
   if(r.appointment){$('#ap').innerHTML='<b>'+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'')}
   fill('dl-sym',L.complaints);fill('dl-dx',L.diagnoses);fill('dl-med',L.medications.concat(L.items));fill('dl-lab',L.labs);fill('dl-uom',L.uoms);

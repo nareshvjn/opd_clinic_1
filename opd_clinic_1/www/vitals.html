@@ -6,10 +6,10 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 #vt *{box-sizing:border-box}
 #vt .pt{display:flex;gap:14px;align-items:center;padding:12px 16px;border-radius:12px;background:var(--ink);color:#fff}
 #vt .av{flex:none;width:44px;height:44px;border-radius:50%;background:#8cc9b5;color:var(--ink);display:grid;place-items:center;font-weight:800;font-size:1.1rem}
-#vt h1{font-size:1.3rem;margin:0;line-height:1.2}
-#vt .pt p{margin:2px 0 0;font-size:.88rem;opacity:.9}
-#vt .pt .ap{margin-left:auto;text-align:right;font-size:.85rem}
-#vt .pt .ap b{display:block;font-size:1.05rem}
+#vt h1,#vt #pn{font-size:1.3rem;margin:0;line-height:1.2;color:#ffffff !important;font-weight:700}
+#vt .pt p,#vt #pm{margin:2px 0 0;font-size:.88rem;color:#cfeee2 !important;opacity:1}
+#vt .pt .ap{margin-left:auto;text-align:right;font-size:.85rem;color:#fff}
+#vt .pt .ap b{display:block;font-size:1.05rem;color:#fff}
 #vt a.back{color:#cfeee2;font-weight:600;text-decoration:none;font-size:.9rem}
 #vt a.back:hover{text-decoration:underline}
 #vt .card{padding:16px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
@@ -337,7 +337,8 @@ function init(){
     if(r.practitioner) D=r.practitioner;
     var p=r.patient,w=(p.name||'').split(/\s+/);
     $('#av').textContent=((w[0]||'?')[0]+(w[1]?w[1][0]:'')).toUpperCase();
-    $('#pn').textContent=p.name;
+    var uidStr = p.uid || p.id || '';
+    $('#pn').innerHTML = esc(p.name) + (uidStr ? ' <span style="font-size:0.92rem;font-weight:600;color:#8cc9b5;letter-spacing:0.3px">(' + esc(uidStr) + ')</span>' : '');
     $('#pm').textContent=['Age '+(p.age==null?'not recorded':p.age),p.sex,p.mobile?'Mobile '+p.mobile:''].filter(Boolean).join('   ');
     if(r.appointment&&r.appointment.id){
       $('#ap').innerHTML='<b>'+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'');
