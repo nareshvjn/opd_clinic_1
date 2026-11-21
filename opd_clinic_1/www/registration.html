@@ -57,6 +57,10 @@
   <fieldset id="s-new" hidden>
     <legend>Register as a new patient</legend>
     <div class="row">
+      <div><label for="n-uid">Patient ID (UID)</label><input id="n-uid" placeholder="Auto-generated" style="font-weight:700;color:var(--ok);letter-spacing:0.5px"></div>
+      <p class="lead" style="margin:0;align-self:end;font-size:.9rem">Auto-assigned unique patient ID.</p>
+    </div>
+    <div class="row">
       <div><label for="n-first">First name</label><input id="n-first" autocomplete="given-name"></div>
       <div><label for="n-last">Last name</label><input id="n-last" autocomplete="family-name"></div>
     </div>
@@ -96,7 +100,7 @@
 <script>
 (function(){
 var $=function(s){return document.querySelector('#apt '+s)};
-var mode='existing',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',upc=[];
+var mode='existing',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',nextUid='',upc=[];
 
 function call(method,data,post){
   var p=new URLSearchParams(data||{}),o={headers:{Accept:'application/json'}};
@@ -133,6 +137,7 @@ function setMode(m){
   $('#s-exist').hidden=m!=='existing';
   $('#s-new').hidden=m!=='new';
   $('#s-appt').hidden=m==='existing'?!patientId:false;
+  if(m==='new'&&nextUid&&!$('#n-uid').value){$('#n-uid').value=nextUid;}
 }
 $('#m-exist').onclick=function(){setMode('existing')};
 $('#m-new').onclick=function(){setMode('new')};
@@ -216,6 +221,7 @@ $('#a-prac').onchange=loadSlots;$('#a-date').onchange=loadSlots;
 $('#a-date').min=new Date().toISOString().slice(0,10);
 
 call('appt_meta').then(function(m){csrf=m.csrf||'';
+  if(m.next_uid){nextUid=m.next_uid;if($('#n-uid')&&!$('#n-uid').value)$('#n-uid').value=m.next_uid;}
   m.practitioners.forEach(function(p){var o=new Option(p.practitioner_name+(p.department?' ('+p.department+')':''),p.name);$('#a-prac').add(o)});
   m.types.forEach(function(t){$('#a-type').add(new Option(t,t))})
 }).catch(function(){showErr('The booking form couldn\'t load. Please refresh or contact the clinic.')});
@@ -224,7 +230,7 @@ $('#f').onsubmit=function(ev){
   ev.preventDefault();showErr('');
   var isNew=mode==='new',time=manual?$('#a-time').value:($('#a-slot').value||slot);
   var d={mode:mode,practitioner:$('#a-prac').value,appointment_type:$('#a-type').value,date:$('#a-date').value,time:time,notes:$('#a-notes').value};
-  if(isNew){d.first_name=$('#n-first').value.trim();d.last_name=$('#n-last').value.trim();d.sex=$('#n-sex').value;
+  if(isNew){d.uid=$('#n-uid').value.trim();d.first_name=$('#n-first').value.trim();d.last_name=$('#n-last').value.trim();d.sex=$('#n-sex').value;
     d.dob=$('#n-dob').value;d.mobile=$('#n-mobile').value.trim();d.email=$('#n-email').value.trim();
     if(!d.first_name||!d.sex){showErr('Enter the first name and gender.');return}}
   else{if(!patientId){showErr('Search for the patient and select them first.');return}d.patient=patientId}
@@ -233,7 +239,8 @@ $('#f').onsubmit=function(ev){
   var req=editId?call('appt_update',{patient:patientId,appointment:editId,practitioner:d.practitioner,appointment_type:d.appointment_type,date:d.date,time:d.time,notes:d.notes},true):call('appt_book',d,true);
   req.then(function(r){
     $('#f').hidden=true;var n=$('#done');n.hidden=false;
-    n.innerHTML='<h2>'+(editId?'Appointment updated':'Appointment booked')+'</h2>Reference <strong>'+esc(r.appointment)+'</strong><br>'+esc(d.date)+' at '+esc(manual?d.time:fmt(d.time))+(manual?' (the clinic will confirm this time)':'')+'.'
+    var uidMsg=d.uid?' &bull; Patient ID: <strong>'+esc(d.uid)+'</strong>':'';
+    n.innerHTML='<h2>'+(editId?'Appointment updated':'Appointment booked')+'</h2>Reference <strong>'+esc(r.appointment)+'</strong>'+uidMsg+'<br>'+esc(d.date)+' at '+esc(manual?d.time:fmt(d.time))+(manual?' (the clinic will confirm this time)':'')+'.'
   }).catch(function(e){showErr(e.message);b.disabled=false;b.textContent=editId?'Update appointment':'Book appointment';if(/already booked/i.test(e.message))loadSlots()})
 };
 })();

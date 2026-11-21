@@ -62,7 +62,10 @@ else:
         p.dob = dob
     p.mobile = mobile
     p.email = f.get("email")
-    if not p.get("uid"):
+    req_uid = (f.get("uid") or "").strip()
+    if req_uid and not frappe.db.exists("Patient", {"uid": req_uid}):
+        p.uid = req_uid
+    else:
         today_str = str(frappe.utils.today())
         p_date = today_str.split("-")
         mmyy = p_date[1] + p_date[0][2:]
