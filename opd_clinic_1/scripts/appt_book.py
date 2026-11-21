@@ -63,7 +63,9 @@ else:
     p.mobile = mobile
     p.email = f.get("email")
     if not p.get("uid"):
-        mmyy = frappe.utils.now_datetime().strftime("%m%y")
+        today_str = str(frappe.utils.today())
+        p_date = today_str.split("-")
+        mmyy = p_date[1] + p_date[0][2:]
         prefix = "JHAM-" + mmyy + "-"
         records = frappe.get_all("Patient", filters={"uid": ["like", prefix + "%"]}, fields=["uid"], limit=10000)
         max_seq = 0

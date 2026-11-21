@@ -14,7 +14,9 @@ for r in ["Healthcare Administrator", "System Manager", "Desk User"]:
 if not ok:
     frappe.throw("Not permitted.")
 
-mmyy = frappe.utils.now_datetime().strftime("%m%y")
+today_str = str(frappe.utils.today())
+p_date = today_str.split("-")
+mmyy = p_date[1] + p_date[0][2:]
 prefix = "JHAM-" + mmyy + "-"
 
 # Fetch all patients ordered by creation date to handle both NULL and empty string UIDs safely
