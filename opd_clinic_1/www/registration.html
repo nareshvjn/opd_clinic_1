@@ -103,8 +103,23 @@ function call(method,data,post){
   if(post){o.method='POST';o.body=p;var t=csrf||(window.frappe&&frappe.csrf_token)||window.csrf_token;if(t)o.headers['X-Frappe-CSRF-Token']=t}
   return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
     return r.json().catch(function(){return {}}).then(function(j){
-      if(!r.ok){var t='Something went wrong. Please try again.';
-        try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message.replace(/<[^>]+>/g,'')}catch(e){}
+      if(!r.ok){
+        var t='';
+        if(j._server_messages){
+          try{
+            var msgs=typeof j._server_messages==='string'?JSON.parse(j._server_messages):j._server_messages;
+            var last=typeof msgs[msgs.length-1]==='string'?JSON.parse(msgs[msgs.length-1]):msgs[msgs.length-1];
+            t=(last.message||last||'').replace(/<[^>]+>/g,'').trim();
+          }catch(e){}
+        }
+        if(!t&&j.exception){
+          var exp=String(j.exception).split(':');
+          t=exp.length>1?exp.slice(1).join(':').trim():exp[0].trim();
+        }
+        if(!t&&j.message){
+          t=typeof j.message==='string'?j.message:JSON.stringify(j.message);
+        }
+        if(!t)t='Something went wrong. Please try again.';
         if(/invalid request/i.test(t))t='Your session expired. Refresh the page and try again.';throw new Error(t)}
       return j.message})})
 }
@@ -207,7 +222,7 @@ call('appt_meta').then(function(m){csrf=m.csrf||'';
 
 $('#f').onsubmit=function(ev){
   ev.preventDefault();showErr('');
-  var isNew=mode==='new',time=manual?$('#a-time').value:slot;
+  var isNew=mode==='new',time=manual?$('#a-time').value:($('#a-slot').value||slot);
   var d={mode:mode,practitioner:$('#a-prac').value,appointment_type:$('#a-type').value,date:$('#a-date').value,time:time,notes:$('#a-notes').value};
   if(isNew){d.first_name=$('#n-first').value.trim();d.last_name=$('#n-last').value.trim();d.sex=$('#n-sex').value;
     d.dob=$('#n-dob').value;d.mobile=$('#n-mobile').value.trim();d.email=$('#n-email').value.trim();
