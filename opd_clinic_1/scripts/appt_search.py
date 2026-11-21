@@ -9,18 +9,25 @@
 
 MASK_MOBILE = False  # set True to show numbers like 98****3210
 
+q = (frappe.form_dict.get("query") or frappe.form_dict.get("q") or "").strip()
 name = (frappe.form_dict.get("name") or "").strip()
 mobile = (frappe.form_dict.get("mobile") or "").strip()
-if len(name) < 2 and len(mobile) < 4:
-    frappe.throw("Enter at least 2 letters of the name or 4 digits of the mobile number.")
 
-filters = [["Patient", "status", "=", "Active"]]
-if name:
-    filters.append(["Patient", "patient_name", "like", "%" + name + "%"])
-if mobile:
-    filters.append(["Patient", "mobile", "like", "%" + mobile + "%"])
+if not q:
+    q = name or mobile
 
-rows = frappe.get_all("Patient", filters=filters,
+if len(q) < 2:
+    frappe.throw("Enter at least 2 characters to search by name, mobile, or ID.")
+
+q_wild = "%" + q + "%"
+rows = frappe.get_all("Patient",
+    filters=[["Patient", "status", "=", "Active"]],
+    or_filters=[
+        ["Patient", "patient_name", "like", q_wild],
+        ["Patient", "mobile", "like", q_wild],
+        ["Patient", "uid", "like", q_wild],
+        ["Patient", "name", "like", q_wild]
+    ],
     fields=["name", "patient_name", "mobile", "dob", "uid"],
     order_by="patient_name", limit=10)
 

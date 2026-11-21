@@ -21,7 +21,9 @@ if len(q) < 2:
 rows = frappe.get_all("Patient",
     filters=[["Patient", "status", "=", "Active"]],
     or_filters=[["Patient", "patient_name", "like", "%" + q + "%"],
-                ["Patient", "mobile", "like", "%" + q + "%"]],
+                ["Patient", "mobile", "like", "%" + q + "%"],
+                ["Patient", "uid", "like", "%" + q + "%"],
+                ["Patient", "name", "like", "%" + q + "%"]],
     fields=["name", "patient_name", "mobile", "dob", "uid"], order_by="patient_name", limit=10)
 
 today = frappe.utils.getdate(frappe.utils.today())

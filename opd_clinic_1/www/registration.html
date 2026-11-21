@@ -71,12 +71,12 @@
   </fieldset>
 
   <fieldset id="s-exist" hidden>
-    <legend>Find the patient</legend>
-    <div class="row">
-      <div><label for="e-name">Name</label><input id="e-name" autocomplete="off" placeholder="First or last name"></div>
-      <div><label for="e-mobile">Mobile number (optional)</label><input id="e-mobile" type="tel" autocomplete="off"></div>
+    <legend>Find existing patient</legend>
+    <label for="e-query">Search patient (Name, Mobile number, or Patient ID)</label>
+    <div style="display:flex;gap:8px">
+      <input id="e-query" autocomplete="off" placeholder="e.g. Vijayan, 9442909054, or JHAM-1126-000001">
+      <button type="button" class="ghost" id="find" style="margin:0;white-space:nowrap;padding:11px 18px">Search</button>
     </div>
-    <button type="button" class="ghost" id="find">Search patients</button>
     <div id="found" hidden></div>
     <div id="upc"></div>
   </fieldset>
@@ -176,15 +176,21 @@ $('#n-dob').onchange=function(){
   $('#n-age').value=a>=0?a:''
 };
 $('#find').onclick=function(){
-  var nm=$('#e-name').value.trim(),mob=$('#e-mobile').value.trim(),box=$('#found');
+  var q=($('#e-query').value||'').trim(),box=$('#found');
   showErr('');box.hidden=true;patientId='';$('#s-appt').hidden=true;endEdit();$('#upc').innerHTML='';
-  if(nm.length<2&&mob.length<4){showErr('Enter at least 2 letters of the name or 4 digits of the mobile number.');return}
+  if(q.length<2){showErr('Enter at least 2 characters of the name, mobile number, or ID.');return}
   this.disabled=true;var b=this;
-  call('appt_search',{name:nm,mobile:mob}).then(function(r){
+  call('appt_search',{query:q}).then(function(r){
     var list=r.patients||[];box.hidden=false;
     if(!list.length){box.className='note bad';
       box.innerHTML='No patient matches that search.<br><button type="button" class="ghost" id="to-new">Register as a new patient</button>';
-      $('#to-new').onclick=function(){var p=nm.split(/\s+/);$('#n-first').value=p.shift()||'';$('#n-last').value=p.join(' ');$('#n-mobile').value=mob;setMode('new')};
+      $('#to-new').onclick=function(){
+        var p=q.split(/\s+/);
+        if(/^\d+$/.test(q)){ $('#n-mobile').value=q; }
+        else if(/^JHAM/i.test(q)){ }
+        else { $('#n-first').value=p.shift()||'';$('#n-last').value=p.join(' '); }
+        setMode('new');
+      };
       return}
     box.className='res';box.innerHTML='';
     list.forEach(function(p){
@@ -195,6 +201,7 @@ $('#find').onclick=function(){
       box.appendChild(c)})
   }).catch(function(e){showErr(e.message)}).then(function(){b.disabled=false})
 };
+$('#e-query').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();$('#find').click();}};
 
 function fmt(t){var p=t.split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
 function loadSlots(){
@@ -260,8 +267,7 @@ $('#f').onsubmit=function(ev){
     $('#n-dob').value='';$('#n-age').value='';$('#n-mobile').value='';$('#n-email').value='';
     $('#a-notes').value='';$('#n-uid').value='';
     patientId='';
-    if($('#e-name'))$('#e-name').value='';
-    if($('#e-mobile'))$('#e-mobile').value='';
+    if($('#e-query'))$('#e-query').value='';
     if($('#found')){ $('#found').hidden=true;$('#found').innerHTML=''; }
     if($('#upc'))$('#upc').innerHTML='';
 
