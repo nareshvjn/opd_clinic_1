@@ -38,23 +38,14 @@
 <p class="lead">Registered with us before? Look up your record. First visit? Register and book in one step.</p>
 
 <div class="seg">
-  <button type="button" id="m-exist" aria-pressed="true">I'm an existing patient</button>
-  <button type="button" id="m-new" aria-pressed="false">I'm a new patient</button>
+  <button type="button" id="m-new" aria-pressed="true">New patient</button>
+  <button type="button" id="m-exist" aria-pressed="false">Existing patient</button>
 </div>
 
-<form id="f" novalidate>
-  <fieldset id="s-exist">
-    <legend>Find the patient</legend>
-    <div class="row">
-      <div><label for="e-name">Name</label><input id="e-name" autocomplete="off" placeholder="First or last name"></div>
-      <div><label for="e-mobile">Mobile number (optional)</label><input id="e-mobile" type="tel" autocomplete="off"></div>
-    </div>
-    <button type="button" class="ghost" id="find">Search patients</button>
-    <div id="found" hidden></div>
-    <div id="upc"></div>
-  </fieldset>
+<div id="done" class="note done" hidden style="margin-bottom:20px;border-left:4px solid var(--ok);background:#e8f5e9;padding:14px;border-radius:8px"></div>
 
-  <fieldset id="s-new" hidden>
+<form id="f" novalidate>
+  <fieldset id="s-new">
     <legend>Register as a new patient</legend>
     <div class="row">
       <div><label for="n-uid">Patient ID (UID)</label><input id="n-uid" placeholder="Auto-generated" style="font-weight:700;color:var(--ok);letter-spacing:0.5px"></div>
@@ -79,7 +70,18 @@
     </div>
   </fieldset>
 
-  <fieldset id="s-appt" hidden>
+  <fieldset id="s-exist" hidden>
+    <legend>Find the patient</legend>
+    <div class="row">
+      <div><label for="e-name">Name</label><input id="e-name" autocomplete="off" placeholder="First or last name"></div>
+      <div><label for="e-mobile">Mobile number (optional)</label><input id="e-mobile" type="tel" autocomplete="off"></div>
+    </div>
+    <button type="button" class="ghost" id="find">Search patients</button>
+    <div id="found" hidden></div>
+    <div id="upc"></div>
+  </fieldset>
+
+  <fieldset id="s-appt">
     <legend>Choose your appointment</legend>
     <div id="edit-banner" class="note" hidden><span></span> <button type="button" class="ghost" id="edit-cancel">Stop editing</button></div>
     <label for="a-prac">Doctor</label><select id="a-prac"><option value="">Select a doctor</option></select>
@@ -95,12 +97,10 @@
   <div id="err" class="note bad" role="alert" hidden></div>
 </form>
 
-<div id="done" class="note done" hidden></div>
-
 <script>
 (function(){
 var $=function(s){return document.querySelector('#apt '+s)};
-var mode='existing',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',nextUid='',upc=[];
+var mode='new',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',nextUid='',upc=[];
 
 function call(method,data,post){
   var p=new URLSearchParams(data||{}),o={headers:{Accept:'application/json'}};
@@ -132,15 +132,15 @@ function esc(s){var d=document.createElement('div');d.textContent=s;return d.inn
 
 function setMode(m){
   mode=m;showErr('');
-  $('#m-exist').setAttribute('aria-pressed',m==='existing');
   $('#m-new').setAttribute('aria-pressed',m==='new');
-  $('#s-exist').hidden=m!=='existing';
+  $('#m-exist').setAttribute('aria-pressed',m==='existing');
   $('#s-new').hidden=m!=='new';
+  $('#s-exist').hidden=m!=='existing';
   $('#s-appt').hidden=m==='existing'?!patientId:false;
   if(m==='new'&&nextUid&&!$('#n-uid').value){$('#n-uid').value=nextUid;}
 }
-$('#m-exist').onclick=function(){setMode('existing')};
 $('#m-new').onclick=function(){setMode('new')};
+$('#m-exist').onclick=function(){setMode('existing')};
 
 function dlabel(d){return new Date(d+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}
 function endEdit(){editId='';pendingSlot='';$('#edit-banner').hidden=true;$('#book').textContent='Book appointment'}
@@ -238,9 +238,42 @@ $('#f').onsubmit=function(ev){
   var b=$('#book');b.disabled=true;b.textContent=editId?'Updating…':'Booking…';
   var req=editId?call('appt_update',{patient:patientId,appointment:editId,practitioner:d.practitioner,appointment_type:d.appointment_type,date:d.date,time:d.time,notes:d.notes},true):call('appt_book',d,true);
   req.then(function(r){
-    $('#f').hidden=true;var n=$('#done');n.hidden=false;
     var uidMsg=d.uid?' &bull; Patient ID: <strong>'+esc(d.uid)+'</strong>':'';
-    n.innerHTML='<h2>'+(editId?'Appointment updated':'Appointment booked')+'</h2>Reference <strong>'+esc(r.appointment)+'</strong>'+uidMsg+'<br>'+esc(d.date)+' at '+esc(manual?d.time:fmt(d.time))+(manual?' (the clinic will confirm this time)':'')+'.'
+    var ptName=d.first_name?(d.first_name+(d.last_name?' '+d.last_name:'')):(d.patient||'');
+    var ptMsg=ptName?' &bull; Patient: <strong>'+esc(ptName)+'</strong>':'';
+    var n=$('#done');
+    n.hidden=false;
+    n.innerHTML='<div style="display:flex;justify-content:space-between;align-items:start">' +
+      '<div><h2 style="margin:0 0 6px;color:var(--ok);font-size:1.15rem">&#10003; '+(editId?'Appointment updated successfully':'Appointment booked successfully')+'</h2>' +
+      'Reference <strong>'+esc(r.appointment)+'</strong>'+ptMsg+uidMsg+'<br>' +
+      esc(d.date)+' at '+esc(manual?d.time:fmt(d.time))+(manual?' (the clinic will confirm this time)':'')+'.' +
+      '</div>' +
+      '<button type="button" class="ghost" id="done-close" style="margin:0;padding:4px 8px;font-size:1.1rem;line-height:1;border:none;cursor:pointer" title="Dismiss">&times;</button>' +
+      '</div>';
+    $('#done-close').onclick=function(){n.hidden=true};
+    n.scrollIntoView({behavior:'smooth',block:'start'});
+
+    b.disabled=false;
+    b.textContent='Book appointment';
+    endEdit();
+    $('#n-first').value='';$('#n-last').value='';$('#n-sex').value='';
+    $('#n-dob').value='';$('#n-age').value='';$('#n-mobile').value='';$('#n-email').value='';
+    $('#a-notes').value='';$('#n-uid').value='';
+    patientId='';
+    if($('#e-name'))$('#e-name').value='';
+    if($('#e-mobile'))$('#e-mobile').value='';
+    if($('#found')){ $('#found').hidden=true;$('#found').innerHTML=''; }
+    if($('#upc'))$('#upc').innerHTML='';
+
+    setMode('new');
+
+    call('appt_meta').then(function(m){
+      if(m.next_uid){
+        nextUid=m.next_uid;
+        $('#n-uid').value=m.next_uid;
+      }
+    });
+    loadSlots();
   }).catch(function(e){showErr(e.message);b.disabled=false;b.textContent=editId?'Update appointment':'Book appointment';if(/already booked/i.test(e.message))loadSlots()})
 };
 })();
