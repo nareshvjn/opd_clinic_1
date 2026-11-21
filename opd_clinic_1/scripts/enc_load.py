@@ -54,6 +54,24 @@ if not patient_id:
     frappe.throw("No patient selected. Open this page from the doctor desk.")
 
 pat = frappe.get_doc("Patient", patient_id)
+if not pat.uid:
+    mmyy = frappe.utils.now_datetime().strftime("%m%y")
+    prefix = "JHAM-" + mmyy + "-"
+    records = frappe.get_all("Patient", filters={"uid": ["like", prefix + "%"]}, fields=["uid"], limit=10000)
+    max_seq = 0
+    for r in records:
+        u = r.get("uid") or ""
+        parts = u.split("-")
+        if len(parts) >= 3 and parts[-1].isdigit():
+            val = int(parts[-1])
+            if val > max_seq:
+                max_seq = val
+    new_uid = prefix + str(max_seq + 1).zfill(6)
+    try:
+        pat.db_set("uid", new_uid, update_modified=False)
+        pat.uid = new_uid
+    except:
+        pass
 age = None
 if pat.dob:
     d = frappe.utils.getdate(pat.dob)
@@ -214,7 +232,7 @@ if appt:
                 "time": str(appt.appointment_time), "type": appt.appointment_type}
 
 frappe.response["message"] = {
-    "patient": {"id": pat.name, "name": pat.patient_name, "age": age,
+    "patient": {"id": pat.name, "uid": pat.uid or pat.name, "name": pat.patient_name, "age": age,
                 "sex": pat.sex or "", "mobile": pat.mobile or ""},
     "appointment": appt_out,
     "practitioner": appt.practitioner if appt else "",
