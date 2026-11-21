@@ -138,9 +138,21 @@ function setMode(m){
   $('#s-exist').hidden=m!=='existing';
   $('#s-appt').hidden=m==='existing'?!patientId:false;
   if(m==='new'&&nextUid&&!$('#n-uid').value){$('#n-uid').value=nextUid;}
+  if(m==='existing'){
+    setTimeout(function(){ if($('#e-query')) $('#e-query').focus(); }, 60);
+  }
 }
-$('#m-new').onclick=function(){setMode('new')};
-$('#m-exist').onclick=function(){setMode('existing')};
+$('#m-new').onclick=function(e){
+  e.preventDefault();
+  window.location.href='/registration?mode=new';
+};
+$('#m-exist').onclick=function(e){
+  e.preventDefault();
+  window.location.href='/registration?mode=existing';
+};
+var urlParams = new URLSearchParams(window.location.search);
+var initialMode = urlParams.get('mode') === 'existing' ? 'existing' : 'new';
+setMode(initialMode);
 
 function dlabel(d){return new Date(d+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}
 function endEdit(){editId='';pendingSlot='';$('#edit-banner').hidden=true;$('#book').textContent='Book appointment'}
@@ -175,33 +187,40 @@ $('#n-dob').onchange=function(){
   if(t.getMonth()<d.getMonth()||(t.getMonth()===d.getMonth()&&t.getDate()<d.getDate()))a--;
   $('#n-age').value=a>=0?a:''
 };
-$('#find').onclick=function(){
+var searchTimer=null;
+function doSearch(){
   var q=($('#e-query').value||'').trim(),box=$('#found');
-  showErr('');box.hidden=true;patientId='';$('#s-appt').hidden=true;endEdit();$('#upc').innerHTML='';
-  if(q.length<2){showErr('Enter at least 2 characters of the name, mobile number, or ID.');return}
-  this.disabled=true;var b=this;
+  showErr('');
+  if(q.length<2){box.hidden=true;box.innerHTML='';return}
+  box.hidden=false;box.className='note';box.textContent='Searching patients…';
   call('appt_search',{query:q}).then(function(r){
-    var list=r.patients||[];box.hidden=false;
-    if(!list.length){box.className='note bad';
-      box.innerHTML='No patient matches that search.<br><button type="button" class="ghost" id="to-new">Register as a new patient</button>';
-      $('#to-new').onclick=function(){
-        var p=q.split(/\s+/);
-        if(/^\d+$/.test(q)){ $('#n-mobile').value=q; }
-        else if(/^JHAM/i.test(q)){ }
-        else { $('#n-first').value=p.shift()||'';$('#n-last').value=p.join(' '); }
-        setMode('new');
-      };
-      return}
+    var list=r.patients||[];
+    if(!list.length){
+      box.className='note bad';
+      box.innerHTML='No patient matches "'+esc(q)+'".<br><button type="button" class="ghost" id="to-new" style="margin-top:8px">Register as a new patient</button>';
+      $('#to-new').onclick=function(){window.location.href='/registration?mode=new'};
+      return;
+    }
     box.className='res';box.innerHTML='';
     list.forEach(function(p){
-      var c=document.createElement('button');c.type='button';c.setAttribute('aria-pressed','false');
-      var ptUid = (p.uid && p.uid !== p.name) ? p.uid : '';
+      var c=document.createElement('button');c.type='button';c.setAttribute('aria-pressed',p.id===patientId?'true':'false');
+      var ptUid=(p.uid&&p.uid!==p.name)?p.uid:'';
       c.innerHTML='<strong>'+esc(p.name)+(ptUid?' <span style="font-weight:600;color:var(--ok)">('+esc(ptUid)+')</span>':'')+'</strong><span>Age '+(p.age==null?'not recorded':esc(String(p.age)))+'</span><span>Mobile '+(p.mobile?esc(p.mobile):'not on file')+'</span>';
-      c.onclick=function(){patientId=p.id;box.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===c)});$('#s-appt').hidden=false;endEdit();loadUpcoming()};
-      box.appendChild(c)})
-  }).catch(function(e){showErr(e.message)}).then(function(){b.disabled=false})
-};
-$('#e-query').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();$('#find').click();}};
+      c.onclick=function(){
+        patientId=p.id;
+        box.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===c)});
+        $('#s-appt').hidden=false;
+        endEdit();
+        loadUpcoming();
+        $('#s-appt').scrollIntoView({behavior:'smooth',block:'start'});
+      };
+      box.appendChild(c);
+    });
+  }).catch(function(e){box.className='note bad';box.textContent=e.message});
+}
+$('#e-query').oninput=function(){if(searchTimer)clearTimeout(searchTimer);searchTimer=setTimeout(doSearch,250)};
+$('#find').onclick=function(){if(searchTimer)clearTimeout(searchTimer);doSearch()};
+$('#e-query').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();if(searchTimer)clearTimeout(searchTimer);doSearch()}};
 
 function fmt(t){var p=t.split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
 function loadSlots(){
