@@ -262,7 +262,7 @@ function init(r){
   ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};
   var p=r.patient,words=(p.name||'').split(/\s+/);
   $('#av').textContent=((words[0]||'?')[0]+(words[1]?words[1][0]:'')).toUpperCase();
-  var uidStr = p.uid || p.id || '';
+  var uidStr = (p.uid && p.uid !== p.name) ? p.uid : '';
   $('#pn').innerHTML = esc(p.name) + (uidStr ? ' <span style="font-size:0.92rem;font-weight:600;color:#8cc9b5;letter-spacing:0.3px">(' + esc(uidStr) + ')</span>' : '');
   $('#pm').textContent=['Age '+(p.age==null?'not recorded':p.age),p.sex,p.mobile?'Mobile '+p.mobile:''].filter(Boolean).join('   ');
   if(r.appointment){$('#ap').innerHTML='<b>'+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'')}

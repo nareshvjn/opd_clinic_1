@@ -189,7 +189,7 @@ $('#find').onclick=function(){
     box.className='res';box.innerHTML='';
     list.forEach(function(p){
       var c=document.createElement('button');c.type='button';c.setAttribute('aria-pressed','false');
-      var ptUid = p.uid || p.id || '';
+      var ptUid = (p.uid && p.uid !== p.name) ? p.uid : '';
       c.innerHTML='<strong>'+esc(p.name)+(ptUid?' <span style="font-weight:600;color:var(--ok)">('+esc(ptUid)+')</span>':'')+'</strong><span>Age '+(p.age==null?'not recorded':esc(String(p.age)))+'</span><span>Mobile '+(p.mobile?esc(p.mobile):'not on file')+'</span>';
       c.onclick=function(){patientId=p.id;box.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===c)});$('#s-appt').hidden=false;endEdit();loadUpcoming()};
       box.appendChild(c)})

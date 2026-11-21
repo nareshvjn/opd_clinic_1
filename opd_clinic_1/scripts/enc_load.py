@@ -69,11 +69,16 @@ if not pat.uid:
             if val > max_seq:
                 max_seq = val
     new_uid = prefix + str(max_seq + 1).zfill(6)
+    pat.uid = new_uid
     try:
-        pat.db_set("uid", new_uid, update_modified=False)
-        pat.uid = new_uid
+        frappe.db.set_value("Patient", pat.name, "uid", new_uid, update_modified=False)
+        frappe.db.commit()
     except:
-        pass
+        try:
+            frappe.db.set_value("Patient", pat.name, "uid", new_uid)
+            frappe.db.commit()
+        except:
+            pass
 age = None
 if pat.dob:
     d = frappe.utils.getdate(pat.dob)
@@ -234,7 +239,7 @@ if appt:
                 "time": str(appt.appointment_time), "type": appt.appointment_type}
 
 frappe.response["message"] = {
-    "patient": {"id": pat.name, "uid": pat.uid or pat.name, "name": pat.patient_name, "age": age,
+    "patient": {"id": pat.name, "uid": pat.uid or "", "name": pat.patient_name, "age": age,
                 "sex": pat.sex or "", "mobile": pat.mobile or ""},
     "appointment": appt_out,
     "practitioner": appt.practitioner if appt else "",

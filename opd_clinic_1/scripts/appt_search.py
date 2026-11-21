@@ -34,5 +34,5 @@ for r in rows:
     m = r.mobile or ""
     if MASK_MOBILE and len(m) > 6:
         m = m[:2] + "****" + m[-4:]
-    out.append({"id": r.name, "uid": r.uid or r.name, "name": r.patient_name, "age": age, "mobile": m})
+    out.append({"id": r.name, "uid": r.uid or "", "name": r.patient_name, "age": age, "mobile": m})
 frappe.response["message"] = {"patients": out}

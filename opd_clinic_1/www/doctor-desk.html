@@ -123,7 +123,7 @@ function render(){
     if(closed){
       invBtn=a.invoice?'<a class="btn" target="_blank" rel="noopener" href="'+invUrl(a.invoice)+'">Print invoice</a>'
         :'<select class="pm" aria-label="Payment mode">'+pmOpts+'</select><button type="button" class="btn inv" data-id="'+esc(a.id)+'">Create and print invoice</button>'}
-    var ptId = a.uid || a.patient || '';
+    var ptId = (a.uid && a.uid !== a.name) ? a.uid : '';
     return '<article class="'+cls+'"><div class="t"><strong>'+fmt(a.time)+'</strong><span>'+dur+' min</span></div>'+
       '<div><h3>'+esc(a.name)+(ptId ? ' <span style="font-size:.82em;font-weight:600;color:var(--ok)">('+esc(ptId)+')</span>' : '')+'</h3><p class="m"><span>Age '+(a.age==null?'not recorded':esc(a.age))+'</span>'+
       (a.sex?'<span>'+esc(a.sex)+'</span>':'')+'<span>Mobile '+(a.mobile?esc(a.mobile):'not on file')+'</span></p>'+

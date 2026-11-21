@@ -52,11 +52,16 @@ if not patient.uid:
             if val > max_seq:
                 max_seq = val
     new_uid = prefix + str(max_seq + 1).zfill(6)
+    patient.uid = new_uid
     try:
-        patient.db_set("uid", new_uid, update_modified=False)
-        patient.uid = new_uid
+        frappe.db.set_value("Patient", patient.name, "uid", new_uid, update_modified=False)
+        frappe.db.commit()
     except:
-        pass
+        try:
+            frappe.db.set_value("Patient", patient.name, "uid", new_uid)
+            frappe.db.commit()
+        except:
+            pass
 today = frappe.utils.getdate(frappe.utils.today())
 age = None
 if patient.dob:
@@ -137,7 +142,7 @@ except:
 frappe.response["message"] = {
     "patient": {
         "id": patient.name,
-        "uid": patient.uid or patient.name,
+        "uid": patient.uid or "",
         "name": patient.patient_name,
         "sex": patient.sex or "",
         "age": age,

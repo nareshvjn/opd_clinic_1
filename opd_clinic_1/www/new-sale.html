@@ -528,7 +528,7 @@ $('#rx-q').oninput=debounce(function(){
   call('ph_patients',{q:q}).then(function(r){
     rxPatients=r.patients;
     box.innerHTML=r.patients.length?r.patients.map(function(p,i){
-      var ptUid = p.uid || p.id || '';
+      var ptUid = (p.uid && p.uid !== p.name) ? p.uid : '';
       return '<button type="button" class="res" data-i="'+i+'"><strong>'+esc(p.name)+(ptUid?' <span style="font-weight:normal;opacity:.85">('+esc(ptUid)+')</span>':'')+'</strong><span class="mute">Age '+(p.age==null?'?':esc(p.age))+', Mobile '+(p.mobile?esc(p.mobile):'not on file')+'</span></button>'
     }).join(''):'<p class="hint">No matching patient.</p>'
   }).catch(function(e){toast(e.message,1)})
@@ -539,7 +539,7 @@ $('#rx-res').onclick=function(e){
   var p=rxPatients[+b.dataset.i];sale.patient=p;
   $('#rx-res').innerHTML='';$('#rx-q').value='';$('#sl-cust').value=p.name;
   $('#rx-sel').hidden=false;
-  var ptUid = p.uid || p.id || '';
+  var ptUid = (p.uid && p.uid !== p.name) ? p.uid : '';
   $('#rx-sel').innerHTML='<div class="split" style="align-items:center"><span><b>'+esc(p.name)+(ptUid?' ('+esc(ptUid)+')':'')+'</b><br><span class="mute">Age '+(p.age==null?'?':esc(p.age))+', Mobile '+(p.mobile?esc(p.mobile):'not on file')+'</span></span><button type="button" class="link" id="rx-clear">Clear</button></div>';
   $('#rx-list').innerHTML='<p class="hint">Loading prescriptions...</p>';
   call('ph_rx',{patient:p.id}).then(function(r){rxList=r.encounters;renderRx()}).catch(function(e){$('#rx-list').innerHTML='';toast(e.message,1)})
