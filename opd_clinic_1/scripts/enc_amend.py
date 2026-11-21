@@ -40,6 +40,34 @@ if not admin:
     if mine and old.practitioner != mine:
         frappe.throw("This consultation belongs to another doctor.")
 
+# Ensure patient has UID
+if old.patient and frappe.db.exists("Patient", old.patient):
+    p_uid = frappe.db.get_value("Patient", old.patient, "uid")
+    if not p_uid:
+        today_str = str(frappe.utils.today())
+        p_date = today_str.split("-")
+        mmyy = p_date[1] + p_date[0][2:]
+        prefix = "JHAM-" + mmyy + "-"
+        records = frappe.get_all("Patient", filters={"uid": ["like", prefix + "%"]}, fields=["uid"], limit=10000)
+        max_seq = 0
+        for r in records:
+            u = r.get("uid") or ""
+            parts = u.split("-")
+            if len(parts) >= 3 and parts[-1].isdigit():
+                val = int(parts[-1])
+                if val > max_seq:
+                    max_seq = val
+        new_uid = prefix + str(max_seq + 1).zfill(6)
+        try:
+            frappe.db.set_value("Patient", old.patient, "uid", new_uid, update_modified=False)
+            frappe.db.commit()
+        except:
+            try:
+                frappe.db.set_value("Patient", old.patient, "uid", new_uid)
+                frappe.db.commit()
+            except:
+                pass
+
 # Check if form data with updated symptoms/diagnosis/drugs was submitted
 has_form_data = "symptoms" in f or "diagnosis" in f or "drugs" in f
 complete = f.get("complete") == "1" or f.get("complete") is True

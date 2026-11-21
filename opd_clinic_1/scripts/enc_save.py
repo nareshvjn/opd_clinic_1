@@ -23,6 +23,34 @@ complete = f.get("complete") == "1" or f.get("complete") is True
 if not patient or not prac:
     frappe.throw("Open this page from the doctor desk so the patient and doctor are known.")
 
+# Ensure patient has UID
+if patient and frappe.db.exists("Patient", patient):
+    p_uid = frappe.db.get_value("Patient", patient, "uid")
+    if not p_uid:
+        today_str = str(frappe.utils.today())
+        p_date = today_str.split("-")
+        mmyy = p_date[1] + p_date[0][2:]
+        prefix = "JHAM-" + mmyy + "-"
+        records = frappe.get_all("Patient", filters={"uid": ["like", prefix + "%"]}, fields=["uid"], limit=10000)
+        max_seq = 0
+        for r in records:
+            u = r.get("uid") or ""
+            parts = u.split("-")
+            if len(parts) >= 3 and parts[-1].isdigit():
+                val = int(parts[-1])
+                if val > max_seq:
+                    max_seq = val
+        new_uid = prefix + str(max_seq + 1).zfill(6)
+        try:
+            frappe.db.set_value("Patient", patient, "uid", new_uid, update_modified=False)
+            frappe.db.commit()
+        except:
+            try:
+                frappe.db.set_value("Patient", patient, "uid", new_uid)
+                frappe.db.commit()
+            except:
+                pass
+
 company = frappe.db.get_single_value("Global Defaults", "default_company")
 symptoms = json.loads(f.get("symptoms") or "[]")
 diagnoses = json.loads(f.get("diagnosis") or "[]")
