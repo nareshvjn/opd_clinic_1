@@ -43,5 +43,6 @@ frappe.response["message"] = {
     "practitioners": pr,
     "types": ty,
     "csrf": token,
-    "next_uid": next_uid
+    "next_uid": next_uid,
+    "is_guest": True if frappe.session.user == "Guest" else False
 }

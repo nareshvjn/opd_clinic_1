@@ -72,11 +72,30 @@
 
   <fieldset id="s-exist" hidden>
     <legend>Find existing patient</legend>
-    <label for="e-query">Search patient (Name, Mobile number, or Patient ID)</label>
-    <div style="display:flex;gap:8px">
-      <input id="e-query" autocomplete="off" placeholder="e.g. Vijayan, 9442909054, or JHAM-1126-000001">
-      <button type="button" class="ghost" id="find" style="margin:0;white-space:nowrap;padding:11px 18px">Search</button>
+    
+    <div id="exist-guest">
+      <p class="lead" style="margin:0 0 12px;font-size:0.92rem">To protect your privacy, please enter both your Patient ID (or full name) and your registered mobile number.</p>
+      <div class="row">
+        <div>
+          <label for="eg-ident">Patient ID (UID) or Full Name</label>
+          <input id="eg-ident" autocomplete="off" placeholder="e.g. JHAM-1126-000001 or Vijayan">
+        </div>
+        <div>
+          <label for="eg-mobile">Registered Mobile Number</label>
+          <input id="eg-mobile" type="tel" autocomplete="tel" placeholder="e.g. 9442909054">
+        </div>
+      </div>
+      <button type="button" class="ghost" id="eg-find" style="width:100%;margin-top:14px;padding:12px;font-weight:700">Find My Record</button>
     </div>
+
+    <div id="exist-staff" hidden>
+      <label for="e-query">Staff Search (Name, Mobile number, or Patient ID)</label>
+      <div style="display:flex;gap:8px">
+        <input id="e-query" autocomplete="off" placeholder="e.g. Vijayan, 9442909054, or JHAM-1126-000001">
+        <button type="button" class="ghost" id="find" style="margin:0;white-space:nowrap;padding:11px 18px">Search</button>
+      </div>
+    </div>
+
     <div id="found" hidden></div>
     <div id="upc"></div>
   </fieldset>
@@ -100,7 +119,12 @@
 <script>
 (function(){
 var $=function(s){return document.querySelector('#apt '+s)};
-var mode='new',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',nextUid='',upc=[];
+var mode='new',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',nextUid='',isGuest=true,upc=[];
+
+function applySessionMode(){
+  if($('#exist-guest')) $('#exist-guest').hidden = !isGuest;
+  if($('#exist-staff')) $('#exist-staff').hidden = isGuest;
+}
 
 function call(method,data,post){
   var p=new URLSearchParams(data||{}),o={headers:{Accept:'application/json'}};
@@ -139,7 +163,11 @@ function setMode(m){
   $('#s-appt').hidden=m==='existing'?!patientId:false;
   if(m==='new'&&nextUid&&!$('#n-uid').value){$('#n-uid').value=nextUid;}
   if(m==='existing'){
-    setTimeout(function(){ if($('#e-query')) $('#e-query').focus(); }, 60);
+    applySessionMode();
+    setTimeout(function(){
+      if(isGuest && $('#eg-ident')) $('#eg-ident').focus();
+      else if($('#e-query')) $('#e-query').focus();
+    }, 60);
   }
 }
 $('#m-new').onclick=function(e){
@@ -187,6 +215,56 @@ $('#n-dob').onchange=function(){
   if(t.getMonth()<d.getMonth()||(t.getMonth()===d.getMonth()&&t.getDate()<d.getDate()))a--;
   $('#n-age').value=a>=0?a:''
 };
+function doGuestSearch(){
+  var ident=($('#eg-ident').value||'').trim();
+  var mobile=($('#eg-mobile').value||'').trim();
+  var box=$('#found');
+  showErr('');
+  if(!ident||!mobile){
+    box.hidden=false;box.className='note bad';
+    box.textContent='Please enter both your Patient ID (or Full Name) AND your registered mobile number.';
+    return;
+  }
+  box.hidden=false;box.className='note';box.textContent='Verifying patient record…';
+  call('appt_search',{identifier:ident,mobile:mobile}).then(function(r){
+    var list=r.patients||[];
+    if(!list.length){
+      box.className='note bad';
+      box.innerHTML='No patient record matches both that ID/Name and mobile number.<br><button type="button" class="ghost" id="to-new" style="margin-top:8px">Register as a new patient</button>';
+      $('#to-new').onclick=function(){window.location.href='/registration?mode=new'};
+      return;
+    }
+    box.className='res';box.innerHTML='';
+    list.forEach(function(p){
+      var c=document.createElement('button');c.type='button';c.setAttribute('aria-pressed','true');
+      patientId=p.id;
+      var ptUid=(p.uid&&p.uid!==p.name)?p.uid:'';
+      c.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;width:100%">' +
+        '<strong>&#10003; '+esc(p.name)+(ptUid?' <span style="font-weight:600;color:var(--ok)">('+esc(ptUid)+')</span>':'')+'</strong>' +
+        '<span style="font-size:0.85rem;color:var(--ok);font-weight:600">Verified</span>' +
+        '</div>' +
+        '<span>Age '+(p.age==null?'not recorded':esc(String(p.age)))+'</span>' +
+        '<span>Mobile '+(p.mobile?esc(p.mobile):'on file')+'</span>';
+      c.onclick=function(){
+        patientId=p.id;
+        box.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===c)});
+        $('#s-appt').hidden=false;
+        endEdit();
+        loadUpcoming();
+        $('#s-appt').scrollIntoView({behavior:'smooth',block:'start'});
+      };
+      box.appendChild(c);
+      $('#s-appt').hidden=false;
+      endEdit();
+      loadUpcoming();
+      $('#s-appt').scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  }).catch(function(e){box.className='note bad';box.textContent=e.message});
+}
+if($('#eg-find'))$('#eg-find').onclick=doGuestSearch;
+if($('#eg-ident'))$('#eg-ident').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();doGuestSearch()}};
+if($('#eg-mobile'))$('#eg-mobile').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();doGuestSearch()}};
+
 var searchTimer=null;
 function doSearch(){
   var q=($('#e-query').value||'').trim(),box=$('#found');
@@ -247,6 +325,8 @@ $('#a-prac').onchange=loadSlots;$('#a-date').onchange=loadSlots;
 $('#a-date').min=new Date().toISOString().slice(0,10);
 
 call('appt_meta').then(function(m){csrf=m.csrf||'';
+  if(typeof m.is_guest!=='undefined')isGuest=!!m.is_guest;
+  applySessionMode();
   if(m.next_uid){
     nextUid=m.next_uid;
     if($('#n-uid')&&!$('#n-uid').value)$('#n-uid').value=m.next_uid;
