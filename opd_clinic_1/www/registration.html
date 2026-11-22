@@ -100,7 +100,14 @@
 <script>
 (function(){
 var $=function(s){return document.querySelector('#apt '+s)};
-var mode='new',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',nextUid='',upc=[];
+var mode='new',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',upc=[];
+function calcFallbackUid(){
+  var now=new Date();
+  var mm=String(now.getMonth()+1).padStart(2,'0');
+  var yy=String(now.getFullYear()).slice(-2);
+  return 'JHAM-'+mm+yy+'-000001';
+}
+var nextUid=calcFallbackUid();
 
 function call(method,data,post){
   var p=new URLSearchParams(data||{}),o={headers:{Accept:'application/json'}};
@@ -247,7 +254,10 @@ $('#a-prac').onchange=loadSlots;$('#a-date').onchange=loadSlots;
 $('#a-date').min=new Date().toISOString().slice(0,10);
 
 call('appt_meta').then(function(m){csrf=m.csrf||'';
-  if(m.next_uid){nextUid=m.next_uid;if($('#n-uid')&&!$('#n-uid').value)$('#n-uid').value=m.next_uid;}
+  if(m.next_uid){
+    nextUid=m.next_uid;
+    if($('#n-uid')&&(!$('#n-uid').value||$('#n-uid').value.endsWith('-000001')))$('#n-uid').value=m.next_uid;
+  }
   m.practitioners.forEach(function(p){var o=new Option(p.practitioner_name+(p.department?' ('+p.department+')':''),p.name);$('#a-prac').add(o)});
   m.types.forEach(function(t){$('#a-type').add(new Option(t,t))})
 }).catch(function(){showErr('The booking form couldn\'t load. Please refresh or contact the clinic.')});
@@ -264,8 +274,9 @@ $('#f').onsubmit=function(ev){
   var b=$('#book');b.disabled=true;b.textContent=editId?'Updating…':'Booking…';
   var req=editId?call('appt_update',{patient:patientId,appointment:editId,practitioner:d.practitioner,appointment_type:d.appointment_type,date:d.date,time:d.time,notes:d.notes},true):call('appt_book',d,true);
   req.then(function(r){
-    var uidMsg=d.uid?' &bull; Patient ID: <strong>'+esc(d.uid)+'</strong>':'';
-    var ptName=d.first_name?(d.first_name+(d.last_name?' '+d.last_name:'')):(d.patient||'');
+    var assignedUid=(r&&r.uid)||d.uid||'';
+    var uidMsg=assignedUid?' &bull; Patient ID: <strong>'+esc(assignedUid)+'</strong>':'';
+    var ptName=(r&&r.patient_name)||(d.first_name?(d.first_name+(d.last_name?' '+d.last_name:'')):(d.patient||''));
     var ptMsg=ptName?' &bull; Patient: <strong>'+esc(ptName)+'</strong>':'';
     var n=$('#done');
     n.hidden=false;

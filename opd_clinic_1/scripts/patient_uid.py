@@ -1,7 +1,7 @@
 # Server Script: patient_uid
 # type: DocType Event
 # doctype: Patient
-# event: Before Save
+# event: Before Insert
 # disabled: 0
 
 if not doc.uid:

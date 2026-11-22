@@ -62,10 +62,8 @@ else:
         p.dob = dob
     p.mobile = mobile
     p.email = f.get("email")
-    req_uid = (f.get("uid") or "").strip()
-    if req_uid and not frappe.db.exists("Patient", {"uid": req_uid}):
-        p.uid = req_uid
-    else:
+    assigned_uid = (f.get("uid") or "").strip()
+    if not assigned_uid or frappe.db.exists("Patient", {"uid": assigned_uid}):
         today_str = str(frappe.utils.today())
         p_date = today_str.split("-")
         mmyy = p_date[1] + p_date[0][2:]
@@ -79,9 +77,20 @@ else:
                 val = int(parts[-1])
                 if val > max_seq:
                     max_seq = val
-        p.uid = prefix + str(max_seq + 1).zfill(6)
+        assigned_uid = prefix + str(max_seq + 1).zfill(6)
+    p.uid = assigned_uid
     p.insert(ignore_permissions=True)
     patient = p.name
+
+    # Force database persistence to bypass guest permission stripping on custom field
+    try:
+        frappe.db.set_value("Patient", patient, "uid", assigned_uid, update_modified=False)
+    except:
+        try:
+            frappe.db.set_value("Patient", patient, "uid", assigned_uid)
+        except:
+            pass
+    frappe.db.commit()
 
 a = frappe.new_doc("Patient Appointment")
 a.patient = patient
@@ -94,4 +103,10 @@ a.company = frappe.db.get_single_value("Global Defaults", "default_company")
 a.notes = f.get("notes")
 a.insert(ignore_permissions=True)
 
-frappe.response["message"] = {"appointment": a.name}
+pt_name = (first + (" " + last if last else "")).strip() if first else patient
+frappe.response["message"] = {
+    "appointment": a.name,
+    "patient": patient,
+    "patient_name": pt_name,
+    "uid": assigned_uid if mode != "existing" else (frappe.db.get_value("Patient", patient, "uid") or "")
+}
