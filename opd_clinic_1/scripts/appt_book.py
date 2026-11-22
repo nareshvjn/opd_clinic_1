@@ -44,16 +44,19 @@ else:
     mobile = (f.get("mobile") or "").strip()
     if not first or not f.get("sex"):
         frappe.throw("Please fill in first name and gender.")
-    if dob or mobile:
-        flt = {"first_name": first}
-        if last:
-            flt["last_name"] = last
-        if dob:
-            flt["dob"] = dob
-        if mobile:
-            flt["mobile"] = mobile
-        if frappe.get_all("Patient", filters=flt, limit=1):
-            frappe.throw("This patient already exists. Use 'I'm an existing patient' to find them.")
+    if not mobile:
+        frappe.throw("Please enter a mobile number.")
+    clean_m = "".join([c for c in mobile if c.isdigit()])
+    if len(clean_m) < 10:
+        frappe.throw("Please enter a valid 10-digit mobile number.")
+
+    flt = {"first_name": first, "mobile": mobile}
+    if last:
+        flt["last_name"] = last
+    if dob:
+        flt["dob"] = dob
+    if frappe.db.exists("Patient", flt):
+        frappe.throw("This patient already exists. Please use 'Existing patient' to find your record.")
     p = frappe.new_doc("Patient")
     p.first_name = first
     p.last_name = last

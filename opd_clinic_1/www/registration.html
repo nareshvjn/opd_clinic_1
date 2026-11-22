@@ -65,7 +65,7 @@
       <p class="lead" style="margin:0;align-self:end;font-size:.9rem">Typing an age fills an approximate date of birth.</p>
     </div>
     <div class="row">
-      <div><label for="n-mobile">Mobile number (optional)</label><input id="n-mobile" type="tel" autocomplete="tel"></div>
+      <div><label for="n-mobile">Mobile number <span style="color:var(--err)">*</span></label><input id="n-mobile" type="tel" autocomplete="tel" placeholder="10-digit mobile number" required></div>
       <div><label for="n-email">Email (optional)</label><input id="n-email" type="email" autocomplete="email"></div>
     </div>
   </fieldset>
@@ -341,7 +341,10 @@ $('#f').onsubmit=function(ev){
   var d={mode:mode,practitioner:$('#a-prac').value,appointment_type:$('#a-type').value,date:$('#a-date').value,time:time,notes:$('#a-notes').value};
   if(isNew){d.uid=$('#n-uid').value.trim();d.first_name=$('#n-first').value.trim();d.last_name=$('#n-last').value.trim();d.sex=$('#n-sex').value;
     d.dob=$('#n-dob').value;d.mobile=$('#n-mobile').value.trim();d.email=$('#n-email').value.trim();
-    if(!d.first_name||!d.sex){showErr('Enter the first name and gender.');return}}
+    if(!d.first_name||!d.sex){showErr('Enter the first name and gender.');return}
+    if(!d.mobile){showErr('Enter the mobile number.');return}
+    var cleanM=d.mobile.replace(/\D/g,'');
+    if(cleanM.length<10){showErr('Enter a valid 10-digit mobile number.');return}}
   else{if(!patientId){showErr('Search for the patient and select them first.');return}d.patient=patientId}
   if(!d.practitioner||!d.appointment_type||!d.date||!d.time){showErr('Choose a doctor, visit type, date and time.');return}
   var b=$('#book');b.disabled=true;b.textContent=editId?'Updating…':'Booking…';
