@@ -109,15 +109,17 @@ def sync():
             changed = False
 
             if is_html:
-                if page.get("main_section_html") != body:
+                if page.get("main_section_html") != body or page.get("main_section") != body:
                     page["main_section_html"] = body
+                    page["main_section"] = body
                     changed = True
                 if page.get("content_type") != "HTML":
                     page["content_type"] = "HTML"
                     changed = True
             else:
-                if page.get("main_section_md") != body:
+                if page.get("main_section_md") != body or page.get("main_section") != body:
                     page["main_section_md"] = body
+                    page["main_section"] = body
                     changed = True
                 if page.get("content_type") != "Markdown":
                     page["content_type"] = "Markdown"
@@ -151,7 +153,7 @@ def sync():
                 "header": None,
                 "insert_style": 0,
                 "javascript": None,
-                "main_section": None,
+                "main_section": body,
                 "main_section_html": body if is_html else None,
                 "main_section_md": body if not is_html else None,
                 "meta_description": meta.get("meta_description"),
