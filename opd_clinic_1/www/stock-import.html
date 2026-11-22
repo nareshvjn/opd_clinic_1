@@ -2,35 +2,96 @@
 <div id="si">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-#si{--ink:#16324a;--mute:#5d7184;--line:#cfdad5;--bg:#f3f8f5;--ok:#1d7a5f;--err:#b3261e;max-width:960px;margin:0 auto;padding:16px 4px 40px;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#si{
+  --ink:#11281e;
+  --mute:#546a5f;
+  --line:#cfe0d7;
+  --bg:#f4f9f6;
+  --brand:#125c3a;
+  --brand-dark:#0d3d27;
+  --ok:#125c3a;
+  --err:#c0392b;
+  --gold:#f1c40f;
+  --shadow-sm:0 2px 10px rgba(18,92,58,0.06);
+  max-width:980px;
+  margin:0 auto;
+  padding:14px 12px 64px;
+  color:var(--ink);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+}
 #si *{box-sizing:border-box}
-#si h1{font-size:1.5rem;margin:0 0 12px}
-#si h2{font-size:1.05rem;margin:0 0 8px}
-#si .card{padding:14px;margin-bottom:14px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
-#si label{display:block;font-size:.9rem;font-weight:600;margin:12px 0 4px}
-#si input,#si select,#si textarea{width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);background:#fff}
+
+#si .top-header{
+  padding:16px 20px;
+  background:linear-gradient(135deg,#0d3d27 0%,#125c3a 100%);
+  border-radius:14px;
+  color:#fff;
+  box-shadow:var(--shadow-sm);
+  margin-bottom:16px;
+}
+#si h1{font-size:1.45rem;font-weight:900;margin:0;color:#fff}
+#si h2{font-size:1.1rem;font-weight:800;color:var(--brand);margin:0 0 10px}
+#si .card{
+  padding:18px;
+  margin-bottom:16px;
+  border:1.5px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:var(--shadow-sm);
+}
+#si label{display:block;font-size:.84rem;font-weight:700;color:var(--mute);margin:12px 0 4px}
+#si input,#si select,#si textarea{
+  width:100%;
+  padding:10px 12px;
+  border:1.5px solid var(--line);
+  border-radius:8px;
+  font:inherit;
+  color:var(--ink);
+  background:#fff;
+}
+#si input:focus,#si select:focus,#si textarea:focus,#si button:focus-visible{
+  outline:3px solid #8cc9b5;
+  border-color:var(--brand);
+}
 #si textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
 #si .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 #si .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-#si .hint{color:var(--mute);font-size:.88rem;margin:6px 0 0}
-#si .btn{padding:11px 20px;border:0;border-radius:10px;background:var(--ink);color:#fff;font:inherit;font-weight:700;cursor:pointer}
-#si .btn.go{background:var(--ok)}
+#si .hint{color:var(--mute);font-size:.86rem;margin:8px 0 0;line-height:1.5}
+#si .btn{
+  padding:11px 22px;
+  border:0;
+  border-radius:8px;
+  background:var(--ink);
+  color:#fff;
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+  transition:all .15s ease;
+}
+#si .btn:hover{filter:brightness(1.1)}
+#si .btn.go{background:linear-gradient(135deg,#125c3a,#0d3d27);box-shadow:0 3px 10px rgba(18,92,58,0.25)}
 #si .btn:disabled{opacity:.55;cursor:wait}
-#si .note{padding:11px 14px;margin-bottom:12px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok)}
-#si .note.bad{border-color:var(--err);background:#fdf0ef}
-#si .scroll{overflow:auto;max-height:360px;border:1px solid var(--line);border-radius:8px}
+#si .note{padding:12px 14px;margin-bottom:14px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok);font-size:.92rem}
+#si .note.bad{border-color:var(--err);background:#fdf2f2;color:var(--err)}
+#si .scroll{overflow:auto;max-height:360px;border:1.5px solid var(--line);border-radius:8px}
 #si table{width:100%;border-collapse:collapse;font-size:.88rem}
-#si th,#si td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
-#si th{position:sticky;top:0;background:var(--bg)}
-#si tr.bad td{background:#fdf0ef}
+#si th,#si td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+#si th{position:sticky;top:0;background:var(--bg);font-weight:700;color:var(--mute)}
+#si tr.bad td{background:#fdf2f2}
 #si .okt{color:var(--ok);font-weight:700}
 #si .bdt{color:var(--err);font-weight:700}
-#si .badge{display:inline-block;padding:2px 8px;background:#e8f0fe;color:#1a73e8;border-radius:12px;font-size:.78rem;font-weight:600}
+#si .badge{display:inline-block;padding:2px 8px;background:#ebf7f1;color:var(--ok);border-radius:12px;font-size:.78rem;font-weight:700}
 #si .mute{color:var(--mute)}
 #si [hidden]{display:none!important}
-@media(max-width:640px){#si .g2,#si .g3{grid-template-columns:1fr}}
+@media(max-width:640px){
+  #si .g2,#si .g3{grid-template-columns:1fr}
+}
 </style>
-<h1>Stock import</h1>
+
+<div class="top-header">
+  <h1>📊 Pharmacy Stock Excel/CSV Import</h1>
+</div>
 <div id="msg" class="note" hidden></div>
 <div class="card">
 <div class="g2">

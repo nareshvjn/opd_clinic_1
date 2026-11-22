@@ -101,18 +101,42 @@
         margin-top: 2px;
     }
 
-    /* Responsive adjustments for mobile screens */
+    /* Responsive adjustments for mobile and tablet screens */
     @media (max-width: 768px) {
         .jeevan-banner-container {
-            padding: 20px 0;
+            padding: 18px 0;
         }
         .jeevan-logo-box {
-            border-top-right-radius: 180px;
-            border-bottom-right-radius: 180px;
-            padding: 14px 28px 14px 14px;
+            border-top-right-radius: 140px;
+            border-bottom-right-radius: 140px;
+            padding: 12px 22px 12px 12px;
+            box-shadow: 2px 0px 12px rgba(0, 0, 0, 0.35);
         }
         .jeevan-title-box {
-            padding: 0 12px;
+            padding: 0 14px;
+        }
+    }
+    @media (max-width: 480px) {
+        .jeevan-banner-container {
+            padding: 14px 0;
+        }
+        .jeevan-banner-content {
+            gap: 4px;
+        }
+        .jeevan-logo-box {
+            width: 24%;
+            flex: 0 0 24%;
+            border-top-right-radius: 80px;
+            border-bottom-right-radius: 80px;
+            padding: 8px 14px 8px 8px;
+        }
+        .jeevan-title-box {
+            width: 76%;
+            flex: 0 0 76%;
+            padding: 0 8px;
+        }
+        .jeevan-main-title {
+            letter-spacing: 1px;
         }
     }
 </style>

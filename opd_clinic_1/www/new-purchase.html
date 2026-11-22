@@ -6,53 +6,137 @@
 </script>
 <style>
   #np *{box-sizing:border-box;margin:0;padding:0}
-  #np{font:15px/1.5 system-ui,sans-serif;color:#1c1b1f;max-width:680px;margin:0 auto;padding:14px 10px 80px}
-  #np .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px}
-  #np h1{font-size:1.4rem;font-weight:700}
-  #np h2{font-size:1.05rem;font-weight:700;margin-bottom:10px}
-  #np h3{font-size:0.95rem;font-weight:700;margin-bottom:8px}
-  #np .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:12px}
-  #np label{display:block;font-size:.82rem;font-weight:600;color:#555;margin-top:10px;margin-bottom:3px}
+  #np{
+    --ink:#11281e;
+    --mute:#546a5f;
+    --line:#cfe0d7;
+    --pri:#125c3a;
+    --pri-dark:#0d3d27;
+    --bg:#f4f9f6;
+    --ok:#125c3a;
+    --err:#c0392b;
+    --warn:#d97706;
+    --gold:#f1c40f;
+    --shadow-sm:0 2px 10px rgba(18,92,58,0.06);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink);
+    max-width:780px;
+    margin:0 auto;
+    padding:14px 12px 80px;
+  }
+  #np .top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+    gap:10px;
+    flex-wrap:wrap;
+    padding:16px 20px;
+    background:linear-gradient(135deg,#0d3d27 0%,#125c3a 100%);
+    border-radius:14px;
+    color:#fff;
+    box-shadow:var(--shadow-sm);
+  }
+  #np h1{font-size:1.45rem;font-weight:900;color:#fff}
+  #np h2{font-size:1.1rem;font-weight:800;color:var(--pri);margin-bottom:10px}
+  #np h3{font-size:0.98rem;font-weight:800;margin-bottom:8px;color:var(--ink)}
+  #np .card{
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:14px;
+    box-shadow:var(--shadow-sm);
+  }
+  #np label{display:block;font-size:.82rem;font-weight:700;color:var(--mute);margin-top:10px;margin-bottom:3px}
   #np label:first-child{margin-top:0}
-  #np input,#np select{width:100%;border:1px solid #c4c7c5;border-radius:8px;padding:9px 11px;font:15px system-ui;background:#fff;color:#1c1b1f}
+  #np input,#np select{
+    width:100%;
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    font:15px inherit;
+    background:#fff;
+    color:var(--ink);
+  }
   #np #pu-bno{text-transform:uppercase}
-  #np input:focus,#np select:focus{outline:2px solid #1a73e8;border-color:transparent}
-  #np .btn{background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:10px 18px;font:600 15px system-ui;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block;text-align:center}
+  #np input:focus,#np select:focus{outline:3px solid #8cc9b5;border-color:var(--pri)}
+  #np .btn{
+    background:var(--pri);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:10px 20px;
+    font:700 15px inherit;
+    cursor:pointer;
+    white-space:nowrap;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:all .15s ease;
+  }
+  #np .btn:hover{filter:brightness(1.1)}
   #np .btn:disabled{opacity:.5;cursor:default}
-  #np .btn.go{background:#188038}
-  #np .link{background:none;border:none;color:#1a73e8;font:15px system-ui;cursor:pointer;padding:0;text-decoration:underline}
-  #np .back-link{color:#1a73e8;font-size:.9rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-bottom:10px}
+  #np .btn.go{background:linear-gradient(135deg,#125c3a,#0d3d27);box-shadow:0 3px 10px rgba(18,92,58,0.25)}
+  #np .link{background:none;border:none;color:var(--pri);font:700 15px inherit;cursor:pointer;padding:0;text-decoration:underline}
+  #np .back-link{
+    color:var(--pri);
+    font-size:.9rem;
+    text-decoration:none;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    margin-bottom:12px;
+  }
+  #np .back-link:hover{text-decoration:underline}
   #np .split{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-  #np .hint{font-size:.82rem;color:#777;margin-top:4px}
-  #np .mute{color:#777}
-  #np #toast{padding:10px 14px;border-radius:8px;font-size:.9rem;margin:8px 0;background:#e6f4ea;color:#1e8e3e}
-  #np #toast.bad{background:#fdf0ef;color:#b3261e}
-  #np .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  #np .g2-split{display:grid;grid-template-columns:1fr 140px;gap:8px}
+  #np .hint{font-size:.84rem;color:var(--mute);margin-top:4px}
+  #np .mute{color:var(--mute)}
+  #np #toast{padding:12px 16px;border-radius:8px;font-size:.92rem;margin:10px 0;background:#ebf7f1;color:var(--ok);border-left:4px solid var(--ok)}
+  #np #toast.bad{background:#fdf2f2;color:var(--err);border-color:var(--err)}
+  #np .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  #np .g2-split{display:grid;grid-template-columns:1fr 140px;gap:10px}
   #np .curr-wrap{display:flex;position:relative;align-items:center}
-  #np .curr-wrap .curr-sym{position:absolute;left:10px;color:#555;font-weight:600;pointer-events:none;font-size:15px}
+  #np .curr-wrap .curr-sym{position:absolute;left:10px;color:var(--mute);font-weight:700;pointer-events:none;font-size:15px}
   #np .curr-wrap input{padding-left:24px !important}
-  #np .margin-bar{display:flex;justify-content:space-between;align-items:center;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;padding:10px 14px;margin-top:14px}
-  #np .margin-bar .m-lbl{font-size:.82rem;color:#2e7d32;font-weight:600}
-  #np .margin-bar .m-val{font-size:1.15rem;color:#1b5e20;font-weight:700}
-  #np .margin-bar .amt-lbl{font-size:.82rem;color:#555;font-weight:600;text-align:right}
-  #np .margin-bar .amt-val{font-size:1.15rem;color:#1c1b1f;font-weight:700;text-align:right}
-  #np .sum{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid #eee;font-size:.92rem}
+  #np .margin-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:var(--bg);
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:12px 16px;
+    margin-top:14px;
+  }
+  #np .margin-bar .m-lbl{font-size:.82rem;color:var(--ok);font-weight:700}
+  #np .margin-bar .m-val{font-size:1.15rem;color:var(--pri);font-weight:900}
+  #np .margin-bar .amt-lbl{font-size:.82rem;color:var(--mute);font-weight:700;text-align:right}
+  #np .margin-bar .amt-val{font-size:1.15rem;color:var(--ink);font-weight:900;text-align:right}
+  #np .sum{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}
   #np .scroll{overflow-x:auto}
   #np table{width:100%;border-collapse:collapse;font-size:.88rem}
-  #np th{text-align:left;font-weight:600;padding:6px 8px;border-bottom:2px solid #e0e0e0;background:#f8f9fa;color:#555}
-  #np td{padding:7px 8px;border-bottom:1px solid #eee;vertical-align:middle}
+  #np th{text-align:left;font-weight:700;padding:8px 10px;border-bottom:2px solid var(--line);background:var(--bg);color:var(--mute)}
+  #np td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
   #np td.n{text-align:right}
   #np th.n{text-align:right}
-  @media(max-width:520px){
+  @media(max-width:540px){
     #np .g2{grid-template-columns:1fr}
-    #np .g2-split{grid-template-columns:1fr 1fr}
+    #np .g2-split{grid-template-columns:1fr}
+    #np .top{flex-direction:column;align-items:stretch}
+    #np .margin-bar{flex-direction:column;align-items:stretch;text-align:center;gap:8px}
+    #np .margin-bar .amt-lbl,#np .margin-bar .amt-val{text-align:center}
   }
 </style>
 
 <a href="/pharmacy" class="back-link">&#8592; Back to Pharmacy</a>
 
 <div class="top">
+  <h1>📦 New Purchase Entry</h1>
+  <label style="margin:0;font-size:.84rem;color:#fff;display:flex;align-items:center;gap:6px">Store: <select id="wh" style="width:auto;display:inline-block;padding:6px 10px;background:#fff;border-radius:6px"></select></label>
+</div>
   <h1>New Purchase</h1>
   <label style="margin:0;font-size:.82rem">Store <select id="wh" style="width:auto;display:inline-block"></select></label>
 </div>
