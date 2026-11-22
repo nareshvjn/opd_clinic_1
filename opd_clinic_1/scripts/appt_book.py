@@ -62,22 +62,37 @@ else:
         p.dob = dob
     p.mobile = mobile
     p.email = f.get("email")
-    assigned_uid = (f.get("uid") or "").strip()
-    if not assigned_uid or frappe.db.exists("Patient", {"uid": assigned_uid}):
-        today_str = str(frappe.utils.today())
-        p_date = today_str.split("-")
-        mmyy = p_date[1] + p_date[0][2:]
-        prefix = "JHAM-" + mmyy + "-"
-        records = frappe.get_all("Patient", filters={"uid": ["like", prefix + "%"]}, fields=["uid"], limit=10000)
-        max_seq = 0
-        for r in records:
-            u = r.get("uid") or ""
+    today_str = str(frappe.utils.today())
+    p_date = today_str.split("-")
+    mmyy = p_date[1] + p_date[0][2:]
+    prefix = "JHAM-" + mmyy + "-"
+
+    # Direct database query so we always check true assigned UIDs even in Guest sessions
+    rows = frappe.db.sql("""
+        select uid from `tabPatient`
+        where uid like %s
+    """, (prefix + "%",), as_dict=True)
+
+    existing_uids = set()
+    max_seq = 0
+    for r in rows:
+        u = (r.get("uid") or "").strip()
+        if u:
+            existing_uids.add(u)
             parts = u.split("-")
             if len(parts) >= 3 and parts[-1].isdigit():
                 val = int(parts[-1])
                 if val > max_seq:
                     max_seq = val
+
+    req_uid = (f.get("uid") or "").strip()
+    # If a valid, unassigned UID was submitted and belongs to this month's prefix, accept it;
+    # otherwise, assign the next unallocated sequence.
+    if req_uid and req_uid.startswith(prefix) and req_uid not in existing_uids:
+        assigned_uid = req_uid
+    else:
         assigned_uid = prefix + str(max_seq + 1).zfill(6)
+
     p.uid = assigned_uid
     p.insert(ignore_permissions=True)
     patient = p.name

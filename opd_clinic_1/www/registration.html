@@ -100,14 +100,7 @@
 <script>
 (function(){
 var $=function(s){return document.querySelector('#apt '+s)};
-var mode='new',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',upc=[];
-function calcFallbackUid(){
-  var now=new Date();
-  var mm=String(now.getMonth()+1).padStart(2,'0');
-  var yy=String(now.getFullYear()).slice(-2);
-  return 'JHAM-'+mm+yy+'-000001';
-}
-var nextUid=calcFallbackUid();
+var mode='new',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',nextUid='',upc=[];
 
 function call(method,data,post){
   var p=new URLSearchParams(data||{}),o={headers:{Accept:'application/json'}};
@@ -256,7 +249,7 @@ $('#a-date').min=new Date().toISOString().slice(0,10);
 call('appt_meta').then(function(m){csrf=m.csrf||'';
   if(m.next_uid){
     nextUid=m.next_uid;
-    if($('#n-uid')&&(!$('#n-uid').value||$('#n-uid').value.endsWith('-000001')))$('#n-uid').value=m.next_uid;
+    if($('#n-uid')&&!$('#n-uid').value)$('#n-uid').value=m.next_uid;
   }
   m.practitioners.forEach(function(p){var o=new Option(p.practitioner_name+(p.department?' ('+p.department+')':''),p.name);$('#a-prac').add(o)});
   m.types.forEach(function(t){$('#a-type').add(new Option(t,t))})

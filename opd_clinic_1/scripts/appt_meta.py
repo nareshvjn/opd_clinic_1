@@ -18,30 +18,26 @@ try:
 except:
     token = ""
 
-next_uid = ""
-try:
-    today_str = str(frappe.utils.today())
-    p_date = today_str.split("-")
-    mmyy = p_date[1] + p_date[0][2:]
-    prefix = "JHAM-" + mmyy + "-"
-    records = frappe.get_all("Patient", filters={"uid": ["like", prefix + "%"]}, fields=["uid"], limit=10000)
-    max_seq = 0
-    for r in records:
-        u = r.get("uid") or ""
-        parts = u.split("-")
-        if len(parts) >= 3 and parts[-1].isdigit():
-            val = int(parts[-1])
-            if val > max_seq:
-                max_seq = val
-    next_uid = prefix + str(max_seq + 1).zfill(6)
-except:
-    try:
-        today_str = str(frappe.utils.today())
-        p_date = today_str.split("-")
-        mmyy = p_date[1] + p_date[0][2:]
-        next_uid = "JHAM-" + mmyy + "-000001"
-    except:
-        next_uid = ""
+today_str = str(frappe.utils.today())
+p_date = today_str.split("-")
+mmyy = p_date[1] + p_date[0][2:]
+prefix = "JHAM-" + mmyy + "-"
+
+# Direct database query so Guest sessions see accurate existing sequence counts
+rows = frappe.db.sql("""
+    select uid from `tabPatient`
+    where uid like %s
+""", (prefix + "%",), as_dict=True)
+
+max_seq = 0
+for r in rows:
+    u = (r.get("uid") or "").strip()
+    parts = u.split("-")
+    if len(parts) >= 3 and parts[-1].isdigit():
+        val = int(parts[-1])
+        if val > max_seq:
+            max_seq = val
+next_uid = prefix + str(max_seq + 1).zfill(6)
 
 frappe.response["message"] = {
     "practitioners": pr,

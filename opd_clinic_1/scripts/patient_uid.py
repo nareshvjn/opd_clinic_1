@@ -9,10 +9,13 @@ if not doc.uid:
     p_date = today_str.split("-")
     mmyy = p_date[1] + p_date[0][2:]
     prefix = "JHAM-" + mmyy + "-"
-    records = frappe.get_all("Patient", filters={"uid": ["like", prefix + "%"]}, fields=["uid"], limit=10000)
+    rows = frappe.db.sql("""
+        select uid from `tabPatient`
+        where uid like %s
+    """, (prefix + "%",), as_dict=True)
     max_seq = 0
-    for r in records:
-        u = r.get("uid") or ""
+    for r in rows:
+        u = (r.get("uid") or "").strip()
         parts = u.split("-")
         if len(parts) >= 3 and parts[-1].isdigit():
             val = int(parts[-1])
