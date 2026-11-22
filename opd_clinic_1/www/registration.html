@@ -78,11 +78,11 @@
       <div class="row">
         <div>
           <label for="eg-ident">Patient ID (UID) or Full Name</label>
-          <input id="eg-ident" autocomplete="off" placeholder="e.g. JHAM-1126-000001 or Vijayan">
+          <input id="eg-ident" autocomplete="off" autocorrect="off" spellcheck="false">
         </div>
         <div>
           <label for="eg-mobile">Registered Mobile Number</label>
-          <input id="eg-mobile" type="tel" autocomplete="tel" placeholder="e.g. 9442909054">
+          <input id="eg-mobile" type="tel" autocomplete="off" autocorrect="off" spellcheck="false">
         </div>
       </div>
       <button type="button" class="ghost" id="eg-find" style="width:100%;margin-top:14px;padding:12px;font-weight:700">Find My Record</button>
@@ -91,7 +91,7 @@
     <div id="exist-staff" hidden>
       <label for="e-query">Staff Search (Name, Mobile number, or Patient ID)</label>
       <div style="display:flex;gap:8px">
-        <input id="e-query" autocomplete="off" placeholder="e.g. Vijayan, 9442909054, or JHAM-1126-000001">
+        <input id="e-query" autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" class="ghost" id="find" style="margin:0;white-space:nowrap;padding:11px 18px">Search</button>
       </div>
     </div>
