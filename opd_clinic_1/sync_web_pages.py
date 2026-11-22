@@ -73,9 +73,6 @@ def sync():
     for filename in sorted(os.listdir(WWW_DIR)):
         if filename.startswith(".") or not (filename.endswith(".html") or filename.endswith(".md")):
             continue
-        # Exclude snippets / partials not intended as Web Pages
-        if filename in ("banner.html",):
-            continue
 
         slug, ext = os.path.splitext(filename)
         filepath = os.path.join(WWW_DIR, filename)
