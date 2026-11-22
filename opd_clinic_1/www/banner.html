@@ -1,0 +1,118 @@
+<!-- ERPNext Banner HTML Snippet (Maximum Text Size, Full Logo Background Coverage & Exact Yellow) -->
+<div class="jeevan-banner-container">
+    <div class="jeevan-banner-content">
+        <!-- Left Logo Section: 1/5th width with massive padding and curved right radius to fully enclose the logo -->
+        <div class="jeevan-logo-box">
+            <img src="/files/jham_logo.png" alt="Jeevan Logo" class="jeevan-logo-img">
+        </div>
+
+        <!-- Right Title Text Section: Maximum possible font sizing to fill the entire remaining area -->
+        <div class="jeevan-title-box">
+            <h1 class="jeevan-main-title">JEEVAN HEALTHCARE</h1>
+            <h2 class="jeevan-sub-title-1">AND</h2>
+            <h2 class="jeevan-sub-title-2">MEDICALS</h2>
+        </div>
+    </div>
+</div>
+
+<style>
+    .jeevan-banner-container {
+        width: 100%;
+        background-color: #125c3a;
+        padding: 45px 0;
+        box-sizing: border-box;
+        overflow: visible;
+        font-family: 'Cinzel', 'Montserrat', 'Helvetica Neue', sans-serif;
+    }
+
+    .jeevan-banner-content {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    /* Left logo container: 20% width with maximum curved radius and generous padding */
+    .jeevan-logo-box {
+        width: 20%;
+        flex: 0 0 20%;
+        background-color: #f1c40f; /* Exact solid yellow color */
+        border-top-right-radius: 400px;
+        border-bottom-right-radius: 400px;
+        padding: 30px 65px 30px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        box-shadow: 4px 0px 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .jeevan-logo-img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: block;
+    }
+
+    /* Right typography layout occupying remaining 80% width */
+    .jeevan-title-box {
+        width: 80%;
+        flex: 0 0 80%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 0 40px;
+        box-sizing: border-box;
+    }
+
+    /* Maximized text styling with exact solid yellow and embossed 3D shadow effect */
+    .jeevan-main-title,
+    .jeevan-sub-title-1,
+    .jeevan-sub-title-2 {
+        margin: 0;
+        font-weight: 900;
+        letter-spacing: 2.5px;
+        line-height: 1.1;
+        width: 100%;
+        color: #f1c40f; /* Exact solid yellow color */
+        text-shadow: 
+            -1px -1px 0px #ffeaa7,
+             1px  1px 0px #b7950b,
+             2px  2px 5px rgba(0, 0, 0, 0.85);
+    }
+
+    /* Substantially increased font sizes to completely fill the space */
+    .jeevan-main-title {
+        font-size: clamp(3rem, 6.2vw, 6.5rem);
+        margin-bottom: 2px;
+    }
+
+    .jeevan-sub-title-1 {
+        font-size: clamp(2rem, 4.2vw, 4.2rem);
+        margin: 2px 0;
+    }
+
+    .jeevan-sub-title-2 {
+        font-size: clamp(2.6rem, 5.6vw, 5.8rem);
+        margin-top: 2px;
+    }
+
+    /* Responsive adjustments for mobile screens */
+    @media (max-width: 768px) {
+        .jeevan-banner-container {
+            padding: 20px 0;
+        }
+        .jeevan-logo-box {
+            border-top-right-radius: 180px;
+            border-bottom-right-radius: 180px;
+            padding: 14px 28px 14px 14px;
+        }
+        .jeevan-title-box {
+            padding: 0 12px;
+        }
+    }
+</style>
