@@ -153,6 +153,37 @@ function call(method,data,post){
 }
 function showErr(t){var e=$('#err');e.textContent=t||'';e.hidden=!t}
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+
+function setDefaultVisitType(targetMode){
+  var mType = targetMode || mode;
+  var sel = $('#a-type');
+  if(!sel || !sel.options || sel.options.length <= 1) return;
+  var keys = (mType === 'existing') ? ['review', 'follow'] : ['new'];
+  var matched = '';
+  for(var k = 0; k < keys.length; k++){
+    var key = keys[k];
+    for(var i = 0; i < sel.options.length; i++){
+      var optVal = sel.options[i].value;
+      if(optVal && optVal.toLowerCase() === key){
+        matched = optVal;
+        break;
+      }
+    }
+    if(matched) break;
+    for(var j = 0; j < sel.options.length; j++){
+      var oVal = sel.options[j].value;
+      if(oVal && oVal.toLowerCase().indexOf(key) !== -1){
+        matched = oVal;
+        break;
+      }
+    }
+    if(matched) break;
+  }
+  if(matched){
+    sel.value = matched;
+  }
+}
 
 function setMode(m){
   mode=m;showErr('');
@@ -162,6 +193,8 @@ function setMode(m){
   $('#s-exist').hidden=m!=='existing';
   $('#s-appt').hidden=m==='existing'?!patientId:false;
   if(m==='new'&&nextUid&&!$('#n-uid').value){$('#n-uid').value=nextUid;}
+  if(!$('#a-date').value) $('#a-date').value=iso(new Date());
+  setDefaultVisitType(m);
   if(m==='existing'){
     applySessionMode();
     setTimeout(function(){
@@ -180,6 +213,8 @@ $('#m-exist').onclick=function(e){
 };
 var urlParams = new URLSearchParams(window.location.search);
 var initialMode = urlParams.get('mode') === 'existing' ? 'existing' : 'new';
+if(!$('#a-date').value) $('#a-date').value=iso(new Date());
+$('#a-date').min=iso(new Date());
 setMode(initialMode);
 
 function dlabel(d){return new Date(d+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}
@@ -204,7 +239,6 @@ function startEdit(a){
 }
 $('#upc').onclick=function(e){var b=e.target.closest('button[data-i]');if(b)startEdit(upc[+b.dataset.i])};
 $('#edit-cancel').onclick=endEdit;
-function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 $('#n-age').oninput=function(){
   var a=parseInt(this.value,10);if(isNaN(a)||a<0||a>120)return;
   var t=new Date();$('#n-dob').value=iso(new Date(t.getFullYear()-a,t.getMonth(),t.getDate()))
@@ -250,13 +284,19 @@ function doGuestSearch(){
         box.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===c)});
         $('#s-appt').hidden=false;
         endEdit();
+        if(!$('#a-date').value) $('#a-date').value=iso(new Date());
+        setDefaultVisitType('existing');
         loadUpcoming();
+        loadSlots();
         $('#s-appt').scrollIntoView({behavior:'smooth',block:'start'});
       };
       box.appendChild(c);
       $('#s-appt').hidden=false;
       endEdit();
+      if(!$('#a-date').value) $('#a-date').value=iso(new Date());
+      setDefaultVisitType('existing');
       loadUpcoming();
+      loadSlots();
       $('#s-appt').scrollIntoView({behavior:'smooth',block:'start'});
     });
   }).catch(function(e){box.className='note bad';box.textContent=e.message});
@@ -289,7 +329,10 @@ function doSearch(){
         box.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===c)});
         $('#s-appt').hidden=false;
         endEdit();
+        if(!$('#a-date').value) $('#a-date').value=iso(new Date());
+        setDefaultVisitType('existing');
         loadUpcoming();
+        loadSlots();
         $('#s-appt').scrollIntoView({behavior:'smooth',block:'start'});
       };
       box.appendChild(c);
@@ -322,7 +365,8 @@ function loadSlots(){
 }
 $('#a-slot').onchange=function(){slot=this.value};
 $('#a-prac').onchange=loadSlots;$('#a-date').onchange=loadSlots;
-$('#a-date').min=new Date().toISOString().slice(0,10);
+$('#a-date').min=iso(new Date());
+if(!$('#a-date').value) $('#a-date').value=iso(new Date());
 
 call('appt_meta').then(function(m){csrf=m.csrf||'';
   if(typeof m.is_guest!=='undefined')isGuest=!!m.is_guest;
@@ -332,7 +376,10 @@ call('appt_meta').then(function(m){csrf=m.csrf||'';
     if($('#n-uid')&&!$('#n-uid').value)$('#n-uid').value=m.next_uid;
   }
   m.practitioners.forEach(function(p){var o=new Option(p.practitioner_name+(p.department?' ('+p.department+')':''),p.name);$('#a-prac').add(o)});
-  m.types.forEach(function(t){$('#a-type').add(new Option(t,t))})
+  m.types.forEach(function(t){$('#a-type').add(new Option(t,t))});
+  setDefaultVisitType(mode);
+  if(!$('#a-date').value) $('#a-date').value=iso(new Date());
+  loadSlots();
 }).catch(function(){showErr('The booking form couldn\'t load. Please refresh or contact the clinic.')});
 
 $('#f').onsubmit=function(ev){
@@ -377,7 +424,9 @@ $('#f').onsubmit=function(ev){
     if($('#found')){ $('#found').hidden=true;$('#found').innerHTML=''; }
     if($('#upc'))$('#upc').innerHTML='';
 
+    $('#a-date').value = iso(new Date());
     setMode('new');
+    setDefaultVisitType('new');
 
     call('appt_meta').then(function(m){
       if(m.next_uid){
