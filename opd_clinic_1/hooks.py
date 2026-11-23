@@ -27,11 +27,16 @@ app_logo_url = "/files/logo.png"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/opd_clinic_1/css/opd_clinic_1.css"
-# app_include_js = "/assets/opd_clinic_1/js/opd_clinic_1.js"
+app_include_js = "/assets/opd_clinic_1/js/pwa.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/opd_clinic_1/css/opd_clinic_1.css"
-# web_include_js = "/assets/opd_clinic_1/js/opd_clinic_1.js"
+web_include_js = "/assets/opd_clinic_1/js/pwa.js"
+
+website_context = {
+	"favicon": "/files/logo.png",
+	"splash_image": "/files/logo.png"
+}
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "opd_clinic_1/public/scss/website"
