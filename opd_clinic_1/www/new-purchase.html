@@ -134,11 +134,11 @@
 <a href="/pharmacy" class="back-link">&#8592; Back to Pharmacy</a>
 
 <div class="top">
-  <h1>📦 New Purchase Entry</h1>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <h1>📦 New Purchase Entry</h1>
+    <a href="/purchase-import" class="btn" style="background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);padding:6px 14px;font-size:.85rem;color:#fff;text-decoration:none;border-radius:8px">📥 Import Excel/CSV</a>
+  </div>
   <label style="margin:0;font-size:.84rem;color:#fff;display:flex;align-items:center;gap:6px">Store: <select id="wh" style="width:auto;display:inline-block;padding:6px 10px;background:#fff;border-radius:6px"></select></label>
-</div>
-  <h1>New Purchase</h1>
-  <label style="margin:0;font-size:.82rem">Store <select id="wh" style="width:auto;display:inline-block"></select></label>
 </div>
 
 <div id="edit-banner" class="card" style="background:#fff8e1;border:1px solid #ffe082;display:none;margin-bottom:12px">
@@ -169,7 +169,10 @@
 
 <!-- Add Line -->
 <div class="card">
-  <h2 id="pu-line-title">Add line</h2>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+    <h2 id="pu-line-title" style="margin-bottom:0">Add line</h2>
+    <a href="/purchase-import" class="link" style="font-size:.86rem;text-decoration:none;display:inline-flex;align-items:center;gap:4px">📥 Or bulk import from Excel / CSV</a>
+  </div>
   <label for="pu-prod" style="margin-top:0">Product name</label>
   <input id="pu-prod" list="dl-prod" autocomplete="off" placeholder="Search or type product name">
   <div id="f-pu"></div>
@@ -505,7 +508,26 @@ call('ph_meta').then(function(m){
 function checkEditMode(){
   var raw=null;
   try{raw=sessionStorage.getItem('edit_purchase');sessionStorage.removeItem('edit_purchase')}catch(e){}
-  if(!raw)return;
+  if(!raw){
+    try{raw=sessionStorage.getItem('import_purchase');sessionStorage.removeItem('import_purchase')}catch(e){}
+    if(!raw)return;
+    var imp=JSON.parse(raw);
+    toast('Loaded '+((imp.items&&imp.items.length)||0)+' line(s) from Excel/CSV import.');
+    if(imp.supplier) $('#pu-sup').value=imp.supplier;
+    if(imp.bill_no) $('#pu-bill').value=imp.bill_no;
+    if(imp.bill_date) $('#pu-bdate').value=imp.bill_date;
+    if(imp.warehouse){wh=imp.warehouse;$('#wh').value=wh}
+    if(imp.payment_status){
+      $('#pu-pay-status').value=imp.payment_status;
+      $('#pu-pay-status').dispatchEvent(new Event('change'));
+    }
+    if(imp.due_date) $('#pu-due-date').value=imp.due_date;
+    if(imp.paid_date) $('#pu-paid-date').value=imp.paid_date;
+    if(imp.payment_mode) $('#pu-pay-mode').value=imp.payment_mode;
+    pu=imp.items||[];
+    renderPu();
+    return;
+  }
   var d=JSON.parse(raw);
   editingInvoice=d.name;
   $('#edit-banner').style.display='block';

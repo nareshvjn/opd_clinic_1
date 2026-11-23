@@ -232,7 +232,7 @@
       <p class="lead" style="margin:0;align-self:end;font-size:.9rem">Typing an age fills an approximate date of birth.</p>
     </div>
     <div class="row">
-      <div><label for="n-mobile">Mobile number <span style="color:var(--err)">*</span></label><input id="n-mobile" type="tel" autocomplete="tel" placeholder="10-digit mobile number" required></div>
+      <div><label for="n-mobile">Mobile number <span style="color:var(--err)">*</span></label><input id="n-mobile" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" autocomplete="tel" placeholder="10-digit mobile number" required></div>
       <div><label for="n-email">Email (optional)</label><input id="n-email" type="email" autocomplete="email"></div>
     </div>
   </fieldset>
@@ -249,7 +249,7 @@
         </div>
         <div>
           <label for="eg-mobile">Registered Mobile Number</label>
-          <input id="eg-mobile" type="tel" autocomplete="off" autocorrect="off" spellcheck="false">
+          <input id="eg-mobile" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit mobile number" autocomplete="off" autocorrect="off" spellcheck="false">
         </div>
       </div>
       <button type="button" class="ghost" id="eg-find" style="width:100%;margin-top:14px;padding:12px;font-weight:700">Find My Record</button>
@@ -418,12 +418,18 @@ $('#n-dob').onchange=function(){
 };
 function doGuestSearch(){
   var ident=($('#eg-ident').value||'').trim();
-  var mobile=($('#eg-mobile').value||'').trim();
+  var rawMobile=($('#eg-mobile').value||'').trim();
+  var mobile=rawMobile.replace(/\D/g,'');
   var box=$('#found');
   showErr('');
-  if(!ident||!mobile){
+  if(!ident||!rawMobile){
     box.hidden=false;box.className='note bad';
     box.textContent='Please enter both your Patient ID (or Full Name) AND your registered mobile number.';
+    return;
+  }
+  if(mobile.length!==10){
+    box.hidden=false;box.className='note bad';
+    box.textContent='Please enter a valid 10-digit mobile number.';
     return;
   }
   box.hidden=false;box.className='note';box.textContent='Verifying patient record…';
@@ -470,7 +476,13 @@ function doGuestSearch(){
 }
 if($('#eg-find'))$('#eg-find').onclick=doGuestSearch;
 if($('#eg-ident'))$('#eg-ident').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();doGuestSearch()}};
-if($('#eg-mobile'))$('#eg-mobile').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();doGuestSearch()}};
+if($('#eg-mobile')){
+  $('#eg-mobile').oninput=function(){this.value=this.value.replace(/\D/g,'').slice(0,10)};
+  $('#eg-mobile').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();doGuestSearch()}};
+}
+if($('#n-mobile')){
+  $('#n-mobile').oninput=function(){this.value=this.value.replace(/\D/g,'').slice(0,10)};
+}
 
 var searchTimer=null;
 function doSearch(){
@@ -588,6 +600,8 @@ $('#f').onsubmit=function(ev){
     $('#a-notes').value='';$('#n-uid').value='';
     patientId='';
     if($('#e-query'))$('#e-query').value='';
+    if($('#eg-ident'))$('#eg-ident').value='';
+    if($('#eg-mobile'))$('#eg-mobile').value='';
     if($('#found')){ $('#found').hidden=true;$('#found').innerHTML=''; }
     if($('#upc'))$('#upc').innerHTML='';
 

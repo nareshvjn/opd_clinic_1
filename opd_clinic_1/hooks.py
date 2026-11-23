@@ -295,6 +295,7 @@ fixtures = [
                     "new-sale",
                     "pharmacy-home",
                     "pharmacy",
+                    "purchase-import",
                     "purchase-return",
                     "registration",
                     "sale-return",

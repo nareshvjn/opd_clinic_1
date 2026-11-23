@@ -1,0 +1,672 @@
+<!-- title: Purchase Import -->
+<div id="pi">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+#pi{
+  --ink:#11281e;
+  --mute:#546a5f;
+  --line:#cfe0d7;
+  --bg:#f4f9f6;
+  --brand:#125c3a;
+  --brand-dark:#0d3d27;
+  --ok:#125c3a;
+  --err:#c0392b;
+  --gold:#f1c40f;
+  --shadow-sm:0 2px 10px rgba(18,92,58,0.06);
+  max-width:980px;
+  margin:0 auto;
+  padding:14px 12px 64px;
+  color:var(--ink);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+}
+#pi *{box-sizing:border-box}
+
+#pi .top-header{
+  padding:16px 20px;
+  background:linear-gradient(135deg,#0d3d27 0%,#125c3a 100%);
+  border-radius:14px;
+  color:#fff;
+  box-shadow:var(--shadow-sm);
+  margin-bottom:16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+#pi h1{font-size:1.45rem;font-weight:900;margin:0;color:#fff}
+#pi h2{font-size:1.1rem;font-weight:800;color:var(--brand);margin:0 0 10px}
+#pi h3{font-size:0.98rem;font-weight:800;margin-bottom:8px;color:var(--ink)}
+#pi .card{
+  padding:18px;
+  margin-bottom:16px;
+  border:1.5px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:var(--shadow-sm);
+}
+#pi label{display:block;font-size:.84rem;font-weight:700;color:var(--mute);margin:12px 0 4px}
+#pi input,#pi select,#pi textarea{
+  width:100%;
+  padding:10px 12px;
+  border:1.5px solid var(--line);
+  border-radius:8px;
+  font:inherit;
+  color:var(--ink);
+  background:#fff;
+}
+#pi input:focus,#pi select:focus,#pi textarea:focus,#pi button:focus-visible{
+  outline:3px solid #8cc9b5;
+  border-color:var(--brand);
+}
+#pi textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
+#pi .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#pi .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+#pi .g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+#pi .hint{color:var(--mute);font-size:.86rem;margin:8px 0 0;line-height:1.5}
+#pi .btn{
+  padding:10px 20px;
+  border:0;
+  border-radius:8px;
+  background:var(--ink);
+  color:#fff;
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+  transition:all .15s ease;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+}
+#pi .btn:hover{filter:brightness(1.1)}
+#pi .btn.go{background:linear-gradient(135deg,#125c3a,#0d3d27);box-shadow:0 3px 10px rgba(18,92,58,0.25)}
+#pi .btn.alt{background:#5d7184}
+#pi .btn:disabled{opacity:.55;cursor:wait}
+#pi .back-link{
+  color:var(--brand);
+  font-size:.9rem;
+  text-decoration:none;
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  margin-bottom:12px;
+}
+#pi .back-link:hover{text-decoration:underline}
+#pi .note{padding:12px 14px;margin-bottom:14px;border-radius:8px;background:var(--bg);border-left:4px solid var(--ok);font-size:.92rem}
+#pi .note.bad{border-color:var(--err);background:#fdf2f2;color:var(--err)}
+#pi .scroll{overflow:auto;max-height:380px;border:1.5px solid var(--line);border-radius:8px}
+#pi table{width:100%;border-collapse:collapse;font-size:.88rem}
+#pi th,#pi td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+#pi th{position:sticky;top:0;background:var(--bg);font-weight:700;color:var(--mute);z-index:2}
+#pi td.n,#pi th.n{text-align:right}
+#pi tr.bad td{background:#fdf2f2}
+#pi .okt{color:var(--ok);font-weight:700}
+#pi .bdt{color:var(--err);font-weight:700}
+#pi .badge{display:inline-block;padding:2px 8px;background:#ebf7f1;color:var(--ok);border-radius:12px;font-size:.78rem;font-weight:700}
+#pi .mute{color:var(--mute)}
+#pi [hidden]{display:none!important}
+
+#pi .bill-summary-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:var(--bg);
+  border:1.5px solid var(--line);
+  border-radius:10px;
+  padding:14px 18px;
+  margin-top:14px;
+  flex-wrap:wrap;
+  gap:12px;
+}
+#pi .sum-item{display:flex;flex-direction:column}
+#pi .sum-lbl{font-size:.78rem;color:var(--mute);font-weight:700;text-transform:uppercase}
+#pi .sum-val{font-size:1.15rem;color:var(--ink);font-weight:800}
+#pi .sum-val.tot{color:var(--brand);font-size:1.3rem;font-weight:900}
+
+@media(max-width:720px){
+  #pi .g2,#pi .g3,#pi .g4{grid-template-columns:1fr}
+  #pi .bill-summary-bar{flex-direction:column;align-items:stretch;text-align:left}
+}
+</style>
+
+<div style="display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:10px">
+  <a href="/new-purchase" class="back-link">&#8592; Back to New Purchase</a>
+  <a href="/pharmacy" class="back-link">&#8592; Back to Pharmacy</a>
+</div>
+
+<div class="top-header">
+  <h1>📥 Purchase Invoice Excel/CSV Import</h1>
+  <label style="margin:0;font-size:.84rem;color:#fff;display:flex;align-items:center;gap:6px">Store: <select id="wh" style="width:auto;display:inline-block;padding:6px 10px;background:#fff;border-radius:6px"></select></label>
+</div>
+
+<div id="msg" class="note" hidden></div>
+
+<!-- Supplier & Bill Details -->
+<div class="card">
+  <h2>1. Bill & Supplier Information</h2>
+  <div class="g3">
+    <div>
+      <label for="pu-sup" style="margin-top:0">Supplier <span style="color:var(--err)">*</span></label>
+      <input id="pu-sup" list="dl-sup" autocomplete="off" placeholder="Choose or type supplier">
+      <datalist id="dl-sup"></datalist>
+    </div>
+    <div>
+      <label for="pu-bill" style="margin-top:0">Supplier Bill / Invoice No</label>
+      <input id="pu-bill" autocomplete="off" placeholder="e.g. INV-10294">
+    </div>
+    <div>
+      <label for="pu-bdate" style="margin-top:0">Bill Date</label>
+      <input id="pu-bdate" type="date">
+    </div>
+  </div>
+
+  <div class="g3" style="margin-top:10px">
+    <div>
+      <label for="basis" style="margin-top:0">Rates in the file are</label>
+      <select id="basis">
+        <option value="excl" selected>Excluding GST</option>
+        <option value="incl">Including GST</option>
+      </select>
+    </div>
+    <div>
+      <label for="pu-pay-status" style="margin-top:0">Payment Status</label>
+      <select id="pu-pay-status">
+        <option value="Paid" selected>Paid</option>
+        <option value="Due">Due</option>
+      </select>
+    </div>
+    <div>
+      <label for="pu-pay-mode" style="margin-top:0">Payment Mode</label>
+      <select id="pu-pay-mode"></select>
+    </div>
+  </div>
+</div>
+
+<!-- Upload & Paste Card -->
+<div class="card">
+  <h2>2. Upload Excel / CSV File or Paste Rows</h2>
+  <p class="hint">Columns supported in Excel/CSV/paste: <b>product, batch, expiry, mrp, rate, upp, packs, free_packs, units, gst, hsn, disc</b>.<br>
+  (Also supports aliases like <i>Item Name, Exp Date, Pack Size, Qty, Free, Tax%</i>). Automatically creates both <b>Item</b> and <b>Medication</b> records if new.</p>
+  
+  <p class="hint" style="margin-top:10px">Download sample template: 
+    <a id="tpl-xlsx" href="#" style="font-weight:700">Excel (.xlsx)</a> &nbsp;|&nbsp; 
+    <a id="tpl-csv" download="purchase-import-template.csv" href="#" style="font-weight:700">CSV (.csv)</a>
+  </p>
+
+  <label for="file">Choose Excel or CSV file (.xlsx, .xls, .csv)</label>
+  <input id="file" type="file" accept=".xlsx,.xls,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv">
+
+  <label for="txt">Or paste rows directly from Excel / spreadsheet</label>
+  <textarea id="txt" rows="6" placeholder="product,batch,expiry,mrp,rate,upp,packs,free_packs,units,gst,hsn,disc&#10;Paracetamol 650,PST260406,2028-03,244.25,180.00,15,10,1,0,5,3004,0"></textarea>
+
+  <p style="margin:14px 0 0"><button type="button" class="btn" id="check">Check rows & calculate</button></p>
+</div>
+
+<!-- Preview Card -->
+<div class="card" id="pv" hidden>
+  <h2 id="pv-h">Preview Lines</h2>
+  
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Product</th>
+          <th>Batch</th>
+          <th>Expiry</th>
+          <th class="n">GST %</th>
+          <th class="n">MRP</th>
+          <th class="n">Rate</th>
+          <th class="n">UPP</th>
+          <th class="n">Packs</th>
+          <th class="n">Free</th>
+          <th class="n">Disc %</th>
+          <th class="n">Net/Pack</th>
+          <th class="n">Line Total</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="pv-b"></tbody>
+    </table>
+  </div>
+
+  <!-- Live Bill Summary -->
+  <div class="bill-summary-bar">
+    <div class="sum-item">
+      <span class="sum-lbl">Items</span>
+      <span class="sum-val" id="sum-items">0</span>
+    </div>
+    <div class="sum-item">
+      <span class="sum-lbl">Total Packs</span>
+      <span class="sum-val" id="sum-packs">0</span>
+    </div>
+    <div class="sum-item">
+      <span class="sum-lbl">Subtotal (Excl GST)</span>
+      <span class="sum-val" id="sum-sub">&#8377;0.00</span>
+    </div>
+    <div class="sum-item">
+      <span class="sum-lbl">Total GST</span>
+      <span class="sum-val" id="sum-gst">&#8377;0.00</span>
+    </div>
+    <div class="sum-item">
+      <span class="sum-lbl">Grand Total</span>
+      <span class="sum-val tot" id="sum-tot">&#8377;0.00</span>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap">
+    <button type="button" class="btn go" id="run">Save Purchase Invoice</button>
+    <button type="button" class="btn alt" id="to-new-purchase">Open in New Purchase Form</button>
+  </div>
+</div>
+
+<!-- Receipt Card -->
+<div class="card" id="rc" hidden>
+  <h2 style="color:var(--ok);margin-bottom:8px">&#10003; Purchase Saved Successfully</h2>
+  <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
+    <div style="font-size:1rem">Invoice Reference: <strong id="rc-inv" style="color:var(--ink)"></strong></div>
+    <div style="font-size:1.15rem">Total Amount: <strong id="rc-tot" style="color:var(--brand)"></strong></div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a id="rc-erp" class="btn" style="background:#5d7184" href="#" target="_blank" rel="noopener">Open in ERPNext</a>
+    <button type="button" class="btn" id="rc-again">Import Another Purchase</button>
+    <a class="btn go" href="/pharmacy">Go to Pharmacy</a>
+  </div>
+</div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector('#pi '+s)};
+var csrf='',wh='',rows=[],pModes=[],suppliersList=[];
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function n(v){v=parseFloat(String(v==null?'':v).replace(/,/g,''));return isNaN(v)?0:v}
+function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function note(t,bad){var e=$('#msg');e.textContent=t||'';e.className='note'+(bad?' bad':'');e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
+
+function call(method,params,post){
+  var p=new URLSearchParams(params||{}),o={headers:{Accept:'application/json'}};
+  if(post){o.method='POST';o.body=p;var t=csrf||(window.frappe&&frappe.csrf_token);if(t)o.headers['X-Frappe-CSRF-Token']=t}
+  return fetch('/api/method/'+method+(post?'':'?'+p),o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){
+        var t='Something went wrong.';
+        try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message.replace(/<[^>]+>/g,'')}catch(e){}
+        if(!t&&j.exception){
+          var exp=String(j.exception).split(':');
+          t=exp.length>1?exp.slice(1).join(':').trim():exp[0].trim();
+        }
+        if(!t&&j.message){
+          t=typeof j.message==='string'?j.message:JSON.stringify(j.message);
+        }
+        throw new Error(t);
+      }
+      return j.message;
+    });
+  });
+}
+
+function ensureXLSX(cb){
+  if(window.XLSX) return cb(window.XLSX);
+  note('Loading Excel engine...');
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=function(){ note(''); cb(window.XLSX); };
+  s.onerror=function(){
+    note('Could not load Excel engine. Please check internet connection or save file as CSV.', 1);
+  };
+  document.head.appendChild(s);
+}
+
+// Set up CSV and XLSX Templates
+$('#tpl-csv').href='data:text/csv;charset=utf-8,'+encodeURIComponent(
+  'product,batch,expiry,mrp,rate,upp,packs,free_packs,units,gst,hsn,disc\n'+
+  'Paracetamol 650,PST260406,2028-03,244.25,180.00,15,10,1,0,5,3004,0\n'+
+  'Zyrtec Drops 10ml,ZD1123,03/2028,95.50,70.00,1,24,0,0,12,3004,0\n'+
+  'Amoxicillin 250mg,AMX991,2027-11,120.00,85.00,1,15,0,0,5,3004,2\n'+
+  'Azithromycin 500mg,AZ5012,2027-08,119.50,82.00,3,20,2,0,12,3004,0\n'
+);
+
+$('#tpl-xlsx').onclick=function(e){
+  e.preventDefault();
+  ensureXLSX(function(XLSX){
+    var ws = XLSX.utils.aoa_to_sheet([
+      ['product','batch','expiry','mrp','rate','upp','packs','free_packs','units','gst','hsn','disc'],
+      ['Paracetamol 650','PST260406','2028-03',244.25,180.00,15,10,1,0,5,'3004',0],
+      ['Zyrtec Drops 10ml','ZD1123','03/2028',95.50,70.00,1,24,0,0,12,'3004',0],
+      ['Amoxicillin 250mg','AMX991','2027-11',120.00,85.00,1,15,0,0,5,'3004',2],
+      ['Azithromycin 500mg','AZ5012','2027-08',119.50,82.00,3,20,2,0,12,'3004',0]
+    ]);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Purchase_Invoice");
+    XLSX.writeFile(wb, "purchase-import-template.xlsx");
+  });
+};
+
+/* CSV parsing (comma or tab, quotes allowed) */
+function parseCSV(text){
+  text=String(text||'').replace(/^\uFEFF/,'');
+  var first=text.split('\n')[0]||'',d=first.indexOf('\t')>-1?'\t':',';
+  var out=[],row=[],cur='',q=false,i,c;
+  for(i=0;i<text.length;i++){
+    c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}
+    else if(c==='"')q=true;
+    else if(c===d){row.push(cur);cur=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cur);cur='';out.push(row);row=[]}
+    else cur+=c
+  }
+  if(cur!==''||row.length){row.push(cur);out.push(row)}
+  return out.filter(function(r){return r.some(function(x){return String(x).trim()!==''})})
+}
+
+var ALIAS={
+  product:['product','item','item name','name','medicine','product name','description','particulars'],
+  batch:['batch','batch no','batch id','batchno','bno','batch number','lot'],
+  expiry:['expiry','exp','expiry date','expiry month','exp date','exp dt','exp.'],
+  hsn:['hsn','hsn code','hsncode','hsn/sac'],
+  gst:['gst','gst rate','gst %','tax','tax %','gst%'],
+  mrp:['mrp','m.r.p','mrp per pack','mrp incl gst','mrp (incl gst)','maximum retail price'],
+  rate:['rate','purchase rate','purchase rate per pack','prate','cost','price','ptr','basic rate','unit cost'],
+  upp:['upp','units per pack','unit per pack','pack size','pack','units/pack','packing','strip size'],
+  packs:['packs','number of packs','no of packs','qty packs','pack qty','qty','quantity','billed packs','billed_packs'],
+  free_packs:['free packs','free','free qty','scheme','bonus','free_packs','sch qty'],
+  units:['units','loose units','loose','loose qty','loose units if any','extra units'],
+  disc:['disc','discount','disc %','discount %','scheme %','item discount']
+};
+
+function norm(h){return String(h).toLowerCase().replace(/[^a-z0-9% ]/g,' ').replace(/\s+/g,' ').trim()}
+
+function parseExpiry(v){
+  v=String(v||'').trim();var m,y,mo;
+  if(m=v.match(/^(\d{4})[-\/](\d{1,2})(?:[-\/]\d{1,2})?$/)){y=+m[1];mo=+m[2]}
+  else if(m=v.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/)){
+    var p1=+m[1],p2=+m[2];y=+m[3];
+    if(p2>12&&p1<=12) mo=p1;
+    else mo=p2;
+  }
+  else if(m=v.match(/^(\d{1,2})[-\/](\d{2}|\d{4})$/)){mo=+m[1];y=+m[2];if(y<100)y+=2000}
+  else return '';
+  if(mo<1||mo>12)return '';
+  return y+'-'+String(mo).padStart(2,'0')+'-'+String(new Date(y,mo,0).getDate()).padStart(2,'0')
+}
+
+function buildRows(table){
+  var head=table[0].map(norm),idx={};
+  Object.keys(ALIAS).forEach(function(k){
+    head.forEach(function(h,i){if(idx[k]==null&&ALIAS[k].indexOf(h)>-1)idx[k]=i});
+  });
+  var miss=['product','batch','expiry','mrp','rate','packs'].filter(function(k){return idx[k]==null});
+  if(miss.length)throw new Error('The header row is missing required column(s): '+miss.join(', ')+'.');
+
+  var basis = $('#basis').value || 'excl';
+
+  return table.slice(1).map(function(r,i){
+    var g=function(k){return idx[k]==null?'':String(r[idx[k]]==null?'':r[idx[k]]).trim()};
+    var rawProd = g('product');
+    var rawBatch = g('batch');
+    var rawExp = g('expiry');
+    var rawGst = g('gst')===''?'5':String(n(g('gst')));
+    var rawMrp = n(g('mrp'));
+    var rawRate = n(g('rate'));
+    var rawUpp = g('upp')===''?10:Math.max(1,Math.floor(n(g('upp'))));
+    var rawPacks = n(g('packs'));
+    var rawFree = n(g('free_packs'));
+    var rawUnits = n(g('units'));
+    var rawDisc = n(g('disc'));
+    var rawHsn = g('hsn') || '3004';
+
+    var expFormatted = parseExpiry(rawExp);
+    
+    // Net Purchase Rate per pack
+    var gstPct = n(rawGst);
+    var net = 0;
+    var net_incl = 0;
+    if(basis === 'incl'){
+      var rate_incl = Math.max(0, rawRate * (1 - rawDisc / 100));
+      net = gstPct > 0 ? (rate_incl / (1 + gstPct / 100)) : rate_incl;
+      net_incl = rate_incl;
+    } else {
+      net = Math.max(0, rawRate * (1 - rawDisc / 100));
+      net_incl = net * (1 + gstPct / 100);
+    }
+
+    var billed_qty = rawPacks * rawUpp + rawUnits;
+    var total_qty = (rawPacks + rawFree) * rawUpp + rawUnits;
+    var line_subtotal = (billed_qty / rawUpp) * net;
+    var line_gst = line_subtotal * (gstPct / 100);
+    var line_total = line_subtotal + line_gst;
+
+    var margin = rawMrp > 0 ? (((rawMrp - net_incl) / rawMrp) * 100) : 0;
+
+    var d = {
+      no: i + 2,
+      product: rawProd,
+      batch: rawBatch,
+      expiryRaw: rawExp,
+      expiry: expFormatted,
+      exp: rawExp,
+      hsn: rawHsn,
+      gst: gstPct,
+      mrp: rawMrp,
+      rate: rawRate,
+      basis: basis,
+      upp: rawUpp,
+      packs: rawPacks,
+      billed_packs: rawPacks,
+      free_packs: rawFree,
+      units: rawUnits,
+      disc: rawDisc,
+      disc_type: 'percent',
+      net: Math.round(net * 100) / 100,
+      net_incl: Math.round(net_incl * 100) / 100,
+      margin: Math.round(margin * 10) / 10,
+      amount: Math.round(line_subtotal * 100) / 100,
+      line_gst: Math.round(line_gst * 100) / 100,
+      line_total: Math.round(line_total * 100) / 100
+    };
+
+    var errs = [];
+    if(!d.product) errs.push('product missing');
+    if(!d.batch) errs.push('batch missing');
+    if(!d.expiry) errs.push('expiry format invalid (use MM/YY or YYYY-MM)');
+    if(d.mrp <= 0) errs.push('MRP must be > 0');
+    if(d.rate <= 0) errs.push('rate must be > 0');
+    if(d.upp < 1) errs.push('units per pack must be >= 1');
+    if(d.packs < 0 || d.free_packs < 0 || d.units < 0) errs.push('negative quantity');
+    if(total_qty <= 0) errs.push('total quantity is zero');
+
+    d.err = errs.join(', ');
+    return d;
+  });
+}
+
+function renderPreview(){
+  var valid = rows.filter(function(r){return !r.err});
+  var bad = rows.length - valid.length;
+  $('#pv').hidden = false;
+  $('#pv-h').textContent = rows.length + ' row(s) checked: ' + valid.length + ' ready' + (bad ? ', ' + bad + ' with errors (skipped)' : '');
+
+  var totSub = 0, totGst = 0, totPacks = 0;
+  valid.forEach(function(r){
+    totSub += r.amount;
+    totGst += r.line_gst;
+    totPacks += (r.packs + r.free_packs);
+  });
+  var grandTot = totSub + totGst;
+
+  $('#sum-items').textContent = valid.length;
+  $('#sum-packs').textContent = totPacks;
+  $('#sum-sub').textContent = inr(totSub);
+  $('#sum-gst').textContent = inr(totGst);
+  $('#sum-tot').textContent = inr(grandTot);
+
+  $('#pv-b').innerHTML = rows.map(function(r){
+    return '<tr'+(r.err?' class="bad"':'')+'>'+
+      '<td>'+r.no+'</td>'+
+      '<td><strong>'+esc(r.product)+'</strong></td>'+
+      '<td>'+esc(r.batch)+'</td>'+
+      '<td>'+esc(r.expiryRaw)+'</td>'+
+      '<td class="n">'+esc(r.gst)+'%</td>'+
+      '<td class="n">'+inr(r.mrp)+'</td>'+
+      '<td class="n">'+inr(r.rate)+'</td>'+
+      '<td class="n">'+esc(r.upp)+'</td>'+
+      '<td class="n">'+esc(r.packs)+'</td>'+
+      '<td class="n">'+(r.free_packs?esc(r.free_packs):'-')+'</td>'+
+      '<td class="n">'+(r.disc?esc(r.disc)+'%':'-')+'</td>'+
+      '<td class="n">'+inr(r.net)+'</td>'+
+      '<td class="n"><strong>'+inr(r.line_total)+'</strong></td>'+
+      '<td>'+(r.err?'<span class="bdt">'+esc(r.err)+'</span>':'<span class="okt">OK</span>')+'</td>'+
+      '</tr>';
+  }).join('');
+
+  $('#run').disabled = valid.length === 0;
+  $('#to-new-purchase').disabled = valid.length === 0;
+}
+
+$('#file').onchange=function(){
+  var f=this.files[0];if(!f)return;
+  var isExcel = /\.(xlsx|xls)$/i.test(f.name);
+  if(isExcel){
+    note('Reading Excel file...');
+    ensureXLSX(function(XLSX){
+      var rd = new FileReader();
+      rd.onload = function(e){
+        try {
+          var data = new Uint8Array(e.target.result);
+          var wb = XLSX.read(data, {type: 'array', cellDates: true});
+          if(!wb.SheetNames || !wb.SheetNames.length) throw new Error('Excel workbook has no sheets.');
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var csv = XLSX.utils.sheet_to_csv(ws, {dateNF: 'yyyy-mm-dd'});
+          if(!csv || !csv.trim()) throw new Error('The first sheet in this Excel file is empty.');
+          $('#txt').value = csv;
+          note('Excel file loaded: ' + esc(f.name) + '. Checking rows...');
+          $('#check').click();
+        } catch(err){
+          note('Error reading Excel file: ' + err.message, 1);
+        }
+      };
+      rd.onerror = function(){ note('Failed to read file from disk.', 1); };
+      rd.readAsArrayBuffer(f);
+    });
+  } else {
+    var rd = new FileReader();
+    rd.onload = function(){
+      $('#txt').value = rd.result;
+      note('File loaded: ' + esc(f.name) + '. Checking rows...');
+      $('#check').click();
+    };
+    rd.readAsText(f);
+  }
+};
+
+$('#check').onclick=function(){
+  note('');$('#rc').hidden=true;
+  try{
+    var t=parseCSV($('#txt').value);
+    if(t.length<2){note('Add a header row and at least one purchase item row.',1);$('#pv').hidden=true;return}
+    rows=buildRows(t);
+    renderPreview();
+  }catch(e){note(e.message,1);$('#pv').hidden=true}
+};
+
+// Action 1: Save Purchase Invoice directly via ph_purchase_save
+$('#run').onclick=function(){
+  var valid = rows.filter(function(r){return !r.err});
+  var sup = $('#pu-sup').value.trim();
+  if(!sup){note('Please enter or select a Supplier first.', 1);$('#pu-sup').focus();return}
+  if(!wh){note('Please select a Store (warehouse).', 1);return}
+  if(!valid.length){note('No valid rows to import. Please check your file.', 1);return}
+
+  var btn = this;
+  btn.disabled = true;
+  note('Saving Purchase Invoice for '+esc(sup)+' ('+valid.length+' lines)...');
+
+  var payload = {
+    supplier: sup,
+    bill_no: $('#pu-bill').value.trim(),
+    bill_date: $('#pu-bdate').value || new Date().toISOString().slice(0,10),
+    warehouse: wh,
+    lines: JSON.stringify(valid),
+    discount_percentage: '0',
+    discount_amount: '0',
+    courier_charges: '0',
+    payment_status: $('#pu-pay-status').value,
+    payment_mode: $('#pu-pay-mode').value,
+    paid_date: $('#pu-bdate').value || new Date().toISOString().slice(0,10),
+    target_grand: $('#sum-tot').textContent.replace(/[^0-9.]/g,'') || '0'
+  };
+
+  call('ph_purchase_save', payload, true).then(function(r){
+    note('');
+    $('#pv').hidden = true;
+    $('#rc').hidden = false;
+    $('#rc-inv').textContent = r.invoice;
+    $('#rc-tot').textContent = inr(r.total);
+    $('#rc-erp').href = '/app/purchase-invoice/' + encodeURIComponent(r.invoice);
+    $('#rc').scrollIntoView({behavior:'smooth',block:'start'});
+  }).catch(function(e){
+    note('Error saving purchase: ' + e.message, 1);
+  }).then(function(){
+    btn.disabled = false;
+  });
+};
+
+// Action 2: Open lines in New Purchase page
+$('#to-new-purchase').onclick=function(){
+  var valid = rows.filter(function(r){return !r.err});
+  var sup = $('#pu-sup').value.trim();
+  if(!valid.length){note('No valid rows to import.', 1);return}
+
+  var importData = {
+    supplier: sup,
+    bill_no: $('#pu-bill').value.trim(),
+    bill_date: $('#pu-bdate').value,
+    warehouse: wh,
+    payment_status: $('#pu-pay-status').value,
+    payment_mode: $('#pu-pay-mode').value,
+    items: valid
+  };
+
+  try {
+    sessionStorage.setItem('import_purchase', JSON.stringify(importData));
+    window.location.href = '/new-purchase';
+  } catch(e) {
+    note('Could not transfer to New Purchase: ' + e.message, 1);
+  }
+};
+
+$('#rc-again').onclick=function(){
+  $('#rc').hidden = true;
+  $('#pv').hidden = true;
+  $('#txt').value = '';
+  $('#file').value = '';
+  $('#pu-bill').value = '';
+  rows = [];
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+
+$('#pu-bdate').value = new Date().toISOString().slice(0,10);
+$('#wh').onchange=function(){wh=this.value};
+
+call('ph_meta').then(function(m){
+  csrf=m.csrf||'';wh=m.warehouse||'';
+  $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
+  if(!m.warehouses.length)note('No store (warehouse) found. Create one in Desk first.',1);
+
+  suppliersList = m.suppliers || [];
+  $('#dl-sup').innerHTML = suppliersList.map(function(s){return '<option value="'+esc(s)+'">'}).join('');
+
+  pModes = (m.modes || []).slice();
+  if(!pModes.some(function(x){return /^cash$/i.test(x)})) pModes.unshift("Cash");
+  $('#pu-pay-mode').innerHTML = pModes.map(function(x){return '<option>'+esc(x)+'</option>'}).join('');
+  var pcm=pModes.filter(function(x){return /^cash$/i.test(x)})[0];
+  if(pcm) $('#pu-pay-mode').value=pcm;
+}).catch(function(e){note(e.message,1)});
+
+})();
+</script>
+</div>

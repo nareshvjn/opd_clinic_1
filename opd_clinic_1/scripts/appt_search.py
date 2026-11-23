@@ -21,12 +21,9 @@ if is_guest:
         frappe.throw("To protect patient privacy, please enter both your Patient ID (or Full Name) AND your registered mobile number.")
 
     clean_digits = "".join([c for c in raw_mobile if c.isdigit()])
-    if len(clean_digits) >= 10:
-        phone_match = clean_digits[-10:]
-    elif len(clean_digits) >= 6:
-        phone_match = clean_digits
-    else:
-        frappe.throw("Please enter a valid mobile number (at least 6 digits).")
+    if len(clean_digits) != 10:
+        frappe.throw("Please enter a valid 10-digit mobile number.")
+    phone_match = clean_digits
 
     # Exact 2-field match SQL query (no fuzzy % wildcards across all patients)
     rows = frappe.db.sql("""
