@@ -288,6 +288,7 @@ fixtures = [
                     "add-stock",
                     "consultation",
                     "contact",
+                    "dashboard",
                     "distributor-bills",
                     "doctor-desk",
                     "doctors",
