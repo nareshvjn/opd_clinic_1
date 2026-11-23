@@ -50,21 +50,22 @@ if rows:
             fields=["name", "dob", "sex", "mobile", "uid"]):
         info[p.name] = p
 
-def find_invoice(appt):
+def find_invoice_info(appt):
     try:
         for r in frappe.get_all("Sales Invoice Item",
                 filters={"reference_dt": "Patient Appointment", "reference_dn": appt},
                 fields=["parent"], limit=5):
-            if frappe.db.get_value("Sales Invoice", r.parent, "docstatus") < 2:
-                return r.parent
+            vals = frappe.db.get_value("Sales Invoice", r.parent, ["name", "docstatus", "grand_total"], as_dict=True)
+            if vals and vals.docstatus < 2:
+                return vals
     except:
         pass
     found = frappe.get_all("Sales Invoice",
         filters={"remarks": ["like", "%Consultation: " + appt + "%"], "docstatus": ["<", 2]},
-        fields=["name"], limit=1)
+        fields=["name", "docstatus", "grand_total"], limit=1)
     if found:
-        return found[0].name
-    return ""
+        return found[0]
+    return None
 
 today = frappe.utils.getdate(frappe.utils.today())
 out = []
@@ -79,9 +80,12 @@ for r in rows:
         if p.dob:
             d = frappe.utils.getdate(p.dob)
             age = today.year - d.year - (1 if (today.month, today.day) < (d.month, d.day) else 0)
-    inv = ""
+    inv_info = None
     if r.status in ["Closed", "Checked Out"]:
-        inv = find_invoice(r.name)
+        inv_info = find_invoice_info(r.name)
+    inv = inv_info.name if inv_info else ""
+    inv_docstatus = inv_info.docstatus if inv_info else None
+    inv_total = float(inv_info.grand_total or 0) if inv_info else 0.0
     enc_found = frappe.get_all("Patient Encounter",
         filters={"appointment": r.name, "docstatus": ["!=", 2]}, fields=["name"], limit=1)
     has_encounter = bool(enc_found or r.status in ["Closed", "Checked Out"])
@@ -99,6 +103,8 @@ for r in rows:
         "practitioner": r.practitioner, "practitioner_name": r.practitioner_name,
         "time": t[0].zfill(2) + ":" + t[1], "duration": r.duration,
         "type": r.appointment_type, "status": r.status, "notes": r.notes or "", "invoice": inv,
+        "invoice_docstatus": inv_docstatus,
+        "invoice_total": inv_total,
         "has_encounter": has_encounter,
         "has_vitals": has_vitals,
     })

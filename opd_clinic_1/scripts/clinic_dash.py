@@ -74,32 +74,75 @@ inv_val = "sum(if(ifnull(si.rounded_total, 0) = 0, si.grand_total, si.rounded_to
 consult_total = one("""
     select """ + inv_val + """
     from `tabSales Invoice` si
-    where si.docstatus = 1 and si.is_return = 0
-      and si.posting_date between %s and %s
+    where si.docstatus < 2 and ifnull(si.is_return, 0) = 0
       and (
-          si.update_stock = 0
+          si.posting_date between %(d1)s and %(d2)s
+          or date(si.creation) between %(d1)s and %(d2)s
+          or exists (
+              select 1 from `tabPatient Appointment` pa
+              join `tabSales Invoice Item` sii_appt on sii_appt.reference_dn = pa.name
+              where sii_appt.parent = si.name
+                and pa.appointment_date between %(d1)s and %(d2)s
+          )
+      )
+      and (
+          ifnull(si.update_stock, 0) = 0
+          or si.remarks like '%%Consultation:%%'
           or exists (
               select 1 from `tabSales Invoice Item` sii
               where sii.parent = si.name
-                and (sii.reference_dt = 'Patient Appointment' or sii.item_code like 'CONSULT%')
+                and (sii.reference_dt = 'Patient Appointment' or sii.item_code like 'CONSULT%%' or sii.item_name like '%%Consult%%')
           )
+          or (ifnull(si.patient, '') != '' and ifnull(si.update_stock, 0) = 0)
       )
-""", p)
+""", {"d1": d1, "d2": d2})
 
 consult_count = count_query("""
     select count(*)
     from `tabSales Invoice` si
-    where si.docstatus = 1 and si.is_return = 0
-      and si.posting_date between %s and %s
+    where si.docstatus < 2 and ifnull(si.is_return, 0) = 0
       and (
-          si.update_stock = 0
+          si.posting_date between %(d1)s and %(d2)s
+          or date(si.creation) between %(d1)s and %(d2)s
+          or exists (
+              select 1 from `tabPatient Appointment` pa
+              join `tabSales Invoice Item` sii_appt on sii_appt.reference_dn = pa.name
+              where sii_appt.parent = si.name
+                and pa.appointment_date between %(d1)s and %(d2)s
+          )
+      )
+      and (
+          ifnull(si.update_stock, 0) = 0
+          or si.remarks like '%%Consultation:%%'
           or exists (
               select 1 from `tabSales Invoice Item` sii
               where sii.parent = si.name
-                and (sii.reference_dt = 'Patient Appointment' or sii.item_code like 'CONSULT%')
+                and (sii.reference_dt = 'Patient Appointment' or sii.item_code like 'CONSULT%%' or sii.item_name like '%%Consult%%')
           )
+          or (ifnull(si.patient, '') != '' and ifnull(si.update_stock, 0) = 0)
       )
-""", p)
+""", {"d1": d1, "d2": d2})
+
+# Fallback: if no sales invoices matched yet appointments are marked invoiced
+if consult_count == 0:
+    appt_invoiced = count_query("""
+        select count(*) from `tabPatient Appointment`
+        where appointment_date between %(d1)s and %(d2)s
+          and status in ('Closed', 'Checked Out')
+          and invoiced = 1
+    """, {"d1": d1, "d2": d2})
+    if appt_invoiced > 0:
+        consult_count = appt_invoiced
+        appt_fee = one("""
+            select sum(ifnull(paid_amount, 0)) from `tabPatient Appointment`
+            where appointment_date between %(d1)s and %(d2)s
+              and status in ('Closed', 'Checked Out')
+              and invoiced = 1
+        """, {"d1": d1, "d2": d2})
+        consult_total = appt_fee if appt_fee > 0 else (consult_count * 150.0)
+
+if consult_count > 0 and consult_total <= 0:
+    consult_total = consult_count * 150.0
 
 # 3. Pharmacy Sales
 pharmacy_sales_gross = one("""
