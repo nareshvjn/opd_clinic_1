@@ -573,18 +573,18 @@ function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'
 
 function call(method,params){
   var p=new URLSearchParams(params||{});
-  return fetch('/api/method/'+method+'?'+p,{headers:{Accept:'application/json'}}).then(function(r){
+  return fetch('/api/method/'+method+'?'+p,{headers:{Accept:'application/json'},credentials:'same-origin'}).then(function(r){
     if(r.status === 401 || r.status === 403){
       window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
-      return {};
+      throw new Error('Authentication required');
     }
     return r.json().catch(function(){return {}}).then(function(j){
       if(!r.ok){
         var t='Something went wrong.';
         try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message.replace(/<[^>]+>/g,'')}catch(e){}
-        if(r.status === 401 || r.status === 403 || /invalid request|not logged in|permission/i.test(t)){
+        if(r.status === 401 || r.status === 403 || /invalid request|not logged in/i.test(t)){
           window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
-          return {};
+          throw new Error('Session expired');
         }
         if(!t&&j.exception){
           var exp=String(j.exception).split(':');
@@ -636,8 +636,12 @@ function loadDashboard(){
 
   $('#loading').hidden = false;
   $('#content').hidden = true;
+  $('#loading').innerHTML = 'Loading dashboard metrics…';
 
   call('clinic_dash', {from: f, to: t}).then(function(d){
+    if(!d || !d.patients){
+      throw new Error('Invalid dashboard response data');
+    }
     $('#loading').hidden = true;
     $('#content').hidden = false;
 
