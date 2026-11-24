@@ -131,11 +131,96 @@
       '.clinic-menu-divider{height:1px;background:#eef3f0;margin:4px 0}' +
       '.clinic-menu-item.danger{color:#c0392b!important;font-weight:700}' +
       '.clinic-menu-item.danger:hover{background:#fdf0ef;color:#962d22!important}' +
+      '/* Hamburger menu profile button */' +
+      '.navbar-toggler.clinic-ham-btn, .navbar-toggle.clinic-ham-btn, button[data-toggle="collapse"].clinic-ham-btn, button[data-bs-toggle="collapse"].clinic-ham-btn {' +
+      '  border: none !important;' +
+      '  outline: none !important;' +
+      '  box-shadow: none !important;' +
+      '  background: transparent !important;' +
+      '  padding: 0 !important;' +
+      '  margin: 0 !important;' +
+      '  width: 38px !important;' +
+      '  height: 38px !important;' +
+      '  display: inline-flex !important;' +
+      '  align-items: center !important;' +
+      '  justify-content: center !important;' +
+      '  cursor: pointer !important;' +
+      '}' +
+      '.clinic-ham-btn .navbar-toggler-icon, .clinic-ham-btn svg:not(.clinic-chevron), .clinic-ham-btn .menu-icon, .clinic-ham-btn .icon-bar {' +
+      '  display: none !important;' +
+      '}' +
+      '.clinic-ham-avatar-wrap {' +
+      '  width: 36px;' +
+      '  height: 36px;' +
+      '  border-radius: 50%;' +
+      '  display: flex !important;' +
+      '  align-items: center;' +
+      '  justify-content: center;' +
+      '  transition: transform .15s ease;' +
+      '  position: relative;' +
+      '}' +
+      '.clinic-ham-btn:hover .clinic-ham-avatar-wrap, .clinic-ham-btn:active .clinic-ham-avatar-wrap {' +
+      '  transform: scale(1.06);' +
+      '}' +
+      '.clinic-ham-avatar {' +
+      '  width: 36px;' +
+      '  height: 36px;' +
+      '  border-radius: 50%;' +
+      '  object-fit: cover;' +
+      '  border: 2px solid #125c3a;' +
+      '  box-shadow: 0 2px 8px rgba(18, 92, 58, 0.28);' +
+      '  display: block;' +
+      '}' +
+      '.clinic-ham-initial {' +
+      '  background: linear-gradient(135deg, #125c3a 0%, #0d3d27 100%);' +
+      '  color: #f1c40f;' +
+      '  display: flex !important;' +
+      '  align-items: center;' +
+      '  justify-content: center;' +
+      '  font-size: 15px;' +
+      '  font-weight: 800;' +
+      '  border: 2px solid #f1c40f;' +
+      '  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);' +
+      '  line-height: 1;' +
+      '}' +
+      '@media(max-width:991px){' +
+      '  #clinic-floating-profile{display:none!important}' +
+      '}' +
       '@media(max-width:480px){' +
       '  .clinic-profile-btn .clinic-uname{display:none}' +
       '  .clinic-profile-dropdown{right:0;max-width:calc(100vw - 24px)}' +
       '}';
     document.head.appendChild(style);
+  }
+
+  // Build Profile Menu HTML
+  function buildDropdownHTML(profile) {
+    var userId = profile.user || '';
+    var email = profile.email || userId;
+    var name = profile.full_name || email.split('@')[0];
+    var initial = (name ? name.charAt(0) : 'U').toUpperCase();
+    var avatarLg = profile.user_image ? ('<img class="clinic-menu-avatar-lg" src="' + profile.user_image + '" alt="' + name + '">') : ('<span class="clinic-menu-avatar-lg">' + initial + '</span>');
+    var badgeText = profile.practitioner || (profile.can_dashboard ? 'Clinic Staff' : 'User');
+
+    return '' +
+      '<div class="clinic-menu-header">' +
+        avatarLg +
+        '<div class="clinic-menu-info">' +
+          '<div class="clinic-menu-name" title="' + name + '">' + name + '</div>' +
+          '<div class="clinic-menu-email" title="' + email + '">' + email + '</div>' +
+          '<div class="clinic-menu-badge">' + badgeText + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="clinic-menu-links">' +
+        '<a href="/doctor-desk" class="clinic-menu-item"><span>🩺</span> Doctor Desk</a>' +
+        '<a href="/registration" class="clinic-menu-item"><span>🏥</span> Registration</a>' +
+        '<a href="/pharmacy-home" class="clinic-menu-item"><span>💊</span> Pharmacy Home</a>' +
+        (profile.can_dashboard !== false ? '<a href="/dashboard" class="clinic-menu-item"><span>📊</span> Dashboard</a>' : '') +
+        '<a href="/home" class="clinic-menu-item"><span>🏠</span> Clinic Home</a>' +
+        '<a href="/app" class="clinic-menu-item"><span>⚙️</span> ERPNext Desk</a>' +
+        '<div class="clinic-menu-divider"></div>' +
+        '<button type="button" class="clinic-menu-item danger" onclick="window.clinicLogout(event)"><span>🚪</span> Logout</button>' +
+      '</div>';
   }
 
   // Build Profile Slot HTML
@@ -145,8 +230,6 @@
     var name = profile.full_name || email.split('@')[0];
     var initial = (name ? name.charAt(0) : 'U').toUpperCase();
     var avatarImg = profile.user_image ? ('<img class="clinic-avatar" src="' + profile.user_image + '" alt="' + name + '">') : ('<span class="clinic-avatar">' + initial + '</span>');
-    var avatarLg = profile.user_image ? ('<img class="clinic-menu-avatar-lg" src="' + profile.user_image + '" alt="' + name + '">') : ('<span class="clinic-menu-avatar-lg">' + initial + '</span>');
-    var badgeText = profile.practitioner || (profile.can_dashboard ? 'Clinic Staff' : 'User');
 
     slotEl.innerHTML = '' +
       '<button type="button" class="clinic-profile-btn" aria-label="User Profile">' +
@@ -155,23 +238,7 @@
         '<svg class="clinic-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
       '</button>' +
       '<div class="clinic-profile-dropdown">' +
-        '<div class="clinic-menu-header">' +
-          avatarLg +
-          '<div class="clinic-menu-info">' +
-            '<div class="clinic-menu-name" title="' + name + '">' + name + '</div>' +
-            '<div class="clinic-menu-email" title="' + email + '">' + email + '</div>' +
-            '<div class="clinic-menu-badge">' + badgeText + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="clinic-menu-links">' +
-          '<a href="/doctor-desk" class="clinic-menu-item"><span>🩺</span> Doctor Desk</a>' +
-          '<a href="/registration" class="clinic-menu-item"><span>🏥</span> Registration</a>' +
-          '<a href="/pharmacy-home" class="clinic-menu-item"><span>💊</span> Pharmacy Home</a>' +
-          (profile.can_dashboard !== false ? '<a href="/dashboard" class="clinic-menu-item"><span>📊</span> Dashboard</a>' : '') +
-          '<a href="/app" class="clinic-menu-item"><span>⚙️</span> ERPNext Desk</a>' +
-          '<div class="clinic-menu-divider"></div>' +
-          '<button type="button" class="clinic-menu-item danger" onclick="window.clinicLogout(event)"><span>🚪</span> Logout</button>' +
-        '</div>' +
+        buildDropdownHTML(profile) +
       '</div>';
 
     var btn = slotEl.querySelector('.clinic-profile-btn');
@@ -180,9 +247,75 @@
         e.stopPropagation();
         var wasOpen = slotEl.classList.contains('open');
         document.querySelectorAll('.clinic-profile-slot.open').forEach(function(s) { s.classList.remove('open'); });
+        var hamPop = document.getElementById('clinic-ham-dropdown-menu');
+        if (hamPop) hamPop.remove();
         if (!wasOpen) slotEl.classList.add('open');
       };
     }
+  }
+
+  // Update Hamburger Menu in navbar to show user profile pic
+  function updateHamburgerProfile(profile) {
+    if (!isUserLoggedIn()) return;
+
+    var togglers = document.querySelectorAll('.navbar-toggler, button[data-toggle="collapse"], button[data-bs-toggle="collapse"], .navbar-toggle, .btn-navbar-toggle');
+    if (!togglers.length) return;
+
+    var userId = profile.user || '';
+    var email = profile.email || userId;
+    var name = profile.full_name || email.split('@')[0];
+    var initial = (name ? name.charAt(0) : 'U').toUpperCase();
+
+    togglers.forEach(function(toggler) {
+      toggler.classList.add('clinic-ham-btn');
+      toggler.setAttribute('title', name + ' (' + email + ')');
+
+      var wrap = toggler.querySelector('.clinic-ham-avatar-wrap');
+      if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'clinic-ham-avatar-wrap';
+        toggler.appendChild(wrap);
+      }
+
+      if (profile.user_image) {
+        wrap.innerHTML = '<img class="clinic-ham-avatar" src="' + profile.user_image + '" alt="' + name + '" onerror="this.outerHTML=\'<span class=\\\'clinic-ham-avatar clinic-ham-initial\\\'>' + initial + '</span>\'">';
+      } else {
+        wrap.innerHTML = '<span class="clinic-ham-avatar clinic-ham-initial">' + initial + '</span>';
+      }
+
+      if (!toggler.getAttribute('data-clinic-ham-attached')) {
+        toggler.setAttribute('data-clinic-ham-attached', 'true');
+
+        toggler.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          var pop = document.getElementById('clinic-ham-dropdown-menu');
+          if (pop && pop.getAttribute('data-open') === 'true') {
+            pop.remove();
+            return;
+          }
+
+          if (pop) pop.remove();
+          document.querySelectorAll('.clinic-profile-slot.open').forEach(function(s) { s.classList.remove('open'); });
+
+          pop = document.createElement('div');
+          pop.id = 'clinic-ham-dropdown-menu';
+          pop.className = 'clinic-profile-dropdown';
+          pop.setAttribute('data-open', 'true');
+          pop.style.display = 'block';
+          pop.innerHTML = buildDropdownHTML(profile);
+
+          var rect = toggler.getBoundingClientRect();
+          pop.style.position = 'fixed';
+          pop.style.top = (rect.bottom + 8) + 'px';
+          pop.style.right = Math.max(10, window.innerWidth - rect.right) + 'px';
+          pop.style.zIndex = '999999';
+
+          document.body.appendChild(pop);
+        }, true);
+      }
+    });
   }
 
   // Setup Global Outside-Click & Escape Listeners
@@ -192,11 +325,21 @@
       document.querySelectorAll('.clinic-profile-slot.open').forEach(function(s) {
         if (!s.contains(e.target)) s.classList.remove('open');
       });
+      var pop = document.getElementById('clinic-ham-dropdown-menu');
+      if (pop && !pop.contains(e.target) && !e.target.closest('.clinic-ham-btn')) {
+        pop.remove();
+      }
     });
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' || e.keyCode === 27) {
         document.querySelectorAll('.clinic-profile-slot.open').forEach(function(s) { s.classList.remove('open'); });
+        var pop = document.getElementById('clinic-ham-dropdown-menu');
+        if (pop) pop.remove();
       }
+    });
+    window.addEventListener('resize', function() {
+      var pop = document.getElementById('clinic-ham-dropdown-menu');
+      if (pop) pop.remove();
     });
   }
 
@@ -205,6 +348,8 @@
     if (!isUserLoggedIn()) {
       var fl = document.getElementById('clinic-floating-profile');
       if (fl) fl.remove();
+      var pop = document.getElementById('clinic-ham-dropdown-menu');
+      if (pop) pop.remove();
       return;
     }
     if (window.location.pathname === '/login') return;
@@ -230,21 +375,27 @@
       };
     }
 
-    // Determine target slot: either custom header slot or floating slot
+    // 1. Transform Hamburger Menu in navbar into user profile pic
+    updateHamburgerProfile(cached);
+
+    // 2. Custom header slot or floating slot
     var slot = document.getElementById('clinic-user-profile');
     if (slot) {
       var fl = document.getElementById('clinic-floating-profile');
       if (fl) fl.remove();
       renderProfileSlot(slot, cached);
     } else {
-      var fl = document.getElementById('clinic-floating-profile');
-      if (!fl && document.body) {
-        fl = document.createElement('div');
-        fl.id = 'clinic-floating-profile';
-        fl.className = 'clinic-profile-slot';
-        document.body.appendChild(fl);
+      var hasNavbarToggler = document.querySelector('.navbar-toggler, .navbar-toggle');
+      if (!hasNavbarToggler) {
+        var fl = document.getElementById('clinic-floating-profile');
+        if (!fl && document.body) {
+          fl = document.createElement('div');
+          fl.id = 'clinic-floating-profile';
+          fl.className = 'clinic-profile-slot';
+          document.body.appendChild(fl);
+        }
+        if (fl) renderProfileSlot(fl, cached);
       }
-      if (fl) renderProfileSlot(fl, cached);
     }
 
     // Remove legacy standalone floating logout button if present
@@ -261,6 +412,7 @@
       .then(function(r) {
         if (r && r.message && r.message.logged_in) {
           try { sessionStorage.setItem('clinic_user_profile', JSON.stringify(r.message)); } catch(e) {}
+          updateHamburgerProfile(r.message);
           var currentSlot = document.getElementById('clinic-user-profile') || document.getElementById('clinic-floating-profile');
           if (currentSlot) renderProfileSlot(currentSlot, r.message);
         }
@@ -272,10 +424,27 @@
     }
   }
 
+  // Setup DOM Observers to re-apply if navbar loads dynamically
+  if (window.MutationObserver && !window._clinicHamObserverSet) {
+    window._clinicHamObserverSet = true;
+    var obs = new MutationObserver(function() {
+      if (isUserLoggedIn()) {
+        var cached = null;
+        try {
+          var s = sessionStorage.getItem('clinic_user_profile');
+          if (s) cached = JSON.parse(s);
+        } catch(e) {}
+        if (cached) updateHamburgerProfile(cached);
+      }
+    });
+    obs.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', ensureUserProfile);
   } else {
     ensureUserProfile();
   }
-  setTimeout(ensureUserProfile, 600);
+  setTimeout(ensureUserProfile, 300);
+  setTimeout(ensureUserProfile, 1000);
 })();
