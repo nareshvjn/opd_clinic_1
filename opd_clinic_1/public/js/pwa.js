@@ -42,4 +42,73 @@
   setMeta('apple-mobile-web-app-capable', 'yes');
   setMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
   setMeta('apple-mobile-web-app-title', 'Jeevan Health');
+
+  // Global clinicLogout handler
+  window.clinicLogout = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    try {
+      if (window.frappe && frappe.app && typeof frappe.app.logout === 'function') {
+        frappe.app.logout();
+        return;
+      }
+    } catch(err) {}
+
+    var token = (window.frappe && frappe.csrf_token) || window.csrf_token || '';
+    if (!token) {
+      var match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+      if (match) token = decodeURIComponent(match[1]);
+    }
+
+    fetch('/api/method/logout', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'X-Frappe-CSRF-Token': token
+      }
+    }).finally(function() {
+      window.location.href = '/login';
+    });
+  };
+
+  // Check if user is logged in
+  function isUserLoggedIn() {
+    try {
+      if (window.frappe && frappe.session_user && frappe.session_user !== 'Guest') return true;
+      if (window.frappe && frappe.session && frappe.session.user && frappe.session.user !== 'Guest') return true;
+      var match = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
+      if (match) {
+        var u = decodeURIComponent(match[1]);
+        if (u && u !== 'Guest') return true;
+      }
+    } catch(e) {}
+    return false;
+  }
+
+  // Ensure Logout button exists on all pages when logged in
+  function ensureLogoutBtn() {
+    if (!isUserLoggedIn()) return;
+    if (window.location.pathname === '/login') return;
+
+    if (document.querySelector('a[onclick*="clinicLogout"], button[onclick*="clinicLogout"], a[href*="logout"], a#btn-logout:not([hidden])')) {
+      return;
+    }
+
+    var btn = document.getElementById('clinic-float-logout');
+    if (!btn && document.body) {
+      btn = document.createElement('a');
+      btn.id = 'clinic-float-logout';
+      btn.href = 'javascript:void(0)';
+      btn.onclick = window.clinicLogout;
+      btn.innerHTML = '&#128682; Logout';
+      btn.setAttribute('style', 'position:fixed;top:10px;right:12px;z-index:99999;background:rgba(220,53,69,0.92);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:inline-flex;align-items:center;gap:4px;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.4);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;');
+      document.body.appendChild(btn);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureLogoutBtn);
+  } else {
+    ensureLogoutBtn();
+  }
+  setTimeout(ensureLogoutBtn, 600);
 })();

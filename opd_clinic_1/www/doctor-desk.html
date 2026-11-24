@@ -190,9 +190,10 @@
 </style>
 
 <div class="top-header">
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <h1 style="margin:0">🩺 Doctor Desk</h1>
     <a href="/dashboard" style="background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);padding:5px 12px;border-radius:8px;color:#fff;text-decoration:none;font-size:.82rem;font-weight:700">📊 Dashboard</a>
+    <a href="javascript:void(0)" onclick="clinicLogout()" style="background:rgba(220,53,69,0.25);border:1.5px solid rgba(255,255,255,0.45);padding:5px 12px;border-radius:8px;color:#fff;text-decoration:none;font-size:.82rem;font-weight:700;display:inline-flex;align-items:center;gap:4px">🚪 Logout</a>
   </div>
   <div class="badge-opd">OPD Consultations</div>
 </div>
@@ -233,17 +234,23 @@ function call(method,params,post){
       return j.message})})}
 
 function load(){
-  var q={date:$('#d-date').value},pr=$('#d-prac').value;
-  if(pr)q.practitioner=pr;
+  var q={date:$('#d-date').value};
+  var sel=$('#d-prac');
+  if(sel.dataset.ready==='1'){
+    q.practitioner=sel.value;
+  }
   call('desk_data',q).then(function(r){
     data=r;csrf=r.csrf||csrf;showErr('');
-    var sel=$('#d-prac');
     if(sel.dataset.ready!=='1'){
       sel.innerHTML='';
       if(r.can_pick)sel.add(new Option('All doctors',''));
       r.practitioners.forEach(function(p){sel.add(new Option(p.practitioner_name,p.name))});
+      if(r.prac){
+        sel.value=r.prac;
+      }
       if(!r.can_pick){sel.value=r.prac;sel.disabled=true}
-      sel.dataset.ready='1'}
+      sel.dataset.ready='1';
+    }
     render()
   }).catch(function(e){showErr(e.message)})}
 

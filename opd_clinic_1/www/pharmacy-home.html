@@ -243,7 +243,7 @@
   #dh .grid{grid-template-columns:1fr}
 }
 </style>
-<div class="hd"><div><h1 id="co">💊 Pharmacy</h1><p class="sub" id="upd">Loading...</p></div><button type="button" class="rf" id="rf">&#x21bb; Refresh</button></div>
+<div class="hd"><div><h1 id="co">💊 Pharmacy</h1><p class="sub" id="upd">Loading...</p></div><div style="display:flex;align-items:center;gap:8px"><button type="button" class="rf" id="rf">&#x21bb; Refresh</button><a href="javascript:void(0)" onclick="clinicLogout()" style="background:rgba(220,53,69,0.25);border:1.5px solid rgba(255,255,255,0.45);padding:6px 14px;border-radius:999px;color:#fff;text-decoration:none;font-size:.85rem;font-weight:700">Logout</a></div></div>
 <div id="err" class="note" hidden></div>
 <div class="chips" id="chips">
 <button type="button" class="chip" data-p="today" aria-pressed="true">Today</button>
@@ -285,6 +285,7 @@
 <a href="/purchase-import">Purchase import</a>
 <a href="/doctor-desk">Doctor desk</a>
 <a href="/app">Open ERPNext</a>
+<a href="javascript:void(0)" onclick="clinicLogout()" style="color:#c0392b;font-weight:800">🚪 Logout</a>
 </div>
 <script>
 (function(){

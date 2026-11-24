@@ -1,4 +1,9 @@
 <!-- title: Clinic Dashboard -->
+{% if frappe.session.user == "Guest" %}
+<script>
+window.location.replace('/login?redirect-to=' + encodeURIComponent(window.location.pathname + window.location.search));
+</script>
+{% endif %}
 <div id="cd">
 <style>
 #cd{
@@ -343,6 +348,10 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
       Pharmacy
     </a>
+    <a href="javascript:void(0)" onclick="clinicLogout()" class="nav-btn" style="background:rgba(220,53,69,0.25);border-color:rgba(255,255,255,0.45)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      Logout
+    </a>
   </div>
 </div>
 
@@ -554,6 +563,16 @@
 var $=function(s){return document.querySelector('#cd '+s)};
 var $$=function(s){return document.querySelectorAll('#cd '+s)};
 
+if(window.frappe && frappe.session_user === 'Guest'){
+  window.location.replace('/login?redirect-to=' + encodeURIComponent(window.location.pathname + window.location.search));
+  return;
+}
+var userMatch = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
+if(userMatch && decodeURIComponent(userMatch[1]) === 'Guest'){
+  window.location.replace('/login?redirect-to=' + encodeURIComponent(window.location.pathname + window.location.search));
+  return;
+}
+
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function inr(v){return '\u20B9'+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -561,10 +580,18 @@ function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'
 function call(method,params){
   var p=new URLSearchParams(params||{});
   return fetch('/api/method/'+method+'?'+p,{headers:{Accept:'application/json'}}).then(function(r){
+    if(r.status === 401 || r.status === 403){
+      window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
+      return {};
+    }
     return r.json().catch(function(){return {}}).then(function(j){
       if(!r.ok){
         var t='Something went wrong.';
         try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message.replace(/<[^>]+>/g,'')}catch(e){}
+        if(r.status === 401 || r.status === 403 || /invalid request|not logged in|permission/i.test(t)){
+          window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
+          return {};
+        }
         if(!t&&j.exception){
           var exp=String(j.exception).split(':');
           t=exp.length>1?exp.slice(1).join(':').trim():exp[0].trim();

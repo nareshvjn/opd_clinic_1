@@ -20,16 +20,24 @@ if not (is_admin or is_doctor):
 date = frappe.form_dict.get("date") or frappe.utils.today()
 mine = frappe.get_all("Healthcare Practitioner", filters={"user_id": user},
     fields=["name", "practitioner_name"], limit=1)
+my_prac = mine[0].name if mine else ""
 
-if mine and not is_admin:
-    prac = mine[0].name
-    practitioners = [mine[0]]
-    can_pick = False
-elif is_admin:
-    prac = frappe.form_dict.get("practitioner") or ""
+# If practitioner is explicitly sent in form_dict (even if empty string for "All doctors"):
+req_prac = frappe.form_dict.get("practitioner")
+if "practitioner" in frappe.form_dict:
+    prac = req_prac or ""
+else:
+    # First load / default: filter by logged-in doctor if linked!
+    prac = my_prac
+
+if is_admin:
     practitioners = frappe.get_all("Healthcare Practitioner", filters={"status": "Active"},
         fields=["name", "practitioner_name"], order_by="practitioner_name")
     can_pick = True
+elif mine:
+    prac = my_prac
+    practitioners = [mine[0]]
+    can_pick = False
 else:
     frappe.throw("Your user isn't linked to a Healthcare Practitioner. Ask an administrator to set the User ID on your practitioner record.")
 
@@ -125,6 +133,6 @@ except:
     token = ""
 
 frappe.response["message"] = {
-    "appointments": out, "practitioners": practitioners, "prac": prac,
+    "appointments": out, "practitioners": practitioners, "prac": prac, "my_prac": my_prac,
     "can_pick": can_pick, "statuses": statuses, "csrf": token, "modes": modes,
 }
