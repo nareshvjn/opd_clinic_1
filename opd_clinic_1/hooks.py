@@ -88,6 +88,9 @@ website_context = {
 # Installation
 # ------------
 
+after_migrate = "opd_clinic_1.setup.after_migrate"
+after_install = "opd_clinic_1.setup.after_migrate"
+
 # before_install = "opd_clinic_1.install.before_install"
 # after_install = "opd_clinic_1.install.after_install"
 
@@ -291,6 +294,7 @@ fixtures = [
                 [
                     "home",
                     "add-stock",
+                    "banner",
                     "consultation",
                     "contact",
                     "dashboard",
