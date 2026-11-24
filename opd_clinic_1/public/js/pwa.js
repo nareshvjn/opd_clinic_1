@@ -83,23 +83,6 @@
     });
   };
 
-  // Check if user is logged in
-  function isUserLoggedIn() {
-    try {
-      if (window.frappe && frappe.session_user && frappe.session_user !== 'Guest') return true;
-      if (window.frappe && frappe.session && frappe.session.user && frappe.session.user !== 'Guest') return true;
-      var u = getCookie('user_id');
-      if (u && u !== 'Guest') return true;
-    } catch(e) {}
-    return false;
-  }
-
-  // Get current user id
-  function getUserId() {
-    var u = (window.frappe && (frappe.session_user || (frappe.session && frappe.session.user))) || getCookie('user_id');
-    return (u && u !== 'Guest') ? u : null;
-  }
-
   // Inject Profile Styles
   function ensureProfileStyles() {
     if (document.getElementById('clinic-profile-styles')) return;
@@ -131,7 +114,7 @@
       '.clinic-menu-divider{height:1px;background:#eef3f0;margin:4px 0}' +
       '.clinic-menu-item.danger{color:#c0392b!important;font-weight:700}' +
       '.clinic-menu-item.danger:hover{background:#fdf0ef;color:#962d22!important}' +
-      '/* Hamburger menu profile button */' +
+      '/* Hamburger menu button transformation */' +
       '.navbar-toggler.clinic-ham-btn, .navbar-toggle.clinic-ham-btn, button[data-toggle="collapse"].clinic-ham-btn, button[data-bs-toggle="collapse"].clinic-ham-btn {' +
       '  border: none !important;' +
       '  outline: none !important;' +
@@ -146,42 +129,50 @@
       '  justify-content: center !important;' +
       '  cursor: pointer !important;' +
       '}' +
-      '.clinic-ham-btn .navbar-toggler-icon, .clinic-ham-btn svg:not(.clinic-chevron), .clinic-ham-btn .menu-icon, .clinic-ham-btn .icon-bar {' +
+      '/* Force hide all standard hamburger icon elements */' +
+      '.clinic-ham-btn > *:not(.clinic-ham-avatar-wrap), .clinic-ham-btn .navbar-toggler-icon, .clinic-ham-btn svg, .clinic-ham-btn .menu-icon, .clinic-ham-btn .icon-bar {' +
       '  display: none !important;' +
       '}' +
       '.clinic-ham-avatar-wrap {' +
-      '  width: 36px;' +
-      '  height: 36px;' +
-      '  border-radius: 50%;' +
-      '  display: flex !important;' +
-      '  align-items: center;' +
-      '  justify-content: center;' +
-      '  transition: transform .15s ease;' +
-      '  position: relative;' +
+      '  width: 36px !important;' +
+      '  height: 36px !important;' +
+      '  border-radius: 50% !important;' +
+      '  display: inline-flex !important;' +
+      '  align-items: center !important;' +
+      '  justify-content: center !important;' +
+      '  transition: transform .15s ease !important;' +
+      '  position: relative !important;' +
+      '  overflow: hidden !important;' +
+      '  box-sizing: border-box !important;' +
       '}' +
       '.clinic-ham-btn:hover .clinic-ham-avatar-wrap, .clinic-ham-btn:active .clinic-ham-avatar-wrap {' +
-      '  transform: scale(1.06);' +
+      '  transform: scale(1.08) !important;' +
       '}' +
       '.clinic-ham-avatar {' +
-      '  width: 36px;' +
-      '  height: 36px;' +
-      '  border-radius: 50%;' +
-      '  object-fit: cover;' +
-      '  border: 2px solid #125c3a;' +
-      '  box-shadow: 0 2px 8px rgba(18, 92, 58, 0.28);' +
-      '  display: block;' +
+      '  width: 36px !important;' +
+      '  height: 36px !important;' +
+      '  border-radius: 50% !important;' +
+      '  object-fit: cover !important;' +
+      '  border: 2px solid #125c3a !important;' +
+      '  box-shadow: 0 2px 8px rgba(18, 92, 58, 0.28) !important;' +
+      '  display: block !important;' +
+      '  box-sizing: border-box !important;' +
       '}' +
       '.clinic-ham-initial {' +
-      '  background: linear-gradient(135deg, #125c3a 0%, #0d3d27 100%);' +
-      '  color: #f1c40f;' +
-      '  display: flex !important;' +
-      '  align-items: center;' +
-      '  justify-content: center;' +
-      '  font-size: 15px;' +
-      '  font-weight: 800;' +
-      '  border: 2px solid #f1c40f;' +
-      '  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);' +
-      '  line-height: 1;' +
+      '  width: 36px !important;' +
+      '  height: 36px !important;' +
+      '  border-radius: 50% !important;' +
+      '  background: linear-gradient(135deg, #125c3a 0%, #0d3d27 100%) !important;' +
+      '  color: #f1c40f !important;' +
+      '  display: inline-flex !important;' +
+      '  align-items: center !important;' +
+      '  justify-content: center !important;' +
+      '  font-size: 16px !important;' +
+      '  font-weight: 800 !important;' +
+      '  border: 2px solid #f1c40f !important;' +
+      '  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;' +
+      '  line-height: 1 !important;' +
+      '  box-sizing: border-box !important;' +
       '}' +
       '@media(max-width:991px){' +
       '  #clinic-floating-profile{display:none!important}' +
@@ -256,8 +247,6 @@
 
   // Update Hamburger Menu in navbar to show user profile pic
   function updateHamburgerProfile(profile) {
-    if (!isUserLoggedIn()) return;
-
     var togglers = document.querySelectorAll('.navbar-toggler, button[data-toggle="collapse"], button[data-bs-toggle="collapse"], .navbar-toggle, .btn-navbar-toggle');
     if (!togglers.length) return;
 
@@ -272,7 +261,7 @@
 
       var wrap = toggler.querySelector('.clinic-ham-avatar-wrap');
       if (!wrap) {
-        wrap = document.createElement('div');
+        wrap = document.createElement('span');
         wrap.className = 'clinic-ham-avatar-wrap';
         toggler.appendChild(wrap);
       }
@@ -343,47 +332,19 @@
     });
   }
 
-  // Mount or Update Profile
-  function ensureUserProfile() {
-    if (!isUserLoggedIn()) {
-      var fl = document.getElementById('clinic-floating-profile');
-      if (fl) fl.remove();
-      var pop = document.getElementById('clinic-ham-dropdown-menu');
-      if (pop) pop.remove();
-      return;
-    }
-    if (window.location.pathname === '/login') return;
-
-    ensureProfileStyles();
-
-    // Check cached or fallback profile
-    var cached = null;
-    try {
-      var s = sessionStorage.getItem('clinic_user_profile');
-      if (s) cached = JSON.parse(s);
-    } catch(e) {}
-
-    var userId = getUserId();
-    if (!cached || cached.user !== userId) {
-      cached = {
-        logged_in: true,
-        user: userId,
-        email: userId,
-        full_name: getCookie('full_name') || userId.split('@')[0],
-        user_image: getCookie('user_image') || '',
-        can_dashboard: true
-      };
-    }
+  // Apply profile to UI
+  function applyProfile(profile) {
+    if (!profile || !profile.logged_in) return;
 
     // 1. Transform Hamburger Menu in navbar into user profile pic
-    updateHamburgerProfile(cached);
+    updateHamburgerProfile(profile);
 
     // 2. Custom header slot or floating slot
     var slot = document.getElementById('clinic-user-profile');
     if (slot) {
       var fl = document.getElementById('clinic-floating-profile');
       if (fl) fl.remove();
-      renderProfileSlot(slot, cached);
+      renderProfileSlot(slot, profile);
     } else {
       var hasNavbarToggler = document.querySelector('.navbar-toggler, .navbar-toggle');
       if (!hasNavbarToggler) {
@@ -394,27 +355,56 @@
           fl.className = 'clinic-profile-slot';
           document.body.appendChild(fl);
         }
-        if (fl) renderProfileSlot(fl, cached);
+        if (fl) renderProfileSlot(fl, profile);
       }
     }
 
-    // Remove legacy standalone floating logout button if present
     var oldLogout = document.getElementById('clinic-float-logout');
     if (oldLogout) oldLogout.remove();
+  }
 
-    // Asynchronously enrich profile via API
+  // Remove profile UI for guest
+  function removeProfile() {
+    var fl = document.getElementById('clinic-floating-profile');
+    if (fl) fl.remove();
+    var pop = document.getElementById('clinic-ham-dropdown-menu');
+    if (pop) pop.remove();
+  }
+
+  // Mount or Update Profile
+  function ensureUserProfile() {
+    if (window.location.pathname === '/login') return;
+
+    ensureProfileStyles();
+
+    // 1. Check cached profile in sessionStorage
+    var cached = null;
+    try {
+      var s = sessionStorage.getItem('clinic_user_profile');
+      if (s) cached = JSON.parse(s);
+    } catch(e) {}
+
+    if (cached && cached.logged_in) {
+      applyProfile(cached);
+    }
+
+    // 2. Fetch fresh profile from API
     if (!window._clinicProfileFetching) {
       window._clinicProfileFetching = true;
       fetch('/api/method/user_profile', {
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
       })
       .then(function(res) { return res.json(); })
       .then(function(r) {
-        if (r && r.message && r.message.logged_in) {
-          try { sessionStorage.setItem('clinic_user_profile', JSON.stringify(r.message)); } catch(e) {}
-          updateHamburgerProfile(r.message);
-          var currentSlot = document.getElementById('clinic-user-profile') || document.getElementById('clinic-floating-profile');
-          if (currentSlot) renderProfileSlot(currentSlot, r.message);
+        if (r && r.message) {
+          if (r.message.logged_in) {
+            try { sessionStorage.setItem('clinic_user_profile', JSON.stringify(r.message)); } catch(e) {}
+            applyProfile(r.message);
+          } else {
+            try { sessionStorage.removeItem('clinic_user_profile'); } catch(e) {}
+            removeProfile();
+          }
         }
       })
       .catch(function() {})
@@ -428,13 +418,13 @@
   if (window.MutationObserver && !window._clinicHamObserverSet) {
     window._clinicHamObserverSet = true;
     var obs = new MutationObserver(function() {
-      if (isUserLoggedIn()) {
-        var cached = null;
-        try {
-          var s = sessionStorage.getItem('clinic_user_profile');
-          if (s) cached = JSON.parse(s);
-        } catch(e) {}
-        if (cached) updateHamburgerProfile(cached);
+      var cached = null;
+      try {
+        var s = sessionStorage.getItem('clinic_user_profile');
+        if (s) cached = JSON.parse(s);
+      } catch(e) {}
+      if (cached && cached.logged_in) {
+        updateHamburgerProfile(cached);
       }
     });
     obs.observe(document.documentElement, { childList: true, subtree: true });
@@ -445,6 +435,7 @@
   } else {
     ensureUserProfile();
   }
-  setTimeout(ensureUserProfile, 300);
-  setTimeout(ensureUserProfile, 1000);
+  setTimeout(ensureUserProfile, 200);
+  setTimeout(ensureUserProfile, 800);
+  setTimeout(ensureUserProfile, 2000);
 })();

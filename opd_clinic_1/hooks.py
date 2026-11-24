@@ -27,11 +27,11 @@ app_logo_url = "/files/logo.png"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/opd_clinic_1/css/opd_clinic_1.css"
-app_include_js = "/assets/opd_clinic_1/js/pwa.js"
+app_include_js = ["/assets/opd_clinic_1/js/pwa.js", "/files/pwa.js"]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/opd_clinic_1/css/opd_clinic_1.css"
-web_include_js = "/assets/opd_clinic_1/js/pwa.js"
+web_include_js = "/files/pwa.js"
 
 website_context = {
 	"favicon": "/files/logo.png",
