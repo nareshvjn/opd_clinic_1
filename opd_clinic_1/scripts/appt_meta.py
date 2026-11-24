@@ -39,10 +39,23 @@ for r in rows:
             max_seq = val
 next_uid = prefix + str(max_seq + 1).zfill(6)
 
+user = frappe.session.user
+can_view_dash = False
+if user and user != "Guest":
+    allowed_roles = [
+        "Healthcare Administrator", "System Manager", "Physician",
+        "Stock Manager", "Stock User", "Accounts Manager", "Accounts User", "Sales User"
+    ]
+    for r in allowed_roles:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            can_view_dash = True
+            break
+
 frappe.response["message"] = {
     "practitioners": pr,
     "types": ty,
     "csrf": token,
     "next_uid": next_uid,
-    "is_guest": True if frappe.session.user == "Guest" else False
+    "is_guest": True if user == "Guest" else False,
+    "can_view_dashboard": can_view_dash
 }
