@@ -43,9 +43,23 @@
   setMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
   setMeta('apple-mobile-web-app-title', 'Jeevan Health');
 
+  // Helper: Cookie Reader
+  function getCookie(name) {
+    try {
+      var match = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]*)'));
+      return match ? decodeURIComponent(match[1]) : null;
+    } catch(e) { return null; }
+  }
+
   // Global clinicLogout handler
   window.clinicLogout = function(e) {
     if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+
+    try {
+      sessionStorage.removeItem('clinic_user_profile');
+    } catch(err) {}
+
     try {
       if (window.frappe && frappe.app && typeof frappe.app.logout === 'function') {
         frappe.app.logout();
@@ -55,8 +69,7 @@
 
     var token = (window.frappe && frappe.csrf_token) || window.csrf_token || '';
     if (!token) {
-      var match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
-      if (match) token = decodeURIComponent(match[1]);
+      token = getCookie('csrf_token') || '';
     }
 
     fetch('/api/method/logout', {
@@ -75,40 +88,194 @@
     try {
       if (window.frappe && frappe.session_user && frappe.session_user !== 'Guest') return true;
       if (window.frappe && frappe.session && frappe.session.user && frappe.session.user !== 'Guest') return true;
-      var match = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
-      if (match) {
-        var u = decodeURIComponent(match[1]);
-        if (u && u !== 'Guest') return true;
-      }
+      var u = getCookie('user_id');
+      if (u && u !== 'Guest') return true;
     } catch(e) {}
     return false;
   }
 
-  // Ensure Logout button exists on all pages when logged in
-  function ensureLogoutBtn() {
-    if (!isUserLoggedIn()) return;
-    if (window.location.pathname === '/login') return;
+  // Get current user id
+  function getUserId() {
+    var u = (window.frappe && (frappe.session_user || (frappe.session && frappe.session.user))) || getCookie('user_id');
+    return (u && u !== 'Guest') ? u : null;
+  }
 
-    if (document.querySelector('a[onclick*="clinicLogout"], button[onclick*="clinicLogout"], a[href*="logout"], a#btn-logout:not([hidden])')) {
+  // Inject Profile Styles
+  function ensureProfileStyles() {
+    if (document.getElementById('clinic-profile-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'clinic-profile-styles';
+    style.textContent = '' +
+      '.clinic-profile-slot{position:relative;display:inline-flex;align-items:center;vertical-align:middle;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}' +
+      '.clinic-profile-slot *{box-sizing:border-box}' +
+      '#clinic-floating-profile{position:fixed;top:10px;right:12px;z-index:99990}' +
+      '#clinic-floating-profile .clinic-profile-btn{background:rgba(13,61,39,0.92);border-color:rgba(255,255,255,0.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,0.22)}' +
+      '.clinic-profile-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);padding:3px 10px 3px 4px;border-radius:999px;cursor:pointer;color:#ffffff!important;font-size:13px;font-weight:700;line-height:1;transition:all .15s ease;text-decoration:none!important;box-shadow:0 2px 6px rgba(0,0,0,0.1);user-select:none}' +
+      '.clinic-profile-btn:hover{background:rgba(255,255,255,0.28);border-color:#ffffff;transform:translateY(-1px)}' +
+      '.clinic-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#f1c40f 0%,#d4ac0d 100%);color:#2b1d00;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:1.5px solid #ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2);flex-shrink:0}' +
+      '.clinic-uname{max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}' +
+      '.clinic-chevron{width:12px;height:12px;transition:transform .18s ease;opacity:0.9;flex-shrink:0}' +
+      '.clinic-profile-slot.open .clinic-chevron{transform:rotate(180deg)}' +
+      '.clinic-profile-dropdown{display:none;position:absolute;top:calc(100% + 8px);right:0;width:270px;background:#ffffff;border:1.5px solid #cfe0d7;border-radius:14px;box-shadow:0 14px 40px rgba(18,92,58,0.2),0 2px 10px rgba(0,0,0,0.08);padding:8px;z-index:999999;text-align:left;animation:clinicDropIn .16s ease-out;color:#11281e}' +
+      '.clinic-profile-slot.open .clinic-profile-dropdown{display:block}' +
+      '@keyframes clinicDropIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}' +
+      '.clinic-menu-header{padding:10px 12px 10px;border-bottom:1px solid #eef3f0;display:flex;align-items:center;gap:10px}' +
+      '.clinic-menu-avatar-lg{width:40px;height:40px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#125c3a 0%,#0d3d27 100%);color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex-shrink:0;border:2px solid #e2ece6}' +
+      '.clinic-menu-info{flex:1;min-width:0}' +
+      '.clinic-menu-name{font-size:14px;font-weight:800;color:#11281e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;line-height:1.25}' +
+      '.clinic-menu-email{font-size:11.5px;color:#546a5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0 0;line-height:1.2}' +
+      '.clinic-menu-badge{display:inline-block;background:#eef7f2;color:#125c3a;border:1px solid #cfe0d7;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:10px;margin-top:4px}' +
+      '.clinic-menu-links{padding:6px 0;margin:0}' +
+      '.clinic-menu-item{display:flex;align-items:center;gap:9px;padding:8px 12px;color:#11281e!important;text-decoration:none!important;font-size:13px;font-weight:600;border-radius:8px;transition:all .12s ease;cursor:pointer;border:none;background:none;width:100%;box-sizing:border-box;text-align:left;line-height:1.4}' +
+      '.clinic-menu-item:hover{background:#f4f9f6;color:#125c3a!important}' +
+      '.clinic-menu-divider{height:1px;background:#eef3f0;margin:4px 0}' +
+      '.clinic-menu-item.danger{color:#c0392b!important;font-weight:700}' +
+      '.clinic-menu-item.danger:hover{background:#fdf0ef;color:#962d22!important}' +
+      '@media(max-width:480px){' +
+      '  .clinic-profile-btn .clinic-uname{display:none}' +
+      '  .clinic-profile-dropdown{right:0;max-width:calc(100vw - 24px)}' +
+      '}';
+    document.head.appendChild(style);
+  }
+
+  // Build Profile Slot HTML
+  function renderProfileSlot(slotEl, profile) {
+    var userId = profile.user || '';
+    var email = profile.email || userId;
+    var name = profile.full_name || email.split('@')[0];
+    var initial = (name ? name.charAt(0) : 'U').toUpperCase();
+    var avatarImg = profile.user_image ? ('<img class="clinic-avatar" src="' + profile.user_image + '" alt="' + name + '">') : ('<span class="clinic-avatar">' + initial + '</span>');
+    var avatarLg = profile.user_image ? ('<img class="clinic-menu-avatar-lg" src="' + profile.user_image + '" alt="' + name + '">') : ('<span class="clinic-menu-avatar-lg">' + initial + '</span>');
+    var badgeText = profile.practitioner || (profile.can_dashboard ? 'Clinic Staff' : 'User');
+
+    slotEl.innerHTML = '' +
+      '<button type="button" class="clinic-profile-btn" aria-label="User Profile">' +
+        avatarImg +
+        '<span class="clinic-uname">' + name + '</span>' +
+        '<svg class="clinic-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+      '</button>' +
+      '<div class="clinic-profile-dropdown">' +
+        '<div class="clinic-menu-header">' +
+          avatarLg +
+          '<div class="clinic-menu-info">' +
+            '<div class="clinic-menu-name" title="' + name + '">' + name + '</div>' +
+            '<div class="clinic-menu-email" title="' + email + '">' + email + '</div>' +
+            '<div class="clinic-menu-badge">' + badgeText + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="clinic-menu-links">' +
+          '<a href="/doctor-desk" class="clinic-menu-item"><span>🩺</span> Doctor Desk</a>' +
+          '<a href="/registration" class="clinic-menu-item"><span>🏥</span> Registration</a>' +
+          '<a href="/pharmacy-home" class="clinic-menu-item"><span>💊</span> Pharmacy Home</a>' +
+          (profile.can_dashboard !== false ? '<a href="/dashboard" class="clinic-menu-item"><span>📊</span> Dashboard</a>' : '') +
+          '<a href="/app" class="clinic-menu-item"><span>⚙️</span> ERPNext Desk</a>' +
+          '<div class="clinic-menu-divider"></div>' +
+          '<button type="button" class="clinic-menu-item danger" onclick="window.clinicLogout(event)"><span>🚪</span> Logout</button>' +
+        '</div>' +
+      '</div>';
+
+    var btn = slotEl.querySelector('.clinic-profile-btn');
+    if (btn) {
+      btn.onclick = function(e) {
+        e.stopPropagation();
+        var wasOpen = slotEl.classList.contains('open');
+        document.querySelectorAll('.clinic-profile-slot.open').forEach(function(s) { s.classList.remove('open'); });
+        if (!wasOpen) slotEl.classList.add('open');
+      };
+    }
+  }
+
+  // Setup Global Outside-Click & Escape Listeners
+  if (!window._clinicProfileListenersAttached) {
+    window._clinicProfileListenersAttached = true;
+    document.addEventListener('click', function(e) {
+      document.querySelectorAll('.clinic-profile-slot.open').forEach(function(s) {
+        if (!s.contains(e.target)) s.classList.remove('open');
+      });
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        document.querySelectorAll('.clinic-profile-slot.open').forEach(function(s) { s.classList.remove('open'); });
+      }
+    });
+  }
+
+  // Mount or Update Profile
+  function ensureUserProfile() {
+    if (!isUserLoggedIn()) {
+      var fl = document.getElementById('clinic-floating-profile');
+      if (fl) fl.remove();
       return;
     }
+    if (window.location.pathname === '/login') return;
 
-    var btn = document.getElementById('clinic-float-logout');
-    if (!btn && document.body) {
-      btn = document.createElement('a');
-      btn.id = 'clinic-float-logout';
-      btn.href = 'javascript:void(0)';
-      btn.onclick = window.clinicLogout;
-      btn.innerHTML = '&#128682; Logout';
-      btn.setAttribute('style', 'position:fixed;top:10px;right:12px;z-index:99999;background:rgba(220,53,69,0.92);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:inline-flex;align-items:center;gap:4px;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.4);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;');
-      document.body.appendChild(btn);
+    ensureProfileStyles();
+
+    // Check cached or fallback profile
+    var cached = null;
+    try {
+      var s = sessionStorage.getItem('clinic_user_profile');
+      if (s) cached = JSON.parse(s);
+    } catch(e) {}
+
+    var userId = getUserId();
+    if (!cached || cached.user !== userId) {
+      cached = {
+        logged_in: true,
+        user: userId,
+        email: userId,
+        full_name: getCookie('full_name') || userId.split('@')[0],
+        user_image: getCookie('user_image') || '',
+        can_dashboard: true
+      };
+    }
+
+    // Determine target slot: either custom header slot or floating slot
+    var slot = document.getElementById('clinic-user-profile');
+    if (slot) {
+      var fl = document.getElementById('clinic-floating-profile');
+      if (fl) fl.remove();
+      renderProfileSlot(slot, cached);
+    } else {
+      var fl = document.getElementById('clinic-floating-profile');
+      if (!fl && document.body) {
+        fl = document.createElement('div');
+        fl.id = 'clinic-floating-profile';
+        fl.className = 'clinic-profile-slot';
+        document.body.appendChild(fl);
+      }
+      if (fl) renderProfileSlot(fl, cached);
+    }
+
+    // Remove legacy standalone floating logout button if present
+    var oldLogout = document.getElementById('clinic-float-logout');
+    if (oldLogout) oldLogout.remove();
+
+    // Asynchronously enrich profile via API
+    if (!window._clinicProfileFetching) {
+      window._clinicProfileFetching = true;
+      fetch('/api/method/user_profile', {
+        headers: { 'Accept': 'application/json' }
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(r) {
+        if (r && r.message && r.message.logged_in) {
+          try { sessionStorage.setItem('clinic_user_profile', JSON.stringify(r.message)); } catch(e) {}
+          var currentSlot = document.getElementById('clinic-user-profile') || document.getElementById('clinic-floating-profile');
+          if (currentSlot) renderProfileSlot(currentSlot, r.message);
+        }
+      })
+      .catch(function() {})
+      .finally(function() {
+        window._clinicProfileFetching = false;
+      });
     }
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureLogoutBtn);
+    document.addEventListener('DOMContentLoaded', ensureUserProfile);
   } else {
-    ensureLogoutBtn();
+    ensureUserProfile();
   }
-  setTimeout(ensureLogoutBtn, 600);
+  setTimeout(ensureUserProfile, 600);
 })();

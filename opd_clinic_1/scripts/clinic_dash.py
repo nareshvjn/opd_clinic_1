@@ -13,6 +13,8 @@ allowed_roles = [
     "Healthcare Administrator", "System Manager", "Physician",
     "Stock Manager", "Stock User", "Accounts Manager", "Accounts User", "Sales User"
 ]
+if user == "Administrator":
+    ok = True
 for r in allowed_roles:
     if frappe.db.exists("Has Role", {"parent": user, "role": r}):
         ok = True
