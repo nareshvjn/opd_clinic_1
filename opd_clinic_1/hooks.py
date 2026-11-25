@@ -297,6 +297,7 @@ fixtures = [
                     "banner",
                     "consultation",
                     "contact",
+                    "create-invoice",
                     "dashboard",
                     "distributor-bills",
                     "doctor-desk",

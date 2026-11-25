@@ -681,10 +681,50 @@ function submitInvoice(asDraft){
 $('#btn-submit').onclick=function(){ submitInvoice(false); };
 $('#btn-draft').onclick=function(){ submitInvoice(true); };
 
+// Default quick-pick services (also merged with catalog items when inv_meta loads)
+var DEFAULT_QUICK_SERVICES=[
+  {code:'', name:'Nebulisation Fee', rate:50, description:'Nebulisation Fee'},
+  {code:'', name:'IV Fluid Fee', rate:100, description:'IV Fluid Fee'},
+  {code:'', name:'Injection Fee', rate:50, description:'Injection Fee'}
+];
+
+function renderQuickChips(catalogItems){
+  var merged=[], seen={};
+  var byName={};
+  (catalogItems||[]).forEach(function(it){
+    var key=String(it.name||'').trim().toLowerCase();
+    if(key && !byName[key]) byName[key]=it;
+  });
+  DEFAULT_QUICK_SERVICES.forEach(function(def){
+    var key=def.name.toLowerCase(), match=byName[key];
+    seen[key]=true;
+    merged.push({
+      code: match ? (match.code||'') : '',
+      name: def.name,
+      rate: (match && n(match.rate)>0) ? n(match.rate) : def.rate,
+      description: (match && match.description) ? match.description : def.description
+    });
+  });
+  (catalogItems||[]).forEach(function(it){
+    if(merged.length>=12) return;
+    var key=String(it.name||'').trim().toLowerCase();
+    if(key && !seen[key]){
+      seen[key]=true;
+      merged.push(it);
+    }
+  });
+  quickItems=merged;
+  $('#ci-quick-wrap').hidden=!quickItems.length;
+  $('#ci-chips').innerHTML=quickItems.map(function(it, i){
+    return '<button type="button" class="chip" data-qidx="'+i+'">'+esc(it.name)+(n(it.rate)>0?' ('+inr(it.rate)+')':'')+'</button>';
+  }).join('');
+}
+
 // Initialize defaults and load metadata
 $('#ci-date').value=localIso();
 state.lines=[newLine({qty:1, rate:0, disc:0})];
 renderLines();
+renderQuickChips([]);
 
 call('inv_meta').then(function(m){
   csrf=m.csrf||'';
@@ -708,13 +748,7 @@ call('inv_meta').then(function(m){
     }).join('');
   }
 
-  quickItems=(m.items||[]).slice(0, 12);
-  if(quickItems.length){
-    $('#ci-quick-wrap').hidden=false;
-    $('#ci-chips').innerHTML=quickItems.map(function(it, i){
-      return '<button type="button" class="chip" data-qidx="'+i+'">'+esc(it.name)+(it.rate>0?' ('+inr(it.rate)+')':'')+'</button>';
-    }).join('');
-  }
+  renderQuickChips(m.items||[]);
 }).catch(function(e){ toast(e.message, 1); });
 })();
 </script>
