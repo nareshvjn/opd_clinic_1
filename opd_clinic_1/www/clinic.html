@@ -96,7 +96,7 @@ login_required: 1
     box-shadow:var(--shadow);
     border-color:var(--brand);
   }
-  #cl .tile-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+  #cl .tile-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
   #cl .tile-icon{
     width:48px;
     height:48px;
@@ -107,14 +107,6 @@ login_required: 1
     font-size:1.55rem;
     background:var(--bg);
     border:1px solid var(--line);
-  }
-  #cl .tile-num{
-    font-size:.72rem;
-    font-weight:800;
-    color:var(--mute);
-    background:var(--bg);
-    padding:2px 8px;
-    border-radius:10px;
   }
   #cl .tile-title{font-size:1.15rem;font-weight:900;color:var(--ink);margin:0 0 5px}
   #cl .tile-desc{font-size:.87rem;color:var(--mute);margin:0;line-height:1.45}
@@ -277,12 +269,11 @@ function renderPortal(profile){
 
   var grid = $('#cl-grid');
   grid.hidden = false;
-  grid.innerHTML = visible.map(function(t, idx){
+  grid.innerHTML = visible.map(function(t){
     return '<a class="tile' + (t.featured ? ' featured' : '') + '" href="' + esc(t.href) + '">' +
       '<div>' +
         '<div class="tile-top">' +
           '<span class="tile-icon">' + t.icon + '</span>' +
-          '<span class="tile-num">' + (idx + 1) + '</span>' +
         '</div>' +
         '<h2 class="tile-title">' + esc(t.title) + '</h2>' +
         '<p class="tile-desc">' + esc(t.desc) + '</p>' +

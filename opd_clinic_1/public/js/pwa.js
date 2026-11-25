@@ -247,7 +247,7 @@
         '</div>' +
       '</div>' +
       '<div class="clinic-menu-links">' +
-        '<a href="/home" class="clinic-menu-item"><span>🏠</span> Clinic Home</a>' +
+        '<a href="/clinic" class="clinic-menu-item"><span>🏠</span> Home</a>' +
         (profile.can_dashboard !== false ? '<a href="/dashboard" class="clinic-menu-item"><span>📊</span> Dashboard</a>' : '') +
         '<a href="/registration" class="clinic-menu-item"><span>🏥</span> Registration</a>' +
         '<a href="/doctor-desk" class="clinic-menu-item"><span>🩺</span> Doctor Desk</a>' +
@@ -422,9 +422,164 @@
     if (pop) pop.remove();
   }
 
+  // Apply Emerald & Gold Clinic Theme on /login
+  function ensureLoginTheme() {
+    if (!/^\/login\/?$/.test(window.location.pathname)) return;
+    if (document.body) document.body.classList.add('clinic-login-page');
+
+    if (!document.getElementById('clinic-login-theme')) {
+      var st = document.createElement('style');
+      st.id = 'clinic-login-theme';
+      st.textContent = '' +
+        'body.clinic-login-page, body[data-path="login"] {' +
+        '  background: linear-gradient(180deg, #e7f4ed 0%, #f4f9f6 100%) !important;' +
+        '  min-height: 100vh !important;' +
+        '  color: #11281e !important;' +
+        '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;' +
+        '}' +
+        'body.clinic-login-page .navbar, body[data-path="login"] .navbar {' +
+        '  background: linear-gradient(135deg, #0d3d27 0%, #125c3a 100%) !important;' +
+        '  border-bottom: 2px solid #f1c40f !important;' +
+        '  box-shadow: 0 4px 16px rgba(13, 61, 39, 0.16) !important;' +
+        '}' +
+        'body.clinic-login-page .navbar .navbar-brand, body[data-path="login"] .navbar .navbar-brand,' +
+        'body.clinic-login-page .navbar .nav-link, body[data-path="login"] .navbar .nav-link {' +
+        '  color: #fff !important;' +
+        '  font-weight: 700 !important;' +
+        '}' +
+        'body.clinic-login-page .for-login, body[data-path="login"] .for-login,' +
+        'body.clinic-login-page .for-forgot, body[data-path="login"] .for-forgot,' +
+        'body.clinic-login-page .for-login-with-email-link, body[data-path="login"] .for-login-with-email-link,' +
+        'body.clinic-login-page .for-signup, body[data-path="login"] .for-signup {' +
+        '  padding-top: 28px !important;' +
+        '  padding-bottom: 36px !important;' +
+        '}' +
+        'body.clinic-login-page .page-card, body[data-path="login"] .page-card {' +
+        '  background: #ffffff !important;' +
+        '  border: 1.5px solid #cfe0d7 !important;' +
+        '  border-radius: 16px !important;' +
+        '  box-shadow: 0 12px 34px rgba(18, 92, 58, 0.12) !important;' +
+        '  overflow: hidden !important;' +
+        '  max-width: 420px !important;' +
+        '  margin: 0 auto !important;' +
+        '  padding: 0 !important;' +
+        '}' +
+        'body.clinic-login-page .page-card-head, body[data-path="login"] .page-card-head {' +
+        '  background: linear-gradient(135deg, #0d3d27 0%, #125c3a 100%) !important;' +
+        '  padding: 24px 20px 20px !important;' +
+        '  margin: 0 !important;' +
+        '  text-align: center !important;' +
+        '  border-bottom: 2px solid #f1c40f !important;' +
+        '}' +
+        'body.clinic-login-page .page-card-head .app-logo, body[data-path="login"] .page-card-head .app-logo {' +
+        '  width: 60px !important;' +
+        '  height: 60px !important;' +
+        '  object-fit: contain !important;' +
+        '  background: #ffffff !important;' +
+        '  border-radius: 14px !important;' +
+        '  padding: 5px !important;' +
+        '  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22) !important;' +
+        '  margin: 0 auto 10px !important;' +
+        '  display: block !important;' +
+        '}' +
+        'body.clinic-login-page .page-card-head h4, body[data-path="login"] .page-card-head h4 {' +
+        '  color: #ffffff !important;' +
+        '  font-weight: 800 !important;' +
+        '  font-size: 1.2rem !important;' +
+        '  margin: 4px 0 0 !important;' +
+        '}' +
+        'body.clinic-login-page .clinic-login-brand-pill {' +
+        '  display: inline-block !important;' +
+        '  background: linear-gradient(135deg, #f1c40f, #d4ac0d) !important;' +
+        '  color: #2b1d00 !important;' +
+        '  font-size: 0.72rem !important;' +
+        '  font-weight: 800 !important;' +
+        '  letter-spacing: 0.05em !important;' +
+        '  text-transform: uppercase !important;' +
+        '  padding: 3px 11px !important;' +
+        '  border-radius: 20px !important;' +
+        '  margin-bottom: 6px !important;' +
+        '}' +
+        'body.clinic-login-page .login-content, body[data-path="login"] .login-content,' +
+        'body.clinic-login-page .page-card-body, body[data-path="login"] .page-card-body,' +
+        'body.clinic-login-page .form-signin, body[data-path="login"] .form-signin {' +
+        '  padding: 20px 22px 24px !important;' +
+        '}' +
+        'body.clinic-login-page .page-card .page-card-body .form-signin,' +
+        'body[data-path="login"] .page-card .page-card-body .form-signin {' +
+        '  padding: 0 !important;' +
+        '}' +
+        'body.clinic-login-page .form-control, body[data-path="login"] .form-control {' +
+        '  border: 1.5px solid #cfe0d7 !important;' +
+        '  border-radius: 9px !important;' +
+        '  padding: 10px 12px !important;' +
+        '  min-height: 42px !important;' +
+        '  background: #ffffff !important;' +
+        '  color: #11281e !important;' +
+        '  font-size: 14.5px !important;' +
+        '}' +
+        'body.clinic-login-page .form-control:focus, body[data-path="login"] .form-control:focus {' +
+        '  border-color: #125c3a !important;' +
+        '  box-shadow: 0 0 0 3px rgba(140, 201, 181, 0.45) !important;' +
+        '  outline: none !important;' +
+        '}' +
+        'body.clinic-login-page .btn-login, body[data-path="login"] .btn-login,' +
+        'body.clinic-login-page .btn-primary, body[data-path="login"] .btn-primary {' +
+        '  background: linear-gradient(135deg, #125c3a 0%, #0d3d27 100%) !important;' +
+        '  border: none !important;' +
+        '  border-radius: 9px !important;' +
+        '  color: #ffffff !important;' +
+        '  font-weight: 800 !important;' +
+        '  font-size: 15px !important;' +
+        '  padding: 10px 16px !important;' +
+        '  box-shadow: 0 4px 12px rgba(18, 92, 58, 0.24) !important;' +
+        '}' +
+        'body.clinic-login-page .btn-login:hover, body[data-path="login"] .btn-login:hover,' +
+        'body.clinic-login-page .btn-primary:hover, body[data-path="login"] .btn-primary:hover {' +
+        '  filter: brightness(1.08) !important;' +
+        '}' +
+        'body.clinic-login-page .forgot-password-message a, body[data-path="login"] .forgot-password-message a,' +
+        'body.clinic-login-page .page-card a, body[data-path="login"] .page-card a {' +
+        '  color: #125c3a !important;' +
+        '  font-weight: 700 !important;' +
+        '}' +
+        'body.clinic-login-page .password-field .toggle-password, body[data-path="login"] .password-field .toggle-password {' +
+        '  top: 50% !important;' +
+        '  transform: translateY(-50%) !important;' +
+        '  color: #125c3a !important;' +
+        '}' +
+        'body.clinic-login-page .web-footer, body[data-path="login"] .web-footer {' +
+        '  background: transparent !important;' +
+        '  border-top: 1px solid #cfe0d7 !important;' +
+        '}';
+      document.head.appendChild(st);
+    }
+
+    var heads = document.querySelectorAll('.page-card-head');
+    for (var i = 0; i < heads.length; i++) {
+      var head = heads[i];
+      var logo = head.querySelector('img.app-logo');
+      if (logo) {
+        logo.src = '/files/logo.png';
+        logo.alt = 'Jeevan Healthcare';
+      }
+      if (!head.querySelector('.clinic-login-brand-pill')) {
+        var badge = document.createElement('div');
+        badge.className = 'clinic-login-brand-pill';
+        badge.textContent = 'Jeevan Healthcare & Medicals';
+        var h4 = head.querySelector('h4');
+        if (h4) head.insertBefore(badge, h4);
+        else head.appendChild(badge);
+      }
+    }
+  }
+
   // Mount or Update Profile
   function ensureUserProfile() {
-    if (window.location.pathname === '/login') return;
+    if (/^\/login\/?$/.test(window.location.pathname)) {
+      ensureLoginTheme();
+      return;
+    }
 
     ensureProfileStyles();
 
@@ -465,6 +620,7 @@
     }
   }
 
+  ensureLoginTheme();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', ensureUserProfile);
   } else {
