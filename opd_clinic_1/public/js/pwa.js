@@ -201,11 +201,11 @@
         '</div>' +
       '</div>' +
       '<div class="clinic-menu-links">' +
-        '<a href="/doctor-desk" class="clinic-menu-item"><span>🩺</span> Doctor Desk</a>' +
-        '<a href="/registration" class="clinic-menu-item"><span>🏥</span> Registration</a>' +
-        '<a href="/pharmacy-home" class="clinic-menu-item"><span>💊</span> Pharmacy Home</a>' +
-        (profile.can_dashboard !== false ? '<a href="/dashboard" class="clinic-menu-item"><span>📊</span> Dashboard</a>' : '') +
         '<a href="/home" class="clinic-menu-item"><span>🏠</span> Clinic Home</a>' +
+        (profile.can_dashboard !== false ? '<a href="/dashboard" class="clinic-menu-item"><span>📊</span> Dashboard</a>' : '') +
+        '<a href="/registration" class="clinic-menu-item"><span>🏥</span> Registration</a>' +
+        '<a href="/doctor-desk" class="clinic-menu-item"><span>🩺</span> Doctor Desk</a>' +
+        '<a href="/pharmacy-home" class="clinic-menu-item"><span>💊</span> Pharmacy</a>' +
         '<a href="/app" class="clinic-menu-item"><span>⚙️</span> ERPNext Desk</a>' +
         '<div class="clinic-menu-divider"></div>' +
         '<button type="button" class="clinic-menu-item danger" onclick="window.clinicLogout(event)"><span>🚪</span> Logout</button>' +
