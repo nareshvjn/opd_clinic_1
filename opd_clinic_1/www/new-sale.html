@@ -829,7 +829,11 @@ $('#sl-done').onclick=function(){
     $('#edit-banner').style.display='none';
     $('#sl-done').textContent='Complete sale';
     var rc=$('#sl-receipt');rc.hidden=false;
-    rc.innerHTML='<h2>Sale complete</h2>Invoice <b>'+esc(r.invoice)+'</b>, total <b>'+inr(r.total)+'</b>'+(r.paid?', paid.':'.')+
+    rc.innerHTML='<h2>Sale complete</h2>'+
+      '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">'+
+        '<div>Invoice <b>'+esc(r.invoice)+'</b></div>'+
+        '<div>Total <b>'+inr(r.total)+'</b>'+(r.paid?' <span class="badge" style="margin-left:6px">Paid</span>':'')+'</div>'+
+      '</div>'+
       (r.note?'<p class="hint">'+esc(r.note)+'</p>':'')+
       '<p style="display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap">'+
       '<a class="btn go" style="text-decoration:none" href="/printview?doctype=Sales%20Invoice&name='+encodeURIComponent(r.invoice)+'&trigger_print=1" target="_blank" rel="noopener">Print invoice</a>'+

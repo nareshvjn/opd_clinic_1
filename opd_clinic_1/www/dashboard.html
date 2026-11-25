@@ -374,19 +374,25 @@ login_required: 1
 <div id="content" hidden>
   <!-- Main KPI Cards -->
   <div class="kpi-grid">
-    <!-- 1. Total Patients -->
+    <!-- 1. Patients -->
     <div class="card">
       <div>
         <div class="kpi-header">
-          <span class="kpi-title">Total Patients</span>
+          <span class="kpi-title">Patients</span>
           <span class="kpi-icon">👥</span>
         </div>
-        <div class="kpi-val" id="val-patients">0</div>
-        <div class="kpi-sub">
-          <span>Registered in clinic: <strong id="sub-pt-total">0</strong></span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px">
+          <div>
+            <div id="lbl-pt-visited" style="font-size:.72rem;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:0.03em">Visited That Day</div>
+            <div class="kpi-val" id="val-patients-visited" style="color:var(--brand);margin-bottom:0">0</div>
+          </div>
+          <div style="border-left:1.5px solid var(--line);padding-left:12px">
+            <div style="font-size:.72rem;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:0.03em">Total Till Date</div>
+            <div class="kpi-val" id="val-patients" style="margin-bottom:0">0</div>
+          </div>
         </div>
         <div class="kpi-sub" style="margin-top:4px">
-          <span>New in period: <strong id="sub-pt-new">0</strong></span> &bull; 
+          <span>New registered: <strong id="sub-pt-new">0</strong></span> &bull; 
           <span>Visits: <strong id="sub-pt-appts">0</strong></span>
         </div>
       </div>
@@ -530,6 +536,10 @@ login_required: 1
         <span class="row-val brand" id="dt-new-patients">0</span>
       </div>
       <div class="row-item">
+        <span class="row-lbl">Patients Visited</span>
+        <span class="row-val brand" id="dt-visited-patients">0</span>
+      </div>
+      <div class="row-item">
         <span class="row-lbl">Total Scheduled Appointments</span>
         <span class="row-val" id="dt-total-appts">0</span>
       </div>
@@ -648,10 +658,12 @@ function loadDashboard(){
     $('#sub-title').textContent = (f === t) ? ('Metrics for ' + f) : ('Metrics from ' + f + ' to ' + t);
 
     // 1. Patients
-    $('#val-patients').textContent = d.patients.total.toLocaleString();
-    $('#sub-pt-total').textContent = d.patients.total.toLocaleString();
-    $('#sub-pt-new').textContent = d.patients.new.toLocaleString();
-    $('#sub-pt-appts').textContent = d.patients.appointments.toLocaleString();
+    var visitedCount = (d.patients.visited != null) ? d.patients.visited : d.patients.appointments;
+    $('#lbl-pt-visited').textContent = (f === t) ? ((f === iso(new Date())) ? 'Visited Today' : 'Visited That Day') : 'Visited in Period';
+    $('#val-patients-visited').textContent = Number(visitedCount || 0).toLocaleString();
+    $('#val-patients').textContent = Number(d.patients.total || 0).toLocaleString();
+    $('#sub-pt-new').textContent = Number(d.patients.new || 0).toLocaleString();
+    $('#sub-pt-appts').textContent = Number(d.patients.appointments || 0).toLocaleString();
 
     // 2. Consultation
     $('#val-consult').textContent = inr(d.consultation.total);
@@ -687,6 +699,7 @@ function loadDashboard(){
 
     // 7. Doctor & Outpatient Breakdown
     $('#dt-new-patients').textContent = d.patients.new;
+    $('#dt-visited-patients').textContent = visitedCount;
     $('#dt-total-appts').textContent = d.patients.appointments;
     $('#dt-completed-appts').textContent = d.patients.completed;
 

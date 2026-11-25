@@ -45,10 +45,12 @@ except Exception:
 
 total_appts = 0
 completed_appts = 0
+visited_patients = 0
 try:
     r = frappe.db.sql("""
         select
             count(*) as total,
+            count(distinct case when ifnull(patient, '') != '' then patient end) as visited,
             sum(case when status in ('Closed', 'Checked Out') then 1 else 0 end) as completed
         from `tabPatient Appointment`
         where appointment_date between %(d1)s and %(d2)s
@@ -56,7 +58,26 @@ try:
     """, q_params, as_dict=True)
     if r and r[0]:
         total_appts = int(r[0].total or 0)
+        visited_patients = int(r[0].visited or 0)
         completed_appts = int(r[0].completed or 0)
+except Exception:
+    pass
+
+try:
+    rv = frappe.db.sql("""
+        select count(distinct patient) as visited
+        from (
+            select patient from `tabPatient Appointment`
+            where appointment_date between %(d1)s and %(d2)s
+              and status != 'Cancelled' and ifnull(patient, '') != ''
+            union
+            select patient from `tabPatient Encounter`
+            where encounter_date between %(d1)s and %(d2)s
+              and docstatus < 2 and ifnull(patient, '') != ''
+        ) v
+    """, q_params, as_dict=True)
+    if rv and rv[0] and rv[0].visited is not None:
+        visited_patients = int(rv[0].visited or 0)
 except Exception:
     pass
 
@@ -234,6 +255,7 @@ frappe.response["message"] = {
     "to": d2,
     "patients": {
         "total": total_patients,
+        "visited": visited_patients,
         "new": new_patients,
         "appointments": total_appts,
         "completed": completed_appts
