@@ -234,6 +234,14 @@ var TILES=[
     icon:'🧾',
     desc:'Create general invoices for consultations, injections, nebulisation, and procedures.',
     action:'Create Invoice'
+  },
+  {
+    key:'erpnext',
+    title:'ERPNext',
+    href:'/app',
+    icon:'⚙️',
+    desc:'Open ERPNext Desk for accounts, reports, stock ledgers, and master settings.',
+    action:'Open ERPNext Desk'
   }
 ];
 
@@ -257,7 +265,8 @@ function renderPortal(profile){
     registration: true,
     doctor_desk: !!(profile.is_admin || profile.practitioner),
     pharmacy: !!profile.is_admin,
-    sales: profile.can_dashboard !== false
+    sales: profile.can_dashboard !== false,
+    erpnext: !!(profile.is_admin || profile.can_dashboard)
   };
 
   var visible = TILES.filter(function(t){ return !!perms[t.key]; });

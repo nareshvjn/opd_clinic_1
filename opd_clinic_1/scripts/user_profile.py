@@ -14,7 +14,7 @@ if not user or user == "Guest":
         "user": "Guest"
     }
 else:
-    u = frappe.db.get_value("User", user, ["name", "email", "first_name", "last_name", "full_name", "user_image"], as_dict=True) or {}
+    u = frappe.db.get_value("User", user, ["name", "email", "first_name", "last_name", "full_name", "user_image", "user_type"], as_dict=True) or {}
     prac = frappe.db.get_value("Healthcare Practitioner", {"user_id": user}, ["name", "practitioner_name", "department"], as_dict=True) or {}
 
     role_rows = frappe.get_all("Has Role", filters={"parent": user}, fields=["role"])
@@ -57,6 +57,9 @@ else:
                 can_sales = True
                 break
 
+    # Frappe Desk (/app) requires System User type
+    can_erpnext = is_super or (u.get("user_type") == "System User")
+
     full_name = u.get("full_name") or u.get("first_name") or ""
     if not full_name:
         full_name = user.split("@")[0].title() if "@" in user else user
@@ -77,6 +80,7 @@ else:
             "registration": can_registration,
             "doctor_desk": can_doctor_desk,
             "pharmacy": can_pharmacy,
-            "sales": can_sales
+            "sales": can_sales,
+            "erpnext": can_erpnext
         }
     }
