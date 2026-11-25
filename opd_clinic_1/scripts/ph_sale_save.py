@@ -103,10 +103,12 @@ si.posting_date = posting_date
 si.set_posting_time = 1
 si.update_stock = 1
 si.set_warehouse = wh
+si.ignore_pricing_rule = 1
 
 if patient and frappe.db.exists("Patient", patient):
     si.patient = patient
 
+line_pricing = []
 for ln in lines:
     batch_doc = ln.get("batch")
     b = frappe.get_doc("Batch", batch_doc)
@@ -125,23 +127,52 @@ for ln in lines:
     qty = num(ln.get("packs")) * upp + num(ln.get("units"))
     rate_incl = num(ln.get("rate"))
     rate_unit = rate_incl / upp
+    disc = num(ln.get("disc"))
+    if disc < 0:
+        disc = 0.0
+    elif disc > 100:
+        disc = 100.0
+    disc_unit = rate_unit * (disc / 100.0)
+    net_unit = rate_unit - disc_unit
+
+    pricing = {
+        "price_list_rate": rate_unit,
+        "discount_percentage": disc,
+        "discount_amount": disc_unit,
+        "rate": net_unit
+    }
+    line_pricing.append(pricing)
 
     item_row = {
         "item_code": b.item,
         "qty": qty,
-        "rate": rate_unit,
+        "price_list_rate": rate_unit,
+        "margin_type": "",
+        "margin_rate_or_amount": 0,
+        "discount_percentage": disc,
+        "discount_amount": disc_unit,
+        "rate": net_unit,
         "warehouse": wh,
         "batch_no": b.name,
         "income_account": co.default_income_account,
         "cost_center": co.cost_center
     }
-    disc = num(ln.get("disc"))
-    if disc > 0:
-        item_row["discount_percentage"] = disc
 
     si.append("items", item_row)
 
 si.run_method("set_missing_values")
+# Re-apply explicit MRP and discount after set_missing_values so Item Price or Pricing Rules do not reset rate.
+si.ignore_pricing_rule = 1
+for idx in range(len(line_pricing)):
+    row = si.items[idx]
+    lp = line_pricing[idx]
+    row.price_list_rate = lp["price_list_rate"]
+    row.margin_type = ""
+    row.margin_rate_or_amount = 0
+    row.discount_percentage = lp["discount_percentage"]
+    row.discount_amount = lp["discount_amount"]
+    row.rate = lp["rate"]
+
 if not si.debit_to:
     si.debit_to = co.default_receivable_account
 

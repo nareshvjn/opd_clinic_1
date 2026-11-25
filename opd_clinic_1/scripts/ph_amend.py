@@ -60,18 +60,49 @@ if doctype == "Sales Invoice":
     for it in doc.items:
         batch_no = it.batch_no or ""
         upp = 1
-        mrp = it.rate
-        net_rate = it.rate
+        batch_mrp = 0.0
+        net_rate = float(it.rate or 0)
         gst = 0
         exp = ""
         if batch_no and frappe.db.exists("Batch", batch_no):
             b = frappe.get_doc("Batch", batch_no)
-            upp = int(b.units_per_pack or 1)
-            mrp = float(b.mrp or it.rate)
-            net_rate = float(b.net_rate or it.rate)
+            upp = b.get("units_per_pack") or b.get("custom_units_per_pack")
+            if not upp or int(upp) <= 1:
+                clean = str(b.item).lower().replace("'", " ").replace("(", " ").replace(")", " ")
+                for w in clean.split():
+                    if w.endswith("s") and len(w) > 1 and w[:-1].isdigit():
+                        val = int(w[:-1])
+                        if 1 < val <= 500:
+                            upp = val
+                            break
+            upp = int(upp or 1)
+            if upp < 1:
+                upp = 1
+            batch_mrp = float(b.mrp or 0)
+            net_rate = float(b.net_rate or it.rate or 0)
             gst = float(b.gst_rate or 0)
             if b.expiry_date:
                 exp = str(b.expiry_date)
+
+        pl_pack = round(float(it.price_list_rate or 0) * upp, 2)
+        disc_pct = float(it.discount_percentage or 0)
+        # Preserve batch MRP unless invoice explicitly overrode price_list_rate beyond unit-division rounding.
+        if batch_mrp > 0 and (pl_pack <= 0 or (-0.2 < (pl_pack - batch_mrp) < 0.2)):
+            mrp = batch_mrp
+        elif pl_pack > 0:
+            mrp = pl_pack
+        elif 0 < disc_pct < 100 and float(it.rate or 0) > 0:
+            mrp = round((float(it.rate) * upp) / (1.0 - disc_pct / 100.0), 2)
+        else:
+            mrp = round(float(it.rate or 0) * upp, 2)
+
+        unit_tol = 0.006 * upp
+        if unit_tol < 0.02:
+            unit_tol = 0.02
+        if disc_pct <= 0 and mrp > 0 and float(it.rate or 0) > 0:
+            eff_pack = float(it.rate) * upp
+            if eff_pack < mrp - unit_tol:
+                disc_pct = round((1.0 - eff_pack / mrp) * 100.0, 4)
 
         packs = int(it.qty // upp)
         units = int(round(it.qty % upp))
@@ -84,7 +115,7 @@ if doctype == "Sales Invoice":
             "qty": float(it.qty or 0),
             "rate": mrp,
             "net_rate": net_rate,
-            "disc": float(it.discount_percentage or 0),
+            "disc": disc_pct,
             "upp": upp,
             "expiry": exp
         })
