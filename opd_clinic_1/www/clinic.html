@@ -2,7 +2,18 @@
 title: Clinic Portal
 login_required: 1
 ---
-<div id="cl">
+<div id="cl" style="display:none">
+<script>
+(function(){
+  var u = (window.frappe && (frappe.session_user || (frappe.session && frappe.session.user))) || (function(){
+    var m = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  })();
+  if(!u || u === 'Guest'){
+    window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
+  }
+})();
+</script>
 <style>
   #cl *{box-sizing:border-box}
   #cl{
@@ -173,14 +184,22 @@ login_required: 1
 
 <script>
 (function(){
-var curUser = (window.frappe && (frappe.session_user || (frappe.session && frappe.session.user))) || (function(){
-  var m = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
-  return m ? decodeURIComponent(m[1]) : '';
-})();
-if(curUser === 'Guest'){
-  window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
-  return;
+var root = document.getElementById('cl');
+function checkAuthCookie(){
+  var u = (window.frappe && (frappe.session_user || (frappe.session && frappe.session.user))) || (function(){
+    var m = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  })();
+  if(!u || u === 'Guest'){
+    window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
+    return false;
+  }
+  return true;
 }
+if(!checkAuthCookie()) return;
+window.addEventListener('pageshow', function(e){
+  if(e && e.persisted) checkAuthCookie();
+});
 
 var $=function(s){return document.querySelector('#cl '+s)};
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
@@ -243,6 +262,7 @@ function renderPortal(profile){
     window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
     return;
   }
+  if(root) root.style.display='';
 
   var name = profile.full_name || profile.user || 'Staff';
   $('#cl-sub').textContent = 'Welcome, ' + name;
@@ -285,7 +305,8 @@ function renderPortal(profile){
 
 fetch('/api/method/user_profile', {
   headers:{Accept:'application/json'},
-  credentials:'same-origin'
+  credentials:'same-origin',
+  cache:'no-store'
 }).then(function(r){
   if(r.status===401 || r.status===403){
     window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
@@ -296,6 +317,7 @@ fetch('/api/method/user_profile', {
     return j.message;
   });
 }).then(renderPortal).catch(function(e){
+  if(root) root.style.display='';
   $('#cl-loading').hidden=true;
   var err=$('#cl-err');
   err.textContent=e.message||'Unable to load clinic workspace.';
