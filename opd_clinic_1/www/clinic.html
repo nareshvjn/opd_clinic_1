@@ -1,0 +1,306 @@
+---
+title: Clinic Portal
+login_required: 1
+---
+<div id="cl">
+<style>
+  #cl *{box-sizing:border-box}
+  #cl{
+    --ink:#11281e;
+    --mute:#546a5f;
+    --line:#cfe0d7;
+    --bg:#f4f9f6;
+    --brand:#125c3a;
+    --brand-dark:#0d3d27;
+    --gold:#f1c40f;
+    --shadow:0 8px 28px rgba(18,92,58,0.09);
+    --shadow-sm:0 2px 10px rgba(18,92,58,0.06);
+    max-width:980px;
+    margin:0 auto;
+    padding:16px 14px 80px;
+    color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  #cl .hero{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:14px;
+    padding:20px 22px;
+    margin-bottom:20px;
+    background:linear-gradient(135deg,#0d3d27 0%,#125c3a 100%);
+    border-radius:16px;
+    color:#fff;
+    box-shadow:var(--shadow);
+  }
+  #cl .hero-brand{display:flex;align-items:center;gap:14px}
+  #cl .hero-logo{
+    width:48px;
+    height:48px;
+    border-radius:12px;
+    background:#fff;
+    padding:3px;
+    object-fit:contain;
+    flex-shrink:0;
+    box-shadow:0 2px 8px rgba(0,0,0,.18);
+  }
+  #cl .hero h1{margin:0;font-size:1.45rem;font-weight:900;color:#fff;letter-spacing:-.01em}
+  #cl .hero p{margin:2px 0 0;font-size:.88rem;color:rgba(255,255,255,.86)}
+  #cl .hero-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #cl .role-pill{
+    background:linear-gradient(135deg,#f1c40f,#d4ac0d);
+    color:#2b1d00;
+    font-size:.74rem;
+    font-weight:800;
+    padding:4px 11px;
+    border-radius:20px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  #cl .home-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:7px 13px;
+    border-radius:9px;
+    font-size:.84rem;
+    font-weight:700;
+    text-decoration:none;
+    color:#fff;
+    background:rgba(255,255,255,.16);
+    border:1.5px solid rgba(255,255,255,.38);
+    transition:background .15s ease;
+  }
+  #cl .home-btn:hover{background:rgba(255,255,255,.28)}
+  #cl .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:16px;
+  }
+  #cl .tile{
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    text-decoration:none;
+    color:inherit;
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:15px;
+    padding:20px;
+    box-shadow:var(--shadow-sm);
+    transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+  }
+  #cl .tile:hover{
+    transform:translateY(-3px);
+    box-shadow:var(--shadow);
+    border-color:var(--brand);
+  }
+  #cl .tile-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+  #cl .tile-icon{
+    width:48px;
+    height:48px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.55rem;
+    background:var(--bg);
+    border:1px solid var(--line);
+  }
+  #cl .tile-num{
+    font-size:.72rem;
+    font-weight:800;
+    color:var(--mute);
+    background:var(--bg);
+    padding:2px 8px;
+    border-radius:10px;
+  }
+  #cl .tile-title{font-size:1.15rem;font-weight:900;color:var(--ink);margin:0 0 5px}
+  #cl .tile-desc{font-size:.87rem;color:var(--mute);margin:0;line-height:1.45}
+  #cl .tile-foot{
+    margin-top:16px;
+    padding-top:11px;
+    border-top:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:.84rem;
+    font-weight:800;
+    color:var(--brand);
+  }
+  #cl .tile.featured{
+    background:linear-gradient(135deg,#ffffff 0%,#f0f8f3 100%);
+    border-color:#8cc9b5;
+  }
+  #cl .state-box{
+    text-align:center;
+    padding:36px 20px;
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:14px;
+    color:var(--mute);
+    font-weight:700;
+  }
+  #cl .err-box{
+    padding:14px 16px;
+    background:#fdf2f2;
+    color:#c0392b;
+    border-left:4px solid #c0392b;
+    border-radius:8px;
+    font-weight:600;
+  }
+  #cl [hidden]{display:none!important}
+  @media(max-width:560px){
+    #cl .hero{padding:16px}
+    #cl .grid{grid-template-columns:1fr}
+  }
+</style>
+
+<div class="hero">
+  <div class="hero-brand">
+    <img class="hero-logo" src="/files/logo.png" alt="Jeevan Healthcare" onerror="this.style.display='none'">
+    <div>
+      <h1 id="cl-title">Jeevan Healthcare</h1>
+      <p id="cl-sub">Loading workspace...</p>
+    </div>
+  </div>
+  <div class="hero-actions">
+    <span id="cl-role" class="role-pill" hidden></span>
+    <a href="/home" class="home-btn">🏠 Public Home</a>
+  </div>
+</div>
+
+<div id="cl-loading" class="state-box">Checking your permissions...</div>
+<div id="cl-err" class="err-box" hidden></div>
+<div id="cl-grid" class="grid" hidden></div>
+<div id="cl-empty" class="state-box" hidden>
+  <p style="margin:0 0 12px">No modules are enabled for your account yet.</p>
+  <a href="/home" class="home-btn" style="background:var(--brand);border-color:var(--brand)">Go to Clinic Home</a>
+</div>
+
+<script>
+(function(){
+var curUser = (window.frappe && (frappe.session_user || (frappe.session && frappe.session.user))) || (function(){
+  var m = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
+  return m ? decodeURIComponent(m[1]) : '';
+})();
+if(curUser === 'Guest'){
+  window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
+  return;
+}
+
+var $=function(s){return document.querySelector('#cl '+s)};
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+
+var TILES=[
+  {
+    key:'dashboard',
+    title:'Dashboard',
+    href:'/dashboard',
+    icon:'📊',
+    desc:'Clinic KPIs, patient visits, consultation revenue, and profit overview.',
+    action:'Open Dashboard',
+    featured:true
+  },
+  {
+    key:'registration',
+    title:'Registration',
+    href:'/registration',
+    icon:'🏥',
+    desc:'Register new or existing patients and book doctor appointment slots.',
+    action:'Open Registration'
+  },
+  {
+    key:'doctor_desk',
+    title:'Doctor Desk',
+    href:'/doctor-desk',
+    icon:'🩺',
+    desc:'View appointment queue, record vitals, consultations, and prescriptions.',
+    action:'Open Doctor Desk'
+  },
+  {
+    key:'pharmacy',
+    title:'Pharmacy',
+    href:'/pharmacy-home',
+    icon:'💊',
+    desc:'Pharmacy dashboard, medicine sales, stock batches, and supplier purchases.',
+    action:'Open Pharmacy'
+  },
+  {
+    key:'sales',
+    title:'Sales',
+    href:'/create-invoice',
+    icon:'🧾',
+    desc:'Create general invoices for consultations, injections, nebulisation, and procedures.',
+    action:'Create Invoice'
+  }
+];
+
+function renderPortal(profile){
+  $('#cl-loading').hidden=true;
+  if(!profile || !profile.logged_in){
+    window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
+    return;
+  }
+
+  var name = profile.full_name || profile.user || 'Staff';
+  $('#cl-sub').textContent = 'Welcome, ' + name;
+
+  var badge = profile.practitioner || (profile.is_admin ? 'Administrator' : (profile.can_dashboard ? 'Clinic Staff' : 'User'));
+  var roleEl = $('#cl-role');
+  roleEl.textContent = badge;
+  roleEl.hidden = false;
+
+  var perms = profile.permissions || {
+    dashboard: profile.can_dashboard !== false,
+    registration: true,
+    doctor_desk: !!(profile.is_admin || profile.practitioner),
+    pharmacy: !!profile.is_admin,
+    sales: profile.can_dashboard !== false
+  };
+
+  var visible = TILES.filter(function(t){ return !!perms[t.key]; });
+  if(!visible.length){
+    $('#cl-empty').hidden=false;
+    return;
+  }
+
+  var grid = $('#cl-grid');
+  grid.hidden = false;
+  grid.innerHTML = visible.map(function(t, idx){
+    return '<a class="tile' + (t.featured ? ' featured' : '') + '" href="' + esc(t.href) + '">' +
+      '<div>' +
+        '<div class="tile-top">' +
+          '<span class="tile-icon">' + t.icon + '</span>' +
+          '<span class="tile-num">' + (idx + 1) + '</span>' +
+        '</div>' +
+        '<h2 class="tile-title">' + esc(t.title) + '</h2>' +
+        '<p class="tile-desc">' + esc(t.desc) + '</p>' +
+      '</div>' +
+      '<div class="tile-foot"><span>' + esc(t.action) + '</span><span>&rarr;</span></div>' +
+    '</a>';
+  }).join('');
+}
+
+fetch('/api/method/user_profile', {
+  headers:{Accept:'application/json'},
+  credentials:'same-origin'
+}).then(function(r){
+  if(r.status===401 || r.status===403){
+    window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
+    throw new Error('Authentication required');
+  }
+  return r.json().then(function(j){
+    if(!r.ok) throw new Error((j && j.message) || 'Failed to load user permissions.');
+    return j.message;
+  });
+}).then(renderPortal).catch(function(e){
+  $('#cl-loading').hidden=true;
+  var err=$('#cl-err');
+  err.textContent=e.message||'Unable to load clinic workspace.';
+  err.hidden=false;
+});
+})();
+</script>
+</div>

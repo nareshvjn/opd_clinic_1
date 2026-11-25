@@ -295,6 +295,7 @@ fixtures = [
                     "home",
                     "add-stock",
                     "banner",
+                    "clinic",
                     "consultation",
                     "contact",
                     "create-invoice",
