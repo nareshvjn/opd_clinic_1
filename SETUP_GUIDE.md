@@ -35,23 +35,19 @@ The stack consists of containerized microservices managed via Docker Compose:
 ## 2. Prerequisites & Server Preparation
 
 ### 2.1 Hardware Requirements
-- **Recommended**: Oracle Cloud Free Tier Ampere A1 instance (4 OCPUs, 24 GB RAM, Ubuntu 22.04 or 24.04 AArch64).
-- **Disk Space**: At least 50 GB available storage. (On OCI, expand boot volume up to 200 GB for free).
+- **Recommended**: 2 CORE, 4 GB RAM, Docker.
+- **Disk Space**: At least 50 GB available storage
 
 ### 2.2 System Setup & Package Installation
 ```bash
 # 1. Update system packages
 sudo apt update && sudo apt upgrade -y
 
-# 2. Resize filesystem if running on expanded OCI boot volume
-sudo /usr/libexec/oci-growfs || sudo growpart /dev/sda 1 && sudo resize2fs /dev/sda1
-
-# 3. Install Docker and Docker Compose Plugin
+# 2. Install Docker and Docker Compose Plugin
 sudo apt install -y docker.io docker-compose-plugin git curl jq
 
-# 4. Add current user to docker group
+# 3. Add current user to docker group
 sudo usermod -aG docker $USER
-newgrp docker
 ```
 
 ### 2.3 Firewall & Ingress Rules
@@ -70,23 +66,11 @@ sudo netfilter-persistent save 2>/dev/null || true
 Ensure your repository contains the following core files:
 
 ```text
-opd_clinic_1/
+clinic/
 ├── Dockerfile                  # Container build recipe
 ├── compose.yaml                # Stack orchestrator
 ├── .dockerignore               # Build context exclusions
-├── pyproject.toml              # App metadata
-├── hooks.py                    # Frappe integration hooks
-├── modules.txt                 # Module registry
-├── opd_clinic_1/
-│   ├── __init__.py             # App package root
-│   └── opd_clinic_1/           # Critical: module package matching modules.txt
-│       └── __init__.py
-├── fixtures/                   # Server scripts, web pages, custom fields
-├── scripts/                    # Python API scripts
-└── www/                        # Frontend HTML / Jinja pages
 ```
-
-> **CRITICAL**: Frappe requires the Python subpackage `opd_clinic_1/opd_clinic_1/__init__.py` to match the entry in `modules.txt`. Without it, the setup wizard will fail with `ModuleNotFoundError: No module named 'opd_clinic_1.opd_clinic_1'`.
 
 ---
 
@@ -159,7 +143,7 @@ services:
       - frappe_network
     deploy:
       restart_policy:
-        condition: none
+        condition: "no"
     entrypoint:
       - bash
       - -c
@@ -406,25 +390,20 @@ networks:
 
 ## 6. Step-by-Step Deployment
 
-### Step 1: Create External Network
-The stack attaches to an external network `npm_default` (commonly used for Nginx Proxy Manager). If not already present, create it:
-```bash
-docker network create npm_default || true
-```
 
-### Step 2: Build the Image
+### Step 1: Build the Image
 Build the container image with no cache to ensure the latest upstream apps are fetched:
 ```bash
 docker compose build --no-cache
 ```
 
-### Step 3: Start the Stack
+### Step 2: Start the Stack
 Start the containers in detached mode:
 ```bash
 docker compose up -d
 ```
 
-### Step 4: Monitor Setup Progress
+### Step 3: Monitor Setup Progress
 Follow the `create-site` container logs until site initialization completes:
 ```bash
 docker compose logs -f create-site
@@ -578,6 +557,20 @@ Assign the appropriate roles to your clinic staff in **User > [User Profile] > R
    - `opd_clinic_1` comes pre-configured with custom batch fields (`gst_rate`, `hsn_code`, `mrp`, `net_rate`, `purchase_rate`, `units_per_pack`) which automatically track medicine batches, expiry dates, and distributor pricing during purchase and sale workflows.
 
 ---
+
+### 8.8 Website Setup
+1. **Logo**:
+   - Upload your logo to `domain.com/desk/file`, uncheck `private`
+   - Select logo in Attach->library->logo->Upload
+
+2. **Navber**:
+   - Setup Navbar with necessary links
+
+3. **Banner**:
+   - Copy `banner.html` in webpage to banner banner section of website of website settings
+
+4. **Footer**:
+   - Setup Footer with necessary details
 
 ## 9. Troubleshooting & Key Fixes
 
