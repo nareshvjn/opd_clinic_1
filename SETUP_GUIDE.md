@@ -12,7 +12,8 @@ This comprehensive guide details the step-by-step setup, configuration, and depl
 5. [Docker Compose Configuration](#5-docker-compose-configuration)
 6. [Step-by-Step Deployment](#6-step-by-step-deployment)
 7. [Post-Deployment Verification](#7-post-deployment-verification)
-8. [Troubleshooting & Key Fixes](#8-troubleshooting--key-fixes)
+8. [Initial Clinic Configuration (Post-Setup Wizard)](#8-initial-clinic-configuration-post-setup-wizard)
+9. [Troubleshooting & Key Fixes](#9-troubleshooting--key-fixes)
 
 ---
 
@@ -463,7 +464,122 @@ You should see:
 
 ---
 
-## 8. Troubleshooting & Key Fixes
+## 8. Initial Clinic Configuration (Post-Setup Wizard)
+
+Once the Frappe setup wizard has finished, follow these mandatory steps in the Frappe Desk to configure the clinic entities required by `opd_clinic_1` (such as Doctor Desk, Appointment Booking, Patient Vitals, Pharmacy, and Invoicing):
+
+### 8.1 Company & Global Defaults
+1. **Verify Default Company**:
+   - Navigate to **Global Defaults** using the Awesome Bar (search bar).
+   - Ensure **Default Company** is set to your clinic (e.g. `Jeevan Healthcare And Medicals`).
+   - Ensure **Default Currency** is set (e.g. `INR`).
+2. **Company Accounts & Default Warehouse**:
+   - Navigate to **Company > [Your Company]**.
+   - Under **Account Settings**, ensure the default accounts are configured:
+     - **Default Receivable Account**: `Debtors - [ABBR]`
+     - **Default Payable Account**: `Creditors - [ABBR]`
+     - **Default Cost Center**: `Main - [ABBR]`
+     - **Stock Adjustment Account**: `Stock Adjustment - [ABBR]`
+     - **Default Inventory Account**: `Stock In Hand - [ABBR]`
+     - **Round Off Account**: `Round Off - [ABBR]`
+     - **Default Warehouse**: Set to your pharmacy or main store warehouse (e.g. `Stores - [ABBR]`).
+3. **Clinic Address & Contact**:
+   - Scroll down to the **Address and Contact** section on the Company page > click **New Address**.
+   - Enter your Clinic Address, City, State, Country, Postal Code, and Phone Number.
+   - Check **Is Your Company Address** and click **Save**.
+   - *Note: This address is dynamically rendered on prescriptions, print formats, and patient bills.*
+
+---
+
+### 8.2 Healthcare Settings
+- Navigate to **Healthcare Settings**:
+  - **Link Customer to Patient**: Enable this checkbox so billing patients automatically creates and associates a Customer record in ERPNext Accounts.
+  - **Income Account**: Ensure default healthcare service income account is linked.
+  - **Invoicing Settings**: Enable automatic appointment invoicing or set your clinic's billing preference.
+
+---
+
+### 8.3 Medical Department
+- Navigate to **Medical Department > New**:
+  - Create the clinical departments operating in your clinic, for example:
+    - `General Medicine`
+    - `Pediatrics`
+    - `Cardiology`
+    - `Orthopedics`
+    - `Dental`
+
+---
+
+### 8.4 Practitioner Schedule (Working Hours & Slot Duration)
+*Required by the appointment engine (`appt_slots.py`) to generate available booking slots on the portal.*
+- Navigate to **Practitioner Schedule > New**:
+  - **Schedule Name**: e.g., `Morning OPD Schedule` (or `General OPD Shift`).
+  - **Slot Duration (Minutes)**: Set your consultation duration, e.g., `15` (or `20` / `30` mins per slot).
+  - **Time Slots Table**:
+    - Add rows for working days:
+      - Day: `Monday`, From Time: `09:00:00`, To Time: `13:00:00`
+      - Day: `Tuesday`, From Time: `09:00:00`, To Time: `13:00:00`
+      - Day: `Wednesday`, From Time: `09:00:00`, To Time: `13:00:00`
+      - Day: `Thursday`, From Time: `09:00:00`, To Time: `13:00:00`
+      - Day: `Friday`, From Time: `09:00:00`, To Time: `13:00:00`
+      - Day: `Saturday`, From Time: `09:00:00`, To Time: `13:00:00`
+  - Optionally create an `Evening OPD Schedule` (e.g., `17:00:00` to `20:00:00`) if your clinic runs split shifts.
+
+---
+
+### 8.5 Healthcare Practitioner (Doctor Profile & Account Linking)
+*CRITICAL: Every consulting doctor must have a Healthcare Practitioner record linked to their ERPNext user account.*
+
+1. **Create the Doctor's User Account**:
+   - Navigate to **User > New**.
+   - Enter doctor email (e.g., `doctor@clinic.com`) and Name.
+   - Under **Roles**, check:
+     - **Physician**
+     - **Healthcare Administrator** (if administrative privileges are required)
+     - **Desk User**
+   - Save and set password.
+
+2. **Create the Healthcare Practitioner Record**:
+   - Navigate to **Healthcare Practitioner > New**:
+   - **Practitioner Name**: e.g., `Dr. Naresh Kumar`.
+   - **Status**: Set to `Active`.
+   - **User ID**: Select the doctor's user account (e.g. `doctor@clinic.com` or `Administrator`).
+     > **IMPORTANT**: The script `desk_data.py` looks up practitioners using `filters={"user_id": user}`. If `User ID` is blank, navigating to `/doctor-desk` will throw: *"Your user isn't linked to a Healthcare Practitioner. Ask an administrator to set the User ID on your practitioner record."*
+   - **Department**: Link to the relevant Medical Department (e.g., `General Medicine`).
+   - **Practitioner Schedule Table**:
+     - Click **Add Row** > select the schedule created in Step 8.4 (`Morning OPD Schedule`).
+   - **Practitioner Charges Table**:
+     - Add Consultation Charge: Service Item: `OPD Consultation`, Fee/Amount: `300.00`.
+   - Save the record.
+
+---
+
+### 8.6 User Roles & Custom Portal Access
+Assign the appropriate roles to your clinic staff in **User > [User Profile] > Roles**:
+- **Doctors / Consultants**: Roles `Physician`, `Desk User`  
+  *Access to:* `/doctor-desk`, `/consultation`, `/sale-return`, `/purchase-return`.
+- **Nurses / Triage Staff**: Roles `Nursing User`, `Desk User`  
+  *Access to:* `/vitals`, `/registration`.
+- **Reception / Front Desk**: Roles `Healthcare Administrator` or `Desk User`  
+  *Access to:* `/registration`, `/doctors`, appointment booking `/contact`.
+- **Pharmacist / Inventory Managers**: Roles `Stock User`, `Stock Manager`, `Desk User`  
+  *Access to:* `/pharmacy`, `/pharmacy-home`, `/new-sale`, `/new-purchase`, `/distributor-bills`, `/stock-import`, `/add-stock`.
+
+---
+
+### 8.7 Pharmacy & Warehouse Setup
+1. **Warehouse**:
+   - Navigate to **Warehouse > New**.
+   - Create a warehouse under your company (e.g., `Pharmacy - [ABBR]`).
+   - Set as `default_warehouse` in Company settings.
+2. **Price Lists**:
+   - Verify that **Standard Selling** and **Standard Buying** price lists are enabled with your currency (`INR`).
+3. **Batch & GST Tracking**:
+   - `opd_clinic_1` comes pre-configured with custom batch fields (`gst_rate`, `hsn_code`, `mrp`, `net_rate`, `purchase_rate`, `units_per_pack`) which automatically track medicine batches, expiry dates, and distributor pricing during purchase and sale workflows.
+
+---
+
+## 9. Troubleshooting & Key Fixes
 
 ### 1. `ModuleNotFoundError: No module named 'opd_clinic_1.opd_clinic_1'`
 - **Cause**: During the setup wizard, `sync_dashboards()` looks for a module directory matching each item in `modules.txt`. If `opd_clinic_1` is listed in `modules.txt`, Python attempts to import `opd_clinic_1.opd_clinic_1`.
