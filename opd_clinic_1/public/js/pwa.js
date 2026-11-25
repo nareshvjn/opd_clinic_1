@@ -252,6 +252,7 @@
         '<a href="/registration" class="clinic-menu-item"><span>🏥</span> Registration</a>' +
         '<a href="/doctor-desk" class="clinic-menu-item"><span>🩺</span> Doctor Desk</a>' +
         '<a href="/pharmacy-home" class="clinic-menu-item"><span>💊</span> Pharmacy</a>' +
+        '<a href="/create-invoice" class="clinic-menu-item"><span>🧾</span> Create Invoice</a>' +
         '<a href="/app" class="clinic-menu-item"><span>⚙️</span> ERPNext Desk</a>' +
         ((window._clinicInstallPrompt && !isStandaloneMode()) ? '<button type="button" class="clinic-menu-item" onclick="window.clinicInstallApp(event)"><span>📲</span> Install App</button>' : '') +
         '<div class="clinic-menu-divider"></div>' +
