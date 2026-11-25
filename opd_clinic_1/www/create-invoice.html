@@ -1,0 +1,721 @@
+---
+title: Create Invoice
+login_required: 1
+---
+<div id="ci">
+<style>
+  #ci *{box-sizing:border-box}
+  #ci{
+    --ink:#11281e;
+    --mute:#546a5f;
+    --line:#cfe0d7;
+    --pri:#125c3a;
+    --pri-dark:#0d3d27;
+    --bg:#f4f9f6;
+    --err:#c0392b;
+    --gold:#f1c40f;
+    --shadow-sm:0 2px 10px rgba(18,92,58,0.06);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink);
+    max-width:860px;
+    margin:0 auto;
+    padding:14px 12px 84px;
+  }
+  #ci .back-link{
+    color:var(--pri);
+    font-size:.9rem;
+    text-decoration:none;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    margin-bottom:12px;
+  }
+  #ci .back-link:hover{text-decoration:underline}
+  #ci .top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:16px 20px;
+    margin-bottom:14px;
+    background:linear-gradient(135deg,#0d3d27 0%,#125c3a 100%);
+    border-radius:14px;
+    color:#fff;
+    box-shadow:var(--shadow-sm);
+  }
+  #ci .top h1{font-size:1.4rem;font-weight:900;margin:0;color:#fff}
+  #ci .top-sub{font-size:.82rem;color:rgba(255,255,255,.85);margin:2px 0 0}
+  #ci .badge-tag{
+    background:linear-gradient(135deg,#f1c40f,#d4ac0d);
+    color:#2b1d00;
+    font-size:.74rem;
+    font-weight:800;
+    padding:4px 11px;
+    border-radius:20px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+  }
+  #ci .card{
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:14px;
+    box-shadow:var(--shadow-sm);
+  }
+  #ci h2{font-size:1.06rem;font-weight:800;color:var(--pri);margin:0 0 12px}
+  #ci label{display:block;font-size:.8rem;font-weight:700;color:var(--mute);margin:0 0 4px}
+  #ci input,#ci select{
+    width:100%;
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    padding:9px 11px;
+    font:14px inherit;
+    background:#fff;
+    color:var(--ink);
+  }
+  #ci input:focus,#ci select:focus{outline:3px solid #8cc9b5;border-color:var(--pri)}
+  #ci .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+  #ci .g2:last-child{margin-bottom:0}
+  #ci .btn{
+    background:var(--pri);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:10px 18px;
+    font:700 14.5px inherit;
+    cursor:pointer;
+    white-space:nowrap;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    transition:filter .15s ease;
+  }
+  #ci .btn:hover{filter:brightness(1.08)}
+  #ci .btn:disabled{opacity:.55;cursor:default}
+  #ci .btn.go{background:linear-gradient(135deg,#125c3a,#0d3d27);box-shadow:0 3px 10px rgba(18,92,58,.24)}
+  #ci .btn.sec{background:#eef6f2;color:var(--pri);border:1.5px solid var(--line)}
+  #ci .btn.sm{padding:6px 12px;font-size:.82rem}
+  #ci .link{background:none;border:0;color:var(--pri);font:700 13.5px inherit;cursor:pointer;padding:0;text-decoration:underline}
+  #ci #toast{padding:11px 14px;border-radius:8px;font-size:.9rem;margin:0 0 12px;background:#ebf7f1;color:var(--pri);border-left:4px solid var(--pri)}
+  #ci #toast.bad{background:#fdf2f2;color:var(--err);border-color:var(--err)}
+  #ci .hint{font-size:.82rem;color:var(--mute);margin:4px 0 0}
+  #ci .res-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  #ci .res-btn{
+    width:100%;
+    text-align:left;
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:9px;
+    padding:10px 12px;
+    cursor:pointer;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    font:inherit;
+  }
+  #ci .res-btn:hover{background:var(--bg);border-color:var(--pri)}
+  #ci .sel-pill{
+    margin-top:8px;
+    padding:10px 12px;
+    border-radius:9px;
+    background:var(--bg);
+    border:1.5px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+  }
+  #ci .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  #ci .chip{
+    background:#eef6f2;
+    border:1.5px solid var(--line);
+    color:var(--pri-dark);
+    border-radius:20px;
+    padding:5px 12px;
+    font:700 12.5px inherit;
+    cursor:pointer;
+    transition:all .12s ease;
+  }
+  #ci .chip:hover{background:var(--pri);color:#fff;border-color:var(--pri)}
+  #ci .ln{
+    background:var(--bg);
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:10px;
+  }
+  #ci .ln-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
+  #ci .ln-num{font-size:.8rem;font-weight:800;color:var(--pri);text-transform:uppercase}
+  #ci .ln-grid{display:grid;grid-template-columns:1.8fr 1.2fr 75px 105px 80px 100px;gap:8px;align-items:end}
+  #ci .ln-amt-box{text-align:right;padding:8px 4px;font-weight:900;color:var(--pri);font-size:.95rem;white-space:nowrap}
+  #ci .rm-btn{background:#fff;border:1.5px solid #f0c2be;color:var(--err);border-radius:7px;padding:4px 10px;font:700 12px inherit;cursor:pointer}
+  #ci .rm-btn:hover{background:#fdf2f2}
+  #ci .sech{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 0;
+    border:0;
+    border-top:1px solid var(--line);
+    background:none;
+    font:inherit;
+    font-weight:700;
+    color:var(--pri);
+    cursor:pointer;
+  }
+  #ci .sbody{padding:8px 0 12px}
+  #ci .sum-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:.92rem}
+  #ci .bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-top:14px;
+    padding:14px 16px;
+    background:var(--bg);
+    border-radius:10px;
+    border:1.5px solid var(--line);
+  }
+  #ci .bar .pay-lbl{display:block;font-size:.76rem;font-weight:700;color:var(--mute);text-transform:uppercase}
+  #ci .bar .pay-val{font-size:1.35rem;font-weight:900;color:var(--pri)}
+  #ci .badge{display:inline-block;padding:2px 9px;border-radius:6px;font-size:.78rem;font-weight:800;color:#fff;background:var(--pri)}
+  #ci .badge.warn{background:#d97706}
+  #ci .badge.sec{background:#5d7184}
+  #ci [hidden]{display:none!important}
+  @media(max-width:740px){
+    #ci .ln-grid{grid-template-columns:1fr 1fr}
+    #ci .ln-item-col{grid-column:1 / -1}
+    #ci .ln-desc-col{grid-column:1 / -1}
+    #ci .ln-amt-box{grid-column:1 / -1;text-align:right;border-top:1px dashed var(--line);padding-top:6px}
+  }
+  @media(max-width:560px){
+    #ci .g2{grid-template-columns:1fr}
+    #ci .bar{flex-direction:column;align-items:stretch}
+    #ci .bar .actions{display:flex;flex-direction:column;gap:8px}
+  }
+</style>
+
+<a href="/home" class="back-link">&#8592; Back to Clinic Home</a>
+
+<div class="top">
+  <div>
+    <h1>🧾 Create Invoice</h1>
+    <p class="top-sub">Services, procedures, lab tests, and miscellaneous billing</p>
+  </div>
+  <span class="badge-tag">General Sales Invoice</span>
+</div>
+
+<div id="toast" role="status" hidden></div>
+
+<!-- 1. Patient / Customer & Details -->
+<div class="card">
+  <h2>Patient / Customer &amp; Details</h2>
+  <div class="g2">
+    <div>
+      <label for="ci-pat-q">Link Patient (optional)</label>
+      <input id="ci-pat-q" autocomplete="off" placeholder="Search patient by name, mobile, or ID">
+      <div id="ci-pat-res" class="res-list"></div>
+      <div id="ci-pat-sel" class="sel-pill" hidden></div>
+    </div>
+    <div>
+      <label for="ci-cust">Customer Name</label>
+      <input id="ci-cust" list="ci-cust-list" autocomplete="off" placeholder="Walk-in Customer or customer name">
+      <datalist id="ci-cust-list"></datalist>
+      <p class="hint">Auto-filled when linking a patient, or enter any customer name.</p>
+    </div>
+  </div>
+  <div class="g2">
+    <div>
+      <label for="ci-date">Invoice Date</label>
+      <input id="ci-date" type="date">
+    </div>
+    <div>
+      <label for="ci-mode">Payment Mode</label>
+      <select id="ci-mode"></select>
+    </div>
+  </div>
+  <div class="g2">
+    <div>
+      <label for="ci-prac">Doctor / Practitioner (optional)</label>
+      <select id="ci-prac"><option value="">-- Optional --</option></select>
+    </div>
+    <div>
+      <label for="ci-remarks">Invoice Note / Remarks (optional)</label>
+      <input id="ci-remarks" autocomplete="off" placeholder="e.g. Lab & procedure charges">
+    </div>
+  </div>
+</div>
+
+<!-- 2. Line Items -->
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <h2 style="margin:0">Items &amp; Services</h2>
+    <button type="button" class="btn sm sec" id="ci-add-blank">+ Add custom line</button>
+  </div>
+
+  <div style="margin-bottom:10px">
+    <label for="ci-item-q">Search existing item / service (or click a quick pick below)</label>
+    <input id="ci-item-q" autocomplete="off" placeholder="Type item, procedure, or test name to add...">
+    <div id="ci-item-res" class="res-list"></div>
+  </div>
+
+  <div id="ci-quick-wrap" hidden>
+    <div style="font-size:.76rem;font-weight:800;color:var(--mute);text-transform:uppercase;margin-bottom:5px">Quick Services</div>
+    <div id="ci-chips" class="chips"></div>
+  </div>
+
+  <div id="ci-lines"></div>
+</div>
+
+<!-- 3. Discount, Additional Charge & Totals -->
+<div class="card">
+  <h2>Bill Summary</h2>
+
+  <button type="button" class="sech" data-tg="ci-disc-body" aria-expanded="false">
+    <b>Overall Bill Discount</b><span class="link">Add &#9662;</span>
+  </button>
+  <div id="ci-disc-body" class="sbody" hidden>
+    <div class="g2">
+      <div><label for="bd-pct">Discount (%)</label><input id="bd-pct" type="number" min="0" max="100" step="any" inputmode="decimal" placeholder="0"></div>
+      <div><label for="bd-amt">Or Amount (&#8377;)</label><input id="bd-amt" type="number" min="0" step="any" inputmode="decimal" placeholder="0.00"></div>
+    </div>
+    <p class="hint">Applies percentage discount evenly across all line items.</p>
+  </div>
+
+  <button type="button" class="sech" data-tg="ci-chg-body" aria-expanded="false">
+    <b>Additional Charge</b><span><b id="ci-chg-show">&#8377;0.00</b> &#9662;</span>
+  </button>
+  <div id="ci-chg-body" class="sbody" hidden>
+    <div class="g2">
+      <div><label for="cc-name">Charge Name</label><input id="cc-name" autocomplete="off" placeholder="e.g. Home collection fee"></div>
+      <div><label for="cc-amt">Amount (&#8377;)</label><input id="cc-amt" type="number" min="0" step="any" inputmode="decimal" placeholder="0.00"></div>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid var(--line);margin-top:4px;padding-top:10px">
+    <div class="sum-row"><span style="color:var(--mute)">Subtotal (before discount)</span><b id="sum-gross">&#8377;0.00</b></div>
+    <div class="sum-row"><span style="color:var(--mute)">Discount</span><b id="sum-disc" style="color:var(--err)">-&#8377;0.00</b></div>
+    <div class="sum-row" id="sum-chg-row" hidden><span style="color:var(--mute)" id="sum-chg-lbl">Additional Charge</span><b id="sum-chg">&#8377;0.00</b></div>
+    <div class="sum-row"><span style="color:var(--mute)">Invoice Amount</span><b id="sum-net">&#8377;0.00</b></div>
+    <div class="sum-row"><span style="color:var(--mute)">Round Off</span><b id="sum-ro">&#8377;0.00</b></div>
+  </div>
+
+  <div class="bar">
+    <div>
+      <span class="pay-lbl">Payable Amount</span>
+      <span class="pay-val" id="sum-pay">&#8377;0.00</span>
+    </div>
+    <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn sec" id="btn-draft">Save Draft</button>
+      <button type="button" class="btn go" id="btn-submit">Create &amp; Submit Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Receipt -->
+<div id="inv-receipt" class="card" hidden></div>
+
+<script>
+(function(){
+var curUser = (window.frappe && (frappe.session_user || (frappe.session && frappe.session.user))) || (function(){
+  var m = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
+  return m ? decodeURIComponent(m[1]) : '';
+})();
+if(curUser === 'Guest'){
+  window.location.replace('/login?redirect-to=' + encodeURIComponent(location.pathname + location.search));
+  return;
+}
+
+var $=function(s){return document.querySelector('#ci '+s)};
+var $$=function(s){return document.querySelectorAll('#ci '+s)};
+
+var csrf='', serverToday='', isAdmin=false, quickItems=[];
+var state={patient:null, lines:[]};
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function n(v){v=parseFloat(v);return isNaN(v)?0:v}
+function inr(v){v=n(v);return (v<0?'-':'')+'\u20B9'+Math.abs(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function localIso(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function debounce(fn,ms){var t;return function(){var a=arguments;clearTimeout(t);t=setTimeout(function(){fn.apply(null,a)},ms||240)}}
+
+function toast(msg, bad){
+  var el=$('#toast');
+  el.textContent=msg||'';
+  el.className=bad?'bad':'';
+  el.hidden=!msg;
+  if(msg) el.scrollIntoView({block:'nearest'});
+}
+
+function call(method, params, post){
+  var p=new URLSearchParams(params||{}), o={headers:{Accept:'application/json'}, credentials:'same-origin'};
+  if(post){
+    o.method='POST';
+    o.body=p;
+    var tk=csrf||(window.frappe&&frappe.csrf_token)||window.csrf_token;
+    if(tk) o.headers['X-Frappe-CSRF-Token']=tk;
+  }
+  return fetch('/api/method/'+method+(post?'':'?'+p), o).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){
+        var msg='Request failed.';
+        try{
+          var arr=JSON.parse(j._server_messages);
+          var last=JSON.parse(arr[arr.length-1]);
+          msg=(last.message||last).replace(/<[^>]+>/g,'');
+        }catch(e){}
+        if(msg==='Request failed.' && j.exception){
+          var parts=String(j.exception).split(':');
+          msg=parts.length>1?parts.slice(1).join(':').trim():parts[0].trim();
+        }
+        if(r.status===401||r.status===403||/not logged in|invalid request/i.test(msg)){
+          window.location.replace('/login?redirect-to='+encodeURIComponent(location.pathname+location.search));
+        }
+        throw new Error(msg);
+      }
+      return j.message;
+    });
+  });
+}
+
+function newLine(init){
+  init=init||{};
+  return {
+    item_code: init.item_code || '',
+    item_name: init.item_name || '',
+    description: init.description || '',
+    qty: init.qty != null ? n(init.qty) : 1,
+    rate: init.rate != null ? n(init.rate) : 0,
+    disc: init.disc != null ? n(init.disc) : 0
+  };
+}
+
+function lineGross(l){ return Math.max(0, n(l.qty)) * Math.max(0, n(l.rate)); }
+function lineNet(l){
+  var d=Math.max(0, Math.min(100, n(l.disc)));
+  return lineGross(l) * (1 - d / 100);
+}
+
+function renderLines(){
+  var box=$('#ci-lines');
+  if(!state.lines.length){
+    box.innerHTML='<p class="hint">No items yet. Search an item above or click "+ Add custom line".</p>';
+    updateTotals();
+    return;
+  }
+  box.innerHTML=state.lines.map(function(l, i){
+    var net=lineNet(l);
+    return '<div class="ln" data-i="'+i+'">'+
+      '<div class="ln-head">'+
+        '<span class="ln-num">Line #'+(i+1)+(l.item_code?' <span class="badge sec" style="font-size:.68rem;margin-left:4px">'+esc(l.item_code)+'</span>':' <span class="badge warn" style="font-size:.68rem;margin-left:4px">Custom</span>')+'</span>'+
+        '<button type="button" class="rm-btn" data-rm="'+i+'">Remove</button>'+
+      '</div>'+
+      '<div class="ln-grid">'+
+        '<div class="ln-item-col"><label>Item / Service Name</label><input data-f="item_name" value="'+esc(l.item_name)+'" placeholder="e.g. ECG, Dressing, Lab Test"></div>'+
+        '<div class="ln-desc-col"><label>Details (optional)</label><input data-f="description" value="'+esc(l.description)+'" placeholder="Notes on bill"></div>'+
+        '<div><label>Qty</label><input data-f="qty" type="number" min="0.01" step="any" inputmode="decimal" value="'+esc(l.qty)+'"></div>'+
+        '<div><label>Rate (&#8377;)</label><input data-f="rate" type="number" min="0" step="any" inputmode="decimal" value="'+esc(l.rate)+'"></div>'+
+        '<div><label>Disc %</label><input data-f="disc" type="number" min="0" max="100" step="any" inputmode="decimal" value="'+esc(l.disc)+'"></div>'+
+        '<div class="ln-amt-box" data-amt="'+i+'">'+inr(net)+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  updateTotals();
+}
+
+function updateTotals(){
+  var gross=0, net=0;
+  state.lines.forEach(function(l){ gross+=lineGross(l); net+=lineNet(l); });
+  var disc=Math.max(0, gross - net);
+  var chg=Math.max(0, n($('#cc-amt').value));
+  var chgName=$('#cc-name').value.trim()||'Additional Charge';
+  var invAmt=net + chg;
+  var payable=Math.round(invAmt);
+  var ro=payable - invAmt;
+
+  $('#sum-gross').textContent=inr(gross);
+  $('#sum-disc').textContent=(disc>0?'-':'')+inr(disc);
+  $('#sum-chg-row').hidden=!(chg>0);
+  $('#sum-chg-lbl').textContent=chgName;
+  $('#sum-chg').textContent=inr(chg);
+  $('#ci-chg-show').textContent=inr(chg);
+  $('#sum-net').textContent=inr(invAmt);
+  $('#sum-ro').textContent=(ro>=0?'+':'')+inr(ro);
+  $('#sum-pay').textContent=inr(payable);
+}
+
+function applyOverallDiscount(){
+  var pctVal=$('#bd-pct').value.trim(), amtVal=$('#bd-amt').value.trim();
+  if(!pctVal && !amtVal) return;
+  var gross=0;
+  state.lines.forEach(function(l){ gross+=lineGross(l); });
+  var pct=0;
+  if(amtVal!==''){
+    var amt=Math.max(0, n(amtVal));
+    pct = gross>0 ? (amt/gross)*100 : 0;
+  } else {
+    pct = n(pctVal);
+  }
+  pct=Math.max(0, Math.min(100, Math.round(pct*10000)/10000));
+  state.lines.forEach(function(l){ l.disc=pct; });
+  renderLines();
+}
+
+// Collapsible sections
+$$('.sech').forEach(function(btn){
+  btn.onclick=function(){
+    var body=$('#'+btn.dataset.tg), open=body.hidden;
+    body.hidden=!open;
+    btn.setAttribute('aria-expanded', String(open));
+  };
+});
+
+$('#bd-pct').oninput=function(){ if(this.value!=='') $('#bd-amt').value=''; applyOverallDiscount(); };
+$('#bd-amt').oninput=function(){ if(this.value!=='') $('#bd-pct').value=''; applyOverallDiscount(); };
+$('#cc-amt').oninput=updateTotals;
+$('#cc-name').oninput=updateTotals;
+
+// Line edits & removal
+$('#ci-lines').oninput=function(e){
+  var lnEl=e.target.closest('.ln'); if(!lnEl) return;
+  var idx=+lnEl.dataset.i, f=e.target.dataset.f;
+  if(state.lines[idx]==null || !f) return;
+  if(f==='item_name' || f==='description'){
+    state.lines[idx][f]=e.target.value;
+    if(f==='item_name' && state.lines[idx].item_code && !e.target.value.trim()){
+      state.lines[idx].item_code='';
+    }
+  } else {
+    state.lines[idx][f]=n(e.target.value);
+    var amtEl=lnEl.querySelector('[data-amt="'+idx+'"]');
+    if(amtEl) amtEl.textContent=inr(lineNet(state.lines[idx]));
+    updateTotals();
+  }
+};
+
+$('#ci-lines').onclick=function(e){
+  var rm=e.target.closest('[data-rm]');
+  if(!rm) return;
+  state.lines.splice(+rm.dataset.rm, 1);
+  renderLines();
+};
+
+$('#ci-add-blank').onclick=function(){
+  state.lines.push(newLine({qty:1, rate:0, disc:0}));
+  renderLines();
+  var inputs=$$('.ln input[data-f="item_name"]');
+  if(inputs.length) inputs[inputs.length-1].focus();
+};
+
+// Patient live search
+$('#ci-pat-q').oninput=debounce(function(){
+  var q=$('#ci-pat-q').value.trim(), res=$('#ci-pat-res');
+  if(q.length<2){ res.innerHTML=''; return; }
+  call('inv_meta', {action:'search_patients', q:q}).then(function(r){
+    var pts=(r&&r.patients)||[];
+    res.innerHTML=pts.length ? pts.map(function(p, i){
+      var uid=(p.uid && p.uid!==p.id)?' ('+esc(p.uid)+')':'';
+      return '<button type="button" class="res-btn" data-pidx="'+i+'">'+
+        '<span><b>'+esc(p.name)+'</b>'+uid+'<br><span class="hint">Mobile: '+esc(p.mobile||'N/A')+(p.age!=null?', Age '+esc(p.age):'')+'</span></span>'+
+        '<span class="link">Select</span></button>';
+    }).join('') : '<p class="hint">No matching patient found.</p>';
+    res._rows=pts;
+  }).catch(function(e){ toast(e.message, 1); });
+});
+
+$('#ci-pat-res').onclick=function(e){
+  var b=e.target.closest('button[data-pidx]'); if(!b) return;
+  var p=($('#ci-pat-res')._rows||[])[+b.dataset.pidx]; if(!p) return;
+  state.patient=p;
+  $('#ci-pat-res').innerHTML='';
+  $('#ci-pat-q').value='';
+  if(!$('#ci-cust').value.trim() || state._autoCust){
+    $('#ci-cust').value=p.customer||p.name;
+    state._autoCust=true;
+  }
+  var sel=$('#ci-pat-sel');
+  sel.hidden=false;
+  sel.innerHTML='<span><b>'+esc(p.name)+'</b> <span class="hint">('+(p.mobile?esc(p.mobile):esc(p.id))+')</span></span>'+
+    '<button type="button" class="link" id="ci-pat-clear">Clear</button>';
+};
+
+$('#ci-pat-sel').onclick=function(e){
+  if(e.target.id!=='ci-pat-clear') return;
+  state.patient=null;
+  $('#ci-pat-sel').hidden=true;
+  $('#ci-pat-sel').innerHTML='';
+  if(state._autoCust){ $('#ci-cust').value=''; state._autoCust=false; }
+};
+$('#ci-cust').oninput=function(){ state._autoCust=false; };
+
+// Item live search & quick picks
+function insertOrReplaceStarter(lineObj){
+  if(state.lines.length===1){
+    var first=state.lines[0];
+    if(!first.item_code && !first.item_name.trim() && n(first.rate)===0){
+      state.lines[0]=lineObj;
+      return;
+    }
+  }
+  state.lines.push(lineObj);
+}
+
+function addCatalogItem(it){
+  insertOrReplaceStarter(newLine({
+    item_code: it.code,
+    item_name: it.name,
+    description: it.description || '',
+    qty: 1,
+    rate: n(it.rate),
+    disc: 0
+  }));
+  if($('#bd-pct').value.trim() || $('#bd-amt').value.trim()) applyOverallDiscount();
+  else renderLines();
+}
+
+$('#ci-item-q').oninput=debounce(function(){
+  var q=$('#ci-item-q').value.trim(), res=$('#ci-item-res');
+  if(!q){ res.innerHTML=''; return; }
+  call('inv_meta', {action:'search_items', q:q}).then(function(r){
+    var items=(r&&r.items)||[];
+    res.innerHTML=items.length ? items.map(function(it, i){
+      return '<button type="button" class="res-btn" data-iidx="'+i+'">'+
+        '<span><b>'+esc(it.name)+'</b> <span class="hint">('+esc(it.group||it.code)+')</span></span>'+
+        '<span style="font-weight:800;color:var(--pri)">'+inr(it.rate)+'</span></button>';
+    }).join('') : '<button type="button" class="res-btn" data-custom="1"><span>Add custom line: <b>'+esc(q)+'</b></span><span class="link">+ Add</span></button>';
+    res._rows=items;
+    res._q=q;
+  }).catch(function(e){ toast(e.message, 1); });
+});
+
+$('#ci-item-res').onclick=function(e){
+  var b=e.target.closest('button'); if(!b) return;
+  var res=$('#ci-item-res');
+  if(b.dataset.custom){
+    insertOrReplaceStarter(newLine({item_name:res._q||'', qty:1, rate:0, disc:0}));
+    renderLines();
+  } else if(b.dataset.iidx!=null){
+    var it=(res._rows||[])[+b.dataset.iidx];
+    if(it) addCatalogItem(it);
+  }
+  res.innerHTML='';
+  $('#ci-item-q').value='';
+};
+
+$('#ci-chips').onclick=function(e){
+  var b=e.target.closest('button[data-qidx]'); if(!b) return;
+  var it=quickItems[+b.dataset.qidx];
+  if(it) addCatalogItem(it);
+};
+
+// Save Draft / Submit Invoice
+function submitInvoice(asDraft){
+  toast('');
+  if(!state.lines.length){ toast('Add at least one item or service first.', 1); return; }
+  for(var i=0;i<state.lines.length;i++){
+    var l=state.lines[i];
+    if(!l.item_name.trim() && !l.item_code){ toast('Line #'+(i+1)+': Enter item or service name.', 1); return; }
+    if(n(l.qty)<=0){ toast('Line #'+(i+1)+': Quantity must be greater than 0.', 1); return; }
+    if(n(l.rate)<0){ toast('Line #'+(i+1)+': Rate cannot be negative.', 1); return; }
+  }
+  var invDate=$('#ci-date').value, tDate=serverToday||localIso();
+  if(invDate && invDate<tDate && !isAdmin){
+    toast('Only admin accounts can create backdated invoices.', 1);
+    return;
+  }
+
+  var bDraft=$('#btn-draft'), bSub=$('#btn-submit');
+  bDraft.disabled=true; bSub.disabled=true;
+
+  var payload={
+    lines: JSON.stringify(state.lines),
+    customer: $('#ci-cust').value.trim(),
+    patient: state.patient ? state.patient.id : '',
+    practitioner: $('#ci-prac').value,
+    mode: $('#ci-mode').value,
+    posting_date: invDate,
+    remarks: $('#ci-remarks').value.trim(),
+    charge: String(Math.max(0, n($('#cc-amt').value))),
+    charge_name: $('#cc-name').value.trim(),
+    save_draft: asDraft ? '1' : '0'
+  };
+
+  call('inv_save', payload, true).then(function(r){
+    var rc=$('#inv-receipt');
+    rc.hidden=false;
+    var badge = r.docstatus===0 ? '<span class="badge warn">Draft</span>' : (r.paid ? '<span class="badge">Paid</span>' : (r.mode==='Credit' ? '<span class="badge warn">Credit</span>' : '<span class="badge sec">Submitted</span>'));
+    rc.innerHTML='<h2>'+(r.docstatus===0?'Draft Invoice Saved':'Invoice Created')+'</h2>'+
+      '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">'+
+        '<div>Invoice: <b>'+esc(r.invoice)+'</b> '+badge+'</div>'+
+        '<div>Customer: <b>'+esc(r.customer)+'</b></div>'+
+        '<div>Total: <b style="color:var(--pri);font-size:1.1rem">'+inr(r.total)+'</b>'+(r.mode && r.docstatus===1 && r.paid?' <span class="hint">('+esc(r.mode)+')</span>':'')+'</div>'+
+      '</div>'+
+      (r.note?'<p class="hint">'+esc(r.note)+'</p>':'')+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">'+
+        '<a class="btn go" href="/printview?doctype=Sales%20Invoice&name='+encodeURIComponent(r.invoice)+'&trigger_print=1" target="_blank" rel="noopener">Print Invoice</a>'+
+        '<a class="btn" style="background:#5d7184" href="/app/sales-invoice/'+encodeURIComponent(r.invoice)+'" target="_blank" rel="noopener">Open in ERPNext</a>'+
+        '<button type="button" class="btn sec" id="ci-another">New Invoice</button>'+
+      '</div>';
+
+    // Reset form for next invoice
+    state.patient=null; state._autoCust=false;
+    state.lines=[newLine({qty:1, rate:0, disc:0})];
+    $('#ci-pat-sel').hidden=true; $('#ci-pat-sel').innerHTML='';
+    $('#ci-cust').value=''; $('#ci-remarks').value=''; $('#ci-prac').value='';
+    ['bd-pct','bd-amt','cc-name','cc-amt'].forEach(function(id){ $('#'+id).value=''; });
+    renderLines();
+    rc.scrollIntoView({block:'nearest'});
+    $('#ci-another').onclick=function(){ rc.hidden=true; window.scrollTo({top:0, behavior:'smooth'}); };
+  }).catch(function(e){ toast(e.message, 1); }).then(function(){
+    bDraft.disabled=false; bSub.disabled=false;
+  });
+}
+
+$('#btn-submit').onclick=function(){ submitInvoice(false); };
+$('#btn-draft').onclick=function(){ submitInvoice(true); };
+
+// Initialize defaults and load metadata
+$('#ci-date').value=localIso();
+state.lines=[newLine({qty:1, rate:0, disc:0})];
+renderLines();
+
+call('inv_meta').then(function(m){
+  csrf=m.csrf||'';
+  isAdmin=!!m.is_admin;
+  serverToday=m.today||localIso();
+  $('#ci-date').value=serverToday;
+  if(!isAdmin) $('#ci-date').min=serverToday;
+
+  var modes=(m.modes&&m.modes.length?m.modes:['Cash']).concat(['Credit']);
+  $('#ci-mode').innerHTML=modes.map(function(x){ return '<option value="'+esc(x)+'">'+esc(x)+'</option>'; }).join('');
+
+  if(m.practitioners && m.practitioners.length){
+    $('#ci-prac').innerHTML='<option value="">-- Optional --</option>'+m.practitioners.map(function(p){
+      return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>';
+    }).join('');
+  }
+
+  if(m.customers && m.customers.length){
+    $('#ci-cust-list').innerHTML=m.customers.map(function(c){
+      return '<option value="'+esc(c.customer_name)+'">';
+    }).join('');
+  }
+
+  quickItems=(m.items||[]).slice(0, 12);
+  if(quickItems.length){
+    $('#ci-quick-wrap').hidden=false;
+    $('#ci-chips').innerHTML=quickItems.map(function(it, i){
+      return '<button type="button" class="chip" data-qidx="'+i+'">'+esc(it.name)+(it.rate>0?' ('+inr(it.rate)+')':'')+'</button>';
+    }).join('');
+  }
+}).catch(function(e){ toast(e.message, 1); });
+})();
+</script>
+</div>
