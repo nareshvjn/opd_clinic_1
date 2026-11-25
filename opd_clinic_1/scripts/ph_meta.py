@@ -7,10 +7,19 @@
 # frequency: All
 # disabled: 0
 
-ok = False
-for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": frappe.session.user, "role": r}):
-        ok = True
+user = frappe.session.user
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok:
+    for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            ok = True
+            break
 if not ok:
     frappe.throw("You don't have access to the pharmacy.")
 
@@ -86,5 +95,7 @@ frappe.response["message"] = {
     "dosage_forms": dosage_forms,
     "medication_classes": med_classes,
     "item_groups": item_groups,
+    "is_admin": is_admin,
+    "today": str(frappe.utils.today()),
     "csrf": token
 }

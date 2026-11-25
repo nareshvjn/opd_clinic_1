@@ -8,10 +8,15 @@
 # disabled: 0
 
 user = frappe.session.user
-ok = False
-for r in ["Physician", "Healthcare Administrator", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": user, "role": r}):
-        ok = True
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok and frappe.db.exists("Has Role", {"parent": user, "role": "Physician"}):
+    ok = True
 if not ok:
     frappe.throw("Only doctors can save a consultation.")
 
@@ -22,6 +27,31 @@ prac = f.get("practitioner")
 complete = f.get("complete") == "1" or f.get("complete") is True
 if not patient or not prac:
     frappe.throw("Open this page from the doctor desk so the patient and doctor are known.")
+
+today_str = str(frappe.utils.today())
+today_date = frappe.utils.getdate(today_str)
+appt_date = None
+appt_time = None
+if appt_id and frappe.db.exists("Patient Appointment", appt_id):
+    ad_vals = frappe.db.get_value("Patient Appointment", appt_id, ["appointment_date", "appointment_time"], as_dict=True)
+    if ad_vals:
+        appt_date = ad_vals.appointment_date
+        appt_time = ad_vals.appointment_time
+if appt_date and frappe.utils.getdate(appt_date) < today_date and not is_admin:
+    frappe.throw("Only admin accounts can create or save consultations for past-dated appointments.")
+
+req_enc_date = (f.get("encounter_date") or "").strip()
+if req_enc_date:
+    try:
+        req_ed = frappe.utils.getdate(req_enc_date)
+    except Exception:
+        frappe.throw("Invalid consultation date.")
+    if req_ed < today_date and not is_admin:
+        frappe.throw("Only admin accounts can save backdated consultations.")
+
+target_enc_date = req_enc_date or (
+    str(appt_date) if (appt_date and frappe.utils.getdate(appt_date) <= today_date) else today_str
+)
 
 # Ensure patient has UID
 if patient and frappe.db.exists("Patient", patient):
@@ -83,6 +113,9 @@ if has_vitals:
         vs.patient = patient
         vs.appointment = appt_id
         vs.company = company
+        if target_enc_date and frappe.utils.getdate(target_enc_date) < today_date:
+            t_str = str(appt_time or frappe.utils.nowtime()).split(".")[0]
+            vs.signs_date = frappe.utils.get_datetime(str(target_enc_date) + " " + t_str)
     for k in ["temperature", "pulse", "respiratory_rate", "bp_systolic", "bp_diastolic", "height", "weight"]:
         if vitals.get(k):
             vs.set(k, float(vitals.get(k)))
@@ -103,6 +136,8 @@ if appt_id:
         fresh = False
         if enc.docstatus == 1:
             frappe.throw("This consultation is already completed. Use enc_amend to edit it.")
+        if enc.get("encounter_date") and frappe.utils.getdate(enc.encounter_date) < today_date and not is_admin:
+            frappe.throw("Only admin accounts can modify past-dated consultations.")
 if not enc:
     enc = frappe.new_doc("Patient Encounter")
     enc.patient = patient
@@ -124,8 +159,10 @@ if not enc.get("appointment_type"):
     if appt_type:
         enc.appointment_type = appt_type
 
-if not enc.get("encounter_date"):
-    enc.encounter_date = frappe.utils.today()
+if req_enc_date:
+    enc.encounter_date = req_enc_date
+elif not enc.get("encounter_date"):
+    enc.encounter_date = target_enc_date
 if not enc.get("encounter_time"):
     enc.encounter_time = frappe.utils.nowtime()
 

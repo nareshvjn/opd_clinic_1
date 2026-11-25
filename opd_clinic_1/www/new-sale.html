@@ -347,16 +347,39 @@ function call(method,params,post){
       return j.message})})
 }
 
-$('#sl-date').value=new Date().toISOString().slice(0,10);
+function localIso(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+var isAdmin=false, serverToday=localIso();
+function syncSaleDateLock(){
+  var el=$('#sl-date');
+  if(!el) return;
+  var t=serverToday||localIso();
+  if(isAdmin){
+    el.removeAttribute('min');
+    el.readOnly=false;
+  } else {
+    el.min=t;
+    if(el.value && el.value<t){
+      el.value=t;
+      toast('Only admin accounts can create backdated sales entries.',1);
+    }
+  }
+}
+$('#sl-date').value=localIso();
+$('#sl-date').onchange=syncSaleDateLock;
+syncSaleDateLock();
 
 call('ph_meta').then(function(m){
   csrf=m.csrf||'';wh=m.warehouse||'';
+  isAdmin=!!m.is_admin;
+  serverToday=m.today||localIso();
+  if(!editingInvoice && (!m.today || $('#sl-date').value===localIso())) $('#sl-date').value=serverToday;
   $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
   modes=m.modes;
   $('#sl-mode').innerHTML=m.modes.map(function(x){return '<option>'+esc(x)+'</option>'}).join('')+'<option value="Credit">Credit (pay later)</option>';
   var cm=m.modes.filter(function(x){return /^cash$/i.test(x)})[0];
   if(cm)$('#sl-mode').value=cm;
   checkEditMode();
+  syncSaleDateLock();
 }).catch(function(e){toast(e.message,1)});
 
 function checkEditMode(){
@@ -783,6 +806,8 @@ $('#bd-apply').onclick=function(){
 $('#sl-done').onclick=function(){
   if(!sale.cart.length)return;
   if(!checkCart()){toast('Fix the lines marked in red before completing the sale.',1);return}
+  var sDate=$('#sl-date').value, tDate=serverToday||localIso();
+  if(sDate && sDate<tDate && !isAdmin){toast('Only admin accounts can create backdated sales entries.',1);return}
   var b=this;b.disabled=true;
   var lines=sale.cart.map(function(l){return {batch:l.batch,packs:n(l.packs),units:n(l.units),rate:n(l.rate),disc:n(l.disc)}});
   var payload={

@@ -226,6 +226,8 @@
   </select>
   <label for="ret-mode">Refund payment mode</label>
   <select id="ret-mode"></select>
+  <label for="ret-date">Return date</label>
+  <input id="ret-date" type="date">
   <div class="sum total" style="margin-top:16px">
     <span>Refund amount</span>
     <b id="ret-total">&#8377;0.00</b>
@@ -274,7 +276,21 @@
 <script>
 (function(){
 var $=function(s){return document.querySelector('#sr '+s)};
-var csrf='',inv=null,editingReturn=null;
+function localIso(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+var csrf='',inv=null,editingReturn=null,isAdmin=false,serverToday=localIso();
+function syncRetDateLock(){
+  var el=$('#ret-date');
+  if(!el) return;
+  var t=serverToday||localIso();
+  if(isAdmin){
+    el.removeAttribute('min');
+    el.disabled=false;
+  } else {
+    el.min=t;
+    el.value=t;
+    el.disabled=true;
+  }
+}
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function n(v){v=parseFloat(v);return isNaN(v)?0:v}
@@ -299,12 +315,20 @@ function call(method,params,post){
 
 call('ph_meta').then(function(m){
   csrf=m.csrf||'';
+  isAdmin=!!m.is_admin;
+  serverToday=m.today||localIso();
+  if(!$('#inv-date').value || $('#inv-date').value===localIso()) $('#inv-date').value=serverToday;
+  updateDateDisplay();
   $('#ret-mode').innerHTML=m.modes.map(function(x){return '<option>'+esc(x)+'</option>'}).join('');
   var cm=m.modes.filter(function(x){return /^cash$/i.test(x)})[0];
   if(cm)$('#ret-mode').value=cm;
+  if($('#ret-date') && !$('#ret-date').value) $('#ret-date').value=serverToday;
+  syncRetDateLock();
 }).catch(function(e){toast(e.message,1)});
 
-$('#inv-date').value=new Date().toISOString().slice(0,10);
+$('#inv-date').value=localIso();
+if($('#ret-date')) $('#ret-date').value=localIso();
+syncRetDateLock();
 
 function updateDateDisplay(){
   var v=$('#inv-date').value;
@@ -320,7 +344,7 @@ function shiftDate(days){
   var v=$('#inv-date').value;
   var d=v?new Date(v+'T12:00:00'):new Date();
   d.setDate(d.getDate()+days);
-  $('#inv-date').value=d.toISOString().slice(0,10);
+  $('#inv-date').value=localIso(d);
   updateDateDisplay();
 }
 $('#date-prev').onclick=function(){shiftDate(-1)};
@@ -377,11 +401,15 @@ function loadInvoice(name, autoEdit){
   toast('Loading...');
   call('sr_load',{invoice:name}).then(function(r){
     inv=r;
+    if(typeof r.is_admin!=='undefined') isAdmin=!!r.is_admin;
+    if(r.today) serverToday=r.today;
     toast('');
     if(inv.is_return){
-      if(autoEdit){
+      var pastRet=!isAdmin && serverToday && inv.date && inv.date<serverToday;
+      if(autoEdit && !pastRet){
         enterEditModeForReturn();
       }else{
+        if(autoEdit && pastRet) toast('Past-dated return notes can only be edited by an admin account.',1);
         showReturnView();
       }
     }else{
@@ -398,6 +426,10 @@ function showReturnView(){
   $('#step-inv').hidden=true;
   $('#step-submit').hidden=true;
   $('#step-view-return').hidden=false;
+
+  var pastRet=!isAdmin && serverToday && inv && inv.date && inv.date<serverToday;
+  if($('#vr-edit')) $('#vr-edit').hidden=pastRet;
+  if($('#vr-cancel')) $('#vr-cancel').hidden=pastRet;
 
   $('#vr-title').textContent='Return Note: '+inv.invoice;
   $('#vr-info').innerHTML=
@@ -418,6 +450,10 @@ function showReturnView(){
 
 function enterEditModeForReturn(){
   if(!inv || !inv.is_return) return;
+  if(!isAdmin && serverToday && inv.date && inv.date<serverToday){
+    toast('Only admin accounts can edit past-dated return notes.',1);
+    return;
+  }
   editingReturn = inv.invoice;
   $('#step-find').hidden=true;
   $('#step-view-return').hidden=true;
@@ -450,6 +486,8 @@ function enterEditModeForReturn(){
   if(inv.mode){
     $('#ret-mode').value=inv.mode;
   }
+  if($('#ret-date')) $('#ret-date').value=inv.date||serverToday||localIso();
+  syncRetDateLock();
   $('#ret-submit').textContent='Save return changes';
   $('#ret-cancel-note').style.display='inline-block';
   $('#step-inv').hidden=false;
@@ -583,6 +621,8 @@ function showInvoice(){
   }).join('');
   $('#step-inv').hidden=false;
   $('#step-submit').hidden=false;
+  if($('#ret-date')) $('#ret-date').value=serverToday||localIso();
+  syncRetDateLock();
   calcTotal();
   $('#step-inv').scrollIntoView({block:'start',behavior:'smooth'})
 }
@@ -617,12 +657,15 @@ $('#ret-submit').onclick=function(){
     if(qty>0) lines.push({item_code:it.item_code,batch_no:it.batch_no,qty:qty,rate:it.rate,warehouse:it.warehouse});
   });
   if(!lines.length){toast('Enter at least one item quantity to return.',1);return}
+  var rDate=$('#ret-date')?$('#ret-date').value:(serverToday||localIso());
+  if(!isAdmin && rDate && rDate<(serverToday||localIso())){toast('Only admin accounts can create backdated sales returns.',1);return}
   var b=this;b.disabled=true;toast('');
   var payload = {
     invoice: editingReturn ? inv.return_against : inv.invoice,
     lines: JSON.stringify(lines),
     reason: $('#ret-reason').value,
-    mode: $('#ret-mode').value
+    mode: $('#ret-mode').value,
+    posting_date: rDate
   };
   if(editingReturn){
     payload.amend_return = editingReturn;

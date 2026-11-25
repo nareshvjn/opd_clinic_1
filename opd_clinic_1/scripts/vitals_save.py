@@ -8,10 +8,18 @@
 # disabled: 0
 
 user = frappe.session.user
-ok = False
-for r in ["Healthcare Administrator", "System Manager", "Physician", "Nursing User", "Desk User"]:
-    if frappe.db.exists("Has Role", {"parent": user, "role": r}):
-        ok = True
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok:
+    for r in ["Physician", "Nursing User", "Desk User"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            ok = True
+            break
 if not ok:
     frappe.throw("You don't have access to record vitals.")
 
@@ -27,6 +35,7 @@ appt_id = (f.get("appointment") or "").strip()
 patient_id = (f.get("patient") or "").strip()
 vitals_id = (f.get("vitals_id") or f.get("name") or "").strip()
 vitals = json.loads(f.get("vitals") or "{}")
+req_signs_date = (f.get("signs_date") or "").strip()
 
 if vitals_id and frappe.db.exists("Vital Signs", vitals_id):
     v_doc = frappe.get_doc("Vital Signs", vitals_id)
@@ -35,8 +44,27 @@ if vitals_id and frappe.db.exists("Vital Signs", vitals_id):
     if not appt_id and v_doc.appointment:
         appt_id = v_doc.appointment
 
-if not patient_id and appt_id and frappe.db.exists("Patient Appointment", appt_id):
-    patient_id = frappe.db.get_value("Patient Appointment", appt_id, "patient") or ""
+today_date = frappe.utils.getdate(frappe.utils.today())
+appt_date = None
+appt_time = None
+if appt_id and frappe.db.exists("Patient Appointment", appt_id):
+    ad_vals = frappe.db.get_value("Patient Appointment", appt_id, ["patient", "appointment_date", "appointment_time"], as_dict=True)
+    if ad_vals:
+        if not patient_id:
+            patient_id = ad_vals.patient or ""
+        appt_date = ad_vals.appointment_date
+        appt_time = ad_vals.appointment_time
+
+if appt_date and frappe.utils.getdate(appt_date) < today_date and not is_admin:
+    frappe.throw("Only admin accounts can record or modify vitals for past-dated appointments.")
+
+if req_signs_date:
+    try:
+        req_sd = frappe.utils.getdate(req_signs_date)
+    except Exception:
+        frappe.throw("Invalid vitals date.")
+    if req_sd < today_date and not is_admin:
+        frappe.throw("Only admin accounts can record backdated vitals.")
 
 if not patient_id:
     frappe.throw("Patient is required to record vitals.")
@@ -56,12 +84,24 @@ elif appt_id:
     if old:
         vs = frappe.get_doc("Vital Signs", old[0].name)
 
+if vs and vs.get("signs_date") and frappe.utils.getdate(str(vs.signs_date)[:10]) < today_date and not is_admin:
+    frappe.throw("Only admin accounts can modify past-dated vitals.")
+
 if not vs:
     vs = frappe.new_doc("Vital Signs")
     vs.patient = patient_id
     vs.appointment = appt_id
     vs.company = company
-    vs.signs_date = frappe.utils.now_datetime()
+    target_sdate = None
+    if req_signs_date:
+        target_sdate = frappe.utils.getdate(req_signs_date)
+    elif appt_date and frappe.utils.getdate(appt_date) <= today_date:
+        target_sdate = frappe.utils.getdate(appt_date)
+    if target_sdate and target_sdate < today_date:
+        t_str = str(appt_time or frappe.utils.nowtime()).split(".")[0]
+        vs.signs_date = frappe.utils.get_datetime(str(target_sdate) + " " + t_str)
+    else:
+        vs.signs_date = frappe.utils.now_datetime()
 
 # Calculate BMI
 h = num(vitals.get("height"))

@@ -370,8 +370,13 @@ if(h==='sale'||h==='purchase'||h==='list'){
   if(btn) btn.click();
 }
 
+function localIso(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+var isAdmin=false, serverToday=localIso();
+
 call('ph_meta').then(function(m){
   csrf=m.csrf||'';wh=m.warehouse||'';
+  isAdmin=!!m.is_admin;
+  serverToday=m.today||localIso();
   $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
   if(!m.warehouses.length) toast('No store (warehouse) found. Create one in Desk first.',1);
   $('#sl-date-search').click();
@@ -388,15 +393,16 @@ function updateSaleDateFmt(){
 }
 
 function shiftSaleDate(days){
-  var cur=$('#sl-date').value ? new Date($('#sl-date').value) : new Date();
+  var v=$('#sl-date').value;
+  var cur=v ? new Date(v+'T12:00:00') : new Date();
   if(isNaN(cur.getTime())) cur=new Date();
   cur.setDate(cur.getDate()+days);
-  $('#sl-date').value=cur.toISOString().slice(0,10);
+  $('#sl-date').value=localIso(cur);
   updateSaleDateFmt();
   $('#sl-date-search').click();
 }
 
-$('#sl-date').value=new Date().toISOString().slice(0,10);
+$('#sl-date').value=localIso();
 updateSaleDateFmt();
 $('#sl-date').onchange=updateSaleDateFmt;
 $('#sl-date-prev').onclick=function(){shiftSaleDate(-1)};
@@ -413,9 +419,13 @@ $('#sl-date-search').onclick=function(){
       return;
     }
     var total=0;r.invoices.forEach(function(x){total+=n(x.total)});
+    var canEditDate=isAdmin || !serverToday || d>=serverToday;
     var summary='<div class="sum" style="font-weight:700;margin-bottom:10px"><span>'+r.invoices.length+' invoice(s) / returns</span><b>Total: '+inr(total)+'</b></div>';
     var rows=r.invoices.map(function(iv){
       var badge=iv.is_return?'<span class="badge-return">Return Note</span>':'';
+      var editBtn=canEditDate
+        ? (iv.is_return?'<a class="btn sm" href="/sale-return?edit='+encodeURIComponent(iv.name)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-sale="'+esc(iv.name)+'">Edit</button>')
+        : '';
       return '<div class="inv-row">'+
         '<div>'+
           '<b>'+esc(iv.name)+badge+'</b>'+
@@ -425,7 +435,7 @@ $('#sl-date-search').onclick=function(){
           '<div class="inv-total">'+inr(iv.total)+'</div>'+
           '<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">'+
             '<a class="btn sm subtle" href="/printview?doctype=Sales%20Invoice&name='+encodeURIComponent(iv.name)+'&trigger_print=1" target="_blank" rel="noopener">Print</a>'+
-            (iv.is_return?'<a class="btn sm" href="/sale-return?edit='+encodeURIComponent(iv.name)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-sale="'+esc(iv.name)+'">Edit</button>')+
+            editBtn+
             '<a class="btn sm subtle" href="/app/sales-invoice/'+encodeURIComponent(iv.name)+'" target="_blank" rel="noopener">Open</a>'+
           '</div>'+
         '</div>'+
@@ -457,15 +467,16 @@ function updatePurchaseDateFmt(){
 }
 
 function shiftPurchaseDate(days){
-  var cur=$('#pu-date').value ? new Date($('#pu-date').value) : new Date();
+  var v=$('#pu-date').value;
+  var cur=v ? new Date(v+'T12:00:00') : new Date();
   if(isNaN(cur.getTime())) cur=new Date();
   cur.setDate(cur.getDate()+days);
-  $('#pu-date').value=cur.toISOString().slice(0,10);
+  $('#pu-date').value=localIso(cur);
   updatePurchaseDateFmt();
   $('#pu-date-search').click();
 }
 
-$('#pu-date').value=new Date().toISOString().slice(0,10);
+$('#pu-date').value=localIso();
 updatePurchaseDateFmt();
 $('#pu-date').onchange=updatePurchaseDateFmt;
 $('#pu-date-prev').onclick=function(){shiftPurchaseDate(-1)};
@@ -482,19 +493,23 @@ $('#pu-date-search').onclick=function(){
       return;
     }
     var total=0;r.invoices.forEach(function(x){total+=n(x.total)});
+    var canEditDate=isAdmin || !serverToday || d>=serverToday;
     var summary='<div class="sum" style="font-weight:700;margin-bottom:10px"><span>'+r.invoices.length+' invoice(s) / returns</span><b>Total: '+inr(total)+'</b></div>';
     var rows=r.invoices.map(function(iv){
       var badge=iv.is_return?'<span class="badge-return">Return Note</span>':'';
       var sub=esc(iv.supplier);
       if(iv.bill_no) sub+=' &nbsp;&middot;&nbsp; Bill: '+esc(iv.bill_no);
       if(iv.time) sub+=' &nbsp;&middot;&nbsp; '+esc(iv.time);
+      var editBtn=canEditDate
+        ? (iv.is_return?'<a class="btn sm" href="/purchase-return?edit='+encodeURIComponent(iv.name)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-purchase="'+esc(iv.name)+'">Edit</button>')
+        : '';
       return '<div class="inv-row">'+
         '<div><b>'+esc(iv.name)+badge+'</b><span>'+sub+'</span></div>'+
         '<div class="r" style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'+
           '<div class="inv-total">'+inr(iv.total)+'</div>'+
           '<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">'+
             '<a class="btn sm subtle" href="/printview?doctype=Purchase%20Invoice&name='+encodeURIComponent(iv.name)+'&trigger_print=1" target="_blank" rel="noopener">Print</a>'+
-            (iv.is_return?'<a class="btn sm" href="/purchase-return?edit='+encodeURIComponent(iv.name)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-purchase="'+esc(iv.name)+'">Edit</button>')+
+            editBtn+
             '<a class="btn sm subtle" href="/app/purchase-invoice/'+encodeURIComponent(iv.name)+'" target="_blank" rel="noopener">Open</a>'+
           '</div>'+
         '</div>'+

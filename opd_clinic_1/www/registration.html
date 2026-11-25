@@ -357,6 +357,7 @@
       </div>
     </div>
     <p class="lead" id="slot-note" aria-live="polite" style="margin:4px 0 0;font-size:.8rem;color:var(--mute)"></p>
+    <p class="lead" id="backlog-note" hidden style="margin:4px 0 0;font-size:.8rem;font-weight:700;color:var(--gold-text)"></p>
     <input id="a-time" type="time" hidden aria-label="Preferred time">
     <label for="a-notes">Reason for visit (optional)</label>
     <textarea id="a-notes" rows="2" placeholder="Brief reason or symptoms (optional)"></textarea>
@@ -368,7 +369,7 @@
 <script>
 (function(){
 var $=function(s){return document.querySelector('#apt '+s)};
-var mode='new',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',nextUid='',isGuest=true,upc=[];
+var mode='new',slot='',manual=false,patientId='',csrf='',editId='',pendingSlot='',nextUid='',isGuest=true,isAdmin=false,serverToday='',upc=[];
 
 function applySessionMode(){
   if($('#exist-guest')) $('#exist-guest').hidden = !isGuest;
@@ -624,13 +625,40 @@ function loadSlots(){
     note.textContent='Times couldn\'t be loaded ('+e.message+'). Enter your preferred time and the clinic will confirm it.';
     manual=true;$('#a-time').hidden=false;if(pendingSlot){$('#a-time').value=pendingSlot;pendingSlot=''}})
 }
+function syncDateConstraint(){
+  var inp=$('#a-date'),bn=$('#backlog-note');
+  if(!inp)return;
+  var todayVal=serverToday||iso(new Date());
+  if(isAdmin){
+    inp.removeAttribute('min');
+    if(bn){
+      if(inp.value&&inp.value<todayVal){
+        bn.textContent='Backlog entry mode (Admin only): appointment will be recorded on '+inp.value;
+        bn.hidden=false;
+      }else{
+        bn.hidden=true;bn.textContent='';
+      }
+    }
+  }else{
+    inp.min=todayVal;
+    if(bn){bn.hidden=true;bn.textContent=''}
+    if(inp.value&&inp.value<todayVal){
+      inp.value=todayVal;
+      showErr('Only admin accounts can book appointments for past dates.');
+    }
+  }
+}
 $('#a-slot').onchange=function(){slot=this.value};
-$('#a-prac').onchange=loadSlots;$('#a-date').onchange=loadSlots;
-$('#a-date').min=iso(new Date());
+$('#a-prac').onchange=loadSlots;
+$('#a-date').onchange=function(){syncDateConstraint();loadSlots()};
+syncDateConstraint();
 if(!$('#a-date').value) $('#a-date').value=iso(new Date());
 
 call('appt_meta').then(function(m){csrf=m.csrf||'';
   if(typeof m.is_guest!=='undefined')isGuest=!!m.is_guest;
+  isAdmin=!!m.is_admin;
+  serverToday=m.today||iso(new Date());
+  syncDateConstraint();
   applySessionMode();
   if(m.can_view_dashboard){
     var dBtn=$('#btn-dash');
@@ -643,7 +671,8 @@ call('appt_meta').then(function(m){csrf=m.csrf||'';
   m.practitioners.forEach(function(p){var o=new Option(p.practitioner_name+(p.department?' ('+p.department+')':''),p.name);$('#a-prac').add(o)});
   m.types.forEach(function(t){$('#a-type').add(new Option(t,t))});
   setDefaultVisitType(mode);
-  if(!$('#a-date').value) $('#a-date').value=iso(new Date());
+  if(!$('#a-date').value) $('#a-date').value=serverToday;
+  syncDateConstraint();
   loadSlots();
 }).catch(function(){showErr('The booking form couldn\'t load. Please refresh or contact the clinic.')});
 
@@ -651,6 +680,8 @@ $('#f').onsubmit=function(ev){
   ev.preventDefault();showErr('');
   var isNew=mode==='new',time=manual?$('#a-time').value:($('#a-slot').value||slot);
   var d={mode:mode,practitioner:$('#a-prac').value,appointment_type:$('#a-type').value,date:$('#a-date').value,time:time,notes:$('#a-notes').value};
+  var todayVal=serverToday||iso(new Date());
+  if(d.date && d.date<todayVal && !isAdmin){showErr('Only admin accounts can book appointments for past dates.');return}
   if(isNew){d.uid=$('#n-uid').value.trim();d.first_name=$('#n-first').value.trim();d.last_name=$('#n-last').value.trim();d.sex=$('#n-sex').value;
     d.dob=$('#n-dob').value;d.mobile=$('#n-mobile').value.trim();d.email=$('#n-email').value.trim();
     if(!d.first_name||!d.sex){showErr('Enter the first name and gender.');return}
@@ -691,9 +722,10 @@ $('#f').onsubmit=function(ev){
     if($('#found')){ $('#found').hidden=true;$('#found').innerHTML=''; }
     if($('#upc'))$('#upc').innerHTML='';
 
-    $('#a-date').value = iso(new Date());
+    $('#a-date').value = serverToday || iso(new Date());
     setMode('new');
     setDefaultVisitType('new');
+    syncDateConstraint();
 
     call('appt_meta').then(function(m){
       if(m.next_uid){

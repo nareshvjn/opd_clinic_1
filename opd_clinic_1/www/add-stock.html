@@ -126,6 +126,10 @@
       <select id="st-exist"><option value="">New batch</option></select>
     </div>
   </div>
+  <div id="st-date-wrap" hidden style="margin-top:8px">
+    <label for="st-date" style="margin-top:0">Entry date (Admin Backlog Mode)</label>
+    <input id="st-date" type="date">
+  </div>
   <div id="f-st"></div>
   <p class="hint">For an existing batch, the packs and units entered will set the new total stock. Automatically creates both Item and Medication entries.</p>
   <p style="margin:16px 0 0"><button type="button" class="btn go" id="st-save" style="width:100%">Save stock</button></p>
@@ -211,8 +215,18 @@ $('#f-st').innerHTML=form('st');
 $('#f-st').oninput=function(){calc('st')};
 $('#f-st').onchange=$('#f-st').oninput;
 
+var isAdmin=false, serverToday='';
+function localIso(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+if($('#st-date')) $('#st-date').value=localIso();
+
 call('ph_meta').then(function(m){
   csrf=m.csrf||'';wh=m.warehouse||'';
+  isAdmin=!!m.is_admin;
+  serverToday=m.today||localIso();
+  if(isAdmin && $('#st-date-wrap')){
+    $('#st-date-wrap').hidden=false;
+    if($('#st-date')) $('#st-date').value=serverToday;
+  }
   $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
   var dfs=(m.dosage_forms&&m.dosage_forms.length)?m.dosage_forms:['Tablet','Capsule','Syrup','Injection','Drops','Ointment','Cream','Suspension','Inhaler','Gel','Lotion','Powder','Spray'];
   $('#st-form').innerHTML=dfs.map(function(f){return '<option'+(f==='Tablet'?' selected':'')+' value="'+esc(f)+'">'+esc(f)+'</option>'}).join('');
@@ -256,7 +270,9 @@ $('#st-save').onclick=function(){
   var prod=$('#st-prod').value.trim(),d=read('st'),b=this;
   if(!prod||!d.batch||!d.expiry){toast('Enter product, batch no and expiry.',1);return}
   if(n(d.mrp)<=0||n(d.rate)<=0){toast('Enter MRP and purchase rate.',1);return}
-  d.product=prod;d.form=$('#st-form').value;d.warehouse=wh;b.disabled=true;
+  d.product=prod;d.form=$('#st-form').value;d.warehouse=wh;
+  if(isAdmin && $('#st-date') && $('#st-date').value){d.posting_date=$('#st-date').value}
+  b.disabled=true;
   call('ph_stock_save',d,true).then(function(r){
     toast('Saved batch '+r.batch+' of '+r.item+'. Total stock is now '+r.units+' unit(s).');
     clearForm('st');$('#st-prod').value='';$('#st-exist').innerHTML='<option value="">New batch</option>'

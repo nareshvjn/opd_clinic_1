@@ -40,8 +40,14 @@ for r in rows:
 next_uid = prefix + str(max_seq + 1).zfill(6)
 
 user = frappe.session.user
-can_view_dash = False
+is_admin = (user == "Administrator")
+can_view_dash = is_admin
 if user and user != "Guest":
+    if not is_admin:
+        for r in ["Healthcare Administrator", "System Manager"]:
+            if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+                is_admin = True
+                break
     allowed_roles = [
         "Healthcare Administrator", "System Manager", "Physician",
         "Stock Manager", "Stock User", "Accounts Manager", "Accounts User", "Sales User"
@@ -57,5 +63,7 @@ frappe.response["message"] = {
     "csrf": token,
     "next_uid": next_uid,
     "is_guest": True if user == "Guest" else False,
+    "is_admin": is_admin,
+    "today": today_str,
     "can_view_dashboard": can_view_dash
 }

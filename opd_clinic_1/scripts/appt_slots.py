@@ -18,7 +18,17 @@ exclude = frappe.form_dict.get("exclude")
 if not prac or not date:
     frappe.throw("Choose a doctor and a date.")
 
+user = frappe.session.user
+is_admin = (user == "Administrator")
+if not is_admin and user and user != "Guest":
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+
 d = frappe.utils.getdate(date)
+if d < frappe.utils.getdate(frappe.utils.today()) and not is_admin:
+    frappe.throw("Choose today or a later date.")
 day = DAYS[d.weekday()]
 
 # 1. Working hours from the doctor's Practitioner Schedule(s) for that weekday

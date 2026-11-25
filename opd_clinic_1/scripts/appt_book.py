@@ -7,14 +7,22 @@
 # frequency: All
 # disabled: 0
 
+user = frappe.session.user
+is_admin = (user == "Administrator")
+if not is_admin and user and user != "Guest":
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+
 f = frappe.form_dict
 mode = f.get("mode")
 
 for k in ("practitioner", "appointment_type", "date", "time"):
     if not f.get(k):
         frappe.throw("Please complete all appointment details.")
-if frappe.utils.getdate(f.get("date")) < frappe.utils.getdate(frappe.utils.today()):
-    frappe.throw("Choose today or a later date.")
+if frappe.utils.getdate(f.get("date")) < frappe.utils.getdate(frappe.utils.today()) and not is_admin:
+    frappe.throw("Backdated appointments are only allowed for admin accounts. Choose today or a later date.")
 
 # Refuse the booking if the doctor already has an appointment overlapping this time
 def to_min(t):

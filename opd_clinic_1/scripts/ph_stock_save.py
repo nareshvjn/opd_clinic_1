@@ -7,10 +7,19 @@
 # frequency: All
 # disabled: 0
 
-ok = False
-for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": frappe.session.user, "role": r}):
-        ok = True
+user = frappe.session.user
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok:
+    for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            ok = True
+            break
 if not ok:
     frappe.throw("You don't have access to the pharmacy.")
 
@@ -323,6 +332,17 @@ if not product or not batch_in or not wh:
 if not f.get("expiry"):
     frappe.throw("Enter the batch expiry.")
 
+today_str = str(frappe.utils.today())
+today_date = frappe.utils.getdate(today_str)
+posting_date = (f.get("posting_date") or "").strip()
+if posting_date:
+    try:
+        p_date = frappe.utils.getdate(posting_date)
+    except Exception:
+        frappe.throw("Invalid posting date.")
+    if p_date < today_date and not is_admin:
+        frappe.throw("Only admin accounts can create backdated stock entries. Use today's date.")
+
 form = (f.get("form") or f.get("dosage_form") or "").strip()
 generic = (f.get("generic") or f.get("generic_name") or "").strip()
 mclass = (f.get("mclass") or f.get("medication_class") or "").strip()
@@ -369,6 +389,9 @@ if qty > 0 and qty != cur:
         se.purpose = "Material Receipt"
         se.company = company
         se.to_warehouse = wh
+        if posting_date:
+            se.posting_date = posting_date
+            se.set_posting_time = 1
         se.append("items", {"item_code": item, "qty": qty, "t_warehouse": wh, "basic_rate": val,
             "batch_no": bname, "use_serial_batch_fields": 1,
             "expense_account": adj_acc, "cost_center": cost_center})
@@ -379,6 +402,9 @@ if qty > 0 and qty != cur:
         sr = frappe.new_doc("Stock Reconciliation")
         sr.purpose = "Stock Reconciliation"
         sr.company = company
+        if posting_date:
+            sr.posting_date = posting_date
+            sr.set_posting_time = 1
         sr.expense_account = adj_acc
         sr.cost_center = cost_center
         sr.append("items", {"item_code": item, "warehouse": wh, "qty": qty, "valuation_rate": val,

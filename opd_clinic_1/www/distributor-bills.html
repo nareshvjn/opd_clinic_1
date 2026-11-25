@@ -249,7 +249,7 @@
 <script>
 (function(){
 var $=function(s){return document.querySelector('#db '+s)};
-var allInvoices=[],distId='',distName='';
+var allInvoices=[],distId='',distName='',isAdmin=false,serverToday='';
 var currentFilter='all';
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
@@ -313,6 +313,8 @@ function loadBills(){
     $('#kpi-last').textContent=sum.last_bill_date?fmtDate(sum.last_bill_date):'-';
 
     allInvoices=r.invoices||[];
+    isAdmin=!!r.is_admin;
+    serverToday=r.today||new Date().toLocaleDateString('en-CA');
     renderBills();
   }).catch(function(e){
     toast(e.message,1);
@@ -380,6 +382,12 @@ function renderBills(){
       }
     }
 
+    var invPostDate=(iv.posting_date||iv.bill_date||'').slice(0,10);
+    var canEdit=isAdmin || !serverToday || !invPostDate || invPostDate>=serverToday;
+    var editBtn=canEdit
+      ? (isRet?'<a class="btn sm" href="/purchase-return?edit='+encodeURIComponent(iv.name)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-purchase="'+esc(iv.name)+'">Edit</button>')
+      : '';
+
     return '<div class="'+cardClass+'">'+
       '<div class="bill-header">'+
         '<div>'+
@@ -393,7 +401,7 @@ function renderBills(){
         '<div>'+pendingText+'</div>'+
         '<div class="actions">'+
           '<a class="btn sm subtle" href="/printview?doctype=Purchase%20Invoice&name='+encodeURIComponent(iv.name)+'&trigger_print=1" target="_blank" rel="noopener">Print</a>'+
-          (isRet?'<a class="btn sm" href="/purchase-return?edit='+encodeURIComponent(iv.name)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-purchase="'+esc(iv.name)+'">Edit</button>')+
+          editBtn+
           '<a class="btn sm subtle" href="/app/purchase-invoice/'+encodeURIComponent(iv.name)+'" target="_blank" rel="noopener">Open in ERPNext</a>'+
         '</div>'+
       '</div>'+

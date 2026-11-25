@@ -7,10 +7,19 @@
 # frequency: All
 # disabled: 0
 
-ok = False
-for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": frappe.session.user, "role": r}):
-        ok = True
+user = frappe.session.user
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok:
+    for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            ok = True
+            break
 if not ok:
     frappe.throw("You don't have access to the pharmacy.")
 
@@ -143,10 +152,39 @@ lines = json.loads(f.get("lines") or "[]")
 if not supplier_in or not wh or not lines:
     frappe.throw("Enter the supplier, the store and at least one line.")
 
+today_str = str(frappe.utils.today())
+today_date = frappe.utils.getdate(today_str)
+bill_date = (f.get("bill_date") or "").strip() or today_str
+payment_status = f.get("payment_status") or "Paid"
+due_date = (f.get("due_date") or "").strip()
+paid_date = (f.get("paid_date") or "").strip() or today_str
+pay_mode = (f.get("payment_mode") or "").strip() or "Cash"
+paid_amt = num(f.get("paid_amount"))
+
+try:
+    b_date = frappe.utils.getdate(bill_date)
+except Exception:
+    frappe.throw("Invalid bill date.")
+try:
+    pd_date = frappe.utils.getdate(paid_date)
+except Exception:
+    frappe.throw("Invalid paid date.")
+
+if b_date < today_date and not is_admin:
+    frappe.throw("Only admin accounts can create backdated purchase entries. Bill date must be today or later.")
+if payment_status == "Paid" and paid_amt > 0 and pd_date < today_date and not is_admin:
+    frappe.throw("Only admin accounts can record backdated purchase payments. Paid date must be today or later.")
+
 # If amending, verify and cancel the old invoice and linked payment entries FIRST
 if amend_invoice:
     if not frappe.db.exists("Purchase Invoice", amend_invoice):
         frappe.throw("Original purchase invoice not found: " + amend_invoice)
+    old_pi = frappe.get_doc("Purchase Invoice", amend_invoice)
+    if not is_admin:
+        old_pdate = frappe.utils.getdate(old_pi.posting_date) if old_pi.posting_date else today_date
+        old_bdate = frappe.utils.getdate(old_pi.bill_date) if old_pi.bill_date else today_date
+        if old_pdate < today_date or old_bdate < today_date:
+            frappe.throw("Only admin accounts can modify past-dated purchase invoices.")
     pes = frappe.db.sql("""
         select distinct parent from `tabPayment Entry Reference`
         where reference_doctype='Purchase Invoice' and reference_name=%s and docstatus=1
@@ -174,20 +212,15 @@ if not frappe.db.exists("Supplier", supplier_in):
     s.insert(ignore_permissions=True)
     supplier = s.name
 
-payment_status = f.get("payment_status") or "Paid"
-due_date = (f.get("due_date") or "").strip()
-paid_date = (f.get("paid_date") or "").strip() or frappe.utils.today()
-pay_mode = (f.get("payment_mode") or "").strip() or "Cash"
-paid_amt = num(f.get("paid_amount"))
-
 pi = frappe.new_doc("Purchase Invoice")
 if amend_invoice:
     pi.amended_from = amend_invoice
 pi.supplier = supplier
 pi.company = company
-pi.posting_date = f.get("bill_date") or frappe.utils.today()
+pi.posting_date = bill_date
+pi.set_posting_time = 1
 pi.bill_no = (f.get("bill_no") or "").strip()
-pi.bill_date = f.get("bill_date") or frappe.utils.today()
+pi.bill_date = bill_date
 if payment_status == "Due" and due_date:
     pi.due_date = due_date
 pi.update_stock = 1

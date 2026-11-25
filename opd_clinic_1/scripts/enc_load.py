@@ -8,10 +8,11 @@
 # disabled: 0
 
 user = frappe.session.user
-is_admin = False
-for r in ["Healthcare Administrator", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": user, "role": r}):
-        is_admin = True
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
 ok = is_admin
 for r in ["Physician", "Nursing User"]:
     if frappe.db.exists("Has Role", {"parent": user, "role": r}):
@@ -93,6 +94,7 @@ if enc_id and frappe.db.exists("Patient Encounter", enc_id):
         "name": e.name,
         "docstatus": e.docstatus,
         "amended_from": e.amended_from or "",
+        "date": str(e.encounter_date or ""),
         "comment": e.encounter_comment or "",
         "symptoms": [x.complaint for x in e.symptoms],
         "diagnosis": [x.diagnosis for x in e.diagnosis],
@@ -109,6 +111,7 @@ elif appt_id:
             "name": e.name,
             "docstatus": e.docstatus,
             "amended_from": e.amended_from or "",
+            "date": str(e.encounter_date or ""),
             "comment": e.encounter_comment or "",
             "symptoms": [x.complaint for x in e.symptoms],
             "diagnosis": [x.diagnosis for x in e.diagnosis],
@@ -260,5 +263,7 @@ frappe.response["message"] = {
         "uoms": names("UOM"),
     },
     "med_forms": med_forms,
+    "is_admin": is_admin,
+    "today": str(frappe.utils.today()),
     "csrf": token,
 }

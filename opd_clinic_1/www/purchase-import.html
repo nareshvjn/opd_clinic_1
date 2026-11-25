@@ -573,6 +573,23 @@ $('#check').onclick=function(){
   }catch(e){note(e.message,1);$('#pv').hidden=true}
 };
 
+function localIso(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+var isAdmin=false, serverToday=localIso();
+function syncImportDateLock(){
+  var el=$('#pu-bdate');
+  if(!el) return;
+  var t=serverToday||localIso();
+  if(isAdmin){
+    el.removeAttribute('min');
+  } else {
+    el.min=t;
+    if(el.value && el.value<t){
+      el.value=t;
+      note('Only admin accounts can enter backdated purchase dates.',1);
+    }
+  }
+}
+
 // Action 1: Save Purchase Invoice directly via ph_purchase_save
 $('#run').onclick=function(){
   var valid = rows.filter(function(r){return !r.err});
@@ -580,6 +597,8 @@ $('#run').onclick=function(){
   if(!sup){note('Please enter or select a Supplier first.', 1);$('#pu-sup').focus();return}
   if(!wh){note('Please select a Store (warehouse).', 1);return}
   if(!valid.length){note('No valid rows to import. Please check your file.', 1);return}
+  var bDateVal=$('#pu-bdate').value || serverToday || localIso();
+  if(!isAdmin && bDateVal < (serverToday||localIso())){note('Only admin accounts can create backdated purchase entries.',1);return}
 
   var btn = this;
   btn.disabled = true;
@@ -588,7 +607,7 @@ $('#run').onclick=function(){
   var payload = {
     supplier: sup,
     bill_no: $('#pu-bill').value.trim(),
-    bill_date: $('#pu-bdate').value || new Date().toISOString().slice(0,10),
+    bill_date: bDateVal,
     warehouse: wh,
     lines: JSON.stringify(valid),
     discount_percentage: '0',
@@ -596,7 +615,7 @@ $('#run').onclick=function(){
     courier_charges: '0',
     payment_status: $('#pu-pay-status').value,
     payment_mode: $('#pu-pay-mode').value,
-    paid_date: $('#pu-bdate').value || new Date().toISOString().slice(0,10),
+    paid_date: bDateVal,
     target_grand: $('#sum-tot').textContent.replace(/[^0-9.]/g,'') || '0'
   };
 
@@ -620,11 +639,13 @@ $('#to-new-purchase').onclick=function(){
   var valid = rows.filter(function(r){return !r.err});
   var sup = $('#pu-sup').value.trim();
   if(!valid.length){note('No valid rows to import.', 1);return}
+  var bDateVal=$('#pu-bdate').value || serverToday || localIso();
+  if(!isAdmin && bDateVal < (serverToday||localIso())){note('Only admin accounts can use backdated purchase dates.',1);return}
 
   var importData = {
     supplier: sup,
     bill_no: $('#pu-bill').value.trim(),
-    bill_date: $('#pu-bdate').value,
+    bill_date: bDateVal,
     warehouse: wh,
     payment_status: $('#pu-pay-status').value,
     payment_mode: $('#pu-pay-mode').value,
@@ -649,11 +670,17 @@ $('#rc-again').onclick=function(){
   window.scrollTo({top:0,behavior:'smooth'});
 };
 
-$('#pu-bdate').value = new Date().toISOString().slice(0,10);
+$('#pu-bdate').value = localIso();
+$('#pu-bdate').onchange = syncImportDateLock;
+syncImportDateLock();
 $('#wh').onchange=function(){wh=this.value};
 
 call('ph_meta').then(function(m){
   csrf=m.csrf||'';wh=m.warehouse||'';
+  isAdmin=!!m.is_admin;
+  serverToday=m.today||localIso();
+  if(!$('#pu-bdate').value || $('#pu-bdate').value===localIso()) $('#pu-bdate').value=serverToday;
+  syncImportDateLock();
   $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
   if(!m.warehouses.length)note('No store (warehouse) found. Create one in Desk first.',1);
 

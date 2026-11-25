@@ -231,6 +231,7 @@
   </div>
 </div>
 <div class="chips" id="chips"></div>
+<div id="past-banner" class="note" hidden></div>
 <div id="err" class="note bad" role="alert" hidden></div>
 <div id="list" aria-live="polite"></div>
 
@@ -295,8 +296,27 @@ function render(){
   Object.keys(counts).forEach(function(s){chip(s+' ('+counts[s]+')',s)});
 
   var list=all.filter(function(a){return !filter||a.status===filter}),box=$('#list');
+  var serverToday=data.today||iso(new Date());
+  var selDate=$('#d-date').value;
+  var isPast=!!(selDate && selDate<serverToday);
+  var isAdmin=!!data.is_admin;
+  var readOnlyPast=isPast && !isAdmin;
+  var pb=$('#past-banner');
+  if(pb){
+    if(readOnlyPast){
+      pb.className='note bad';
+      pb.hidden=false;
+      pb.textContent='Viewing past date ('+selDate+'): Read-only mode. Only admin accounts can update status or generate consultation invoices for past dates.';
+    } else if(isPast && isAdmin){
+      pb.className='note';
+      pb.hidden=false;
+      pb.textContent='Backlog mode (Admin): Consultations and invoices created from this date will be recorded on '+selDate+'.';
+    } else {
+      pb.hidden=true;pb.textContent='';
+    }
+  }
   if(!list.length){box.innerHTML='<div class="note">No appointments for this day.</div>';return}
-  var n=new Date(),nowM=n.getHours()*60+n.getMinutes(),isToday=$('#d-date').value===iso(n);
+  var n=new Date(),nowM=n.getHours()*60+n.getMinutes(),isToday=selDate===serverToday;
   box.innerHTML=list.map(function(a){
     var p=a.time.split(':'),st=+p[0]*60+ +p[1],dur=+a.duration||10;
     var cls='a'+(isToday&&nowM>=st&&nowM<st+dur?' now':'')+(/closed|checked out/i.test(a.status)?' done':'');
@@ -306,6 +326,8 @@ function render(){
     if(closed){
       if(a.invoice && a.invoice_docstatus === 1){
         invBtn='<a class="btn" target="_blank" rel="noopener" href="'+invUrl(a.invoice)+'">🖨️ Print invoice'+(a.invoice_total?' (₹'+a.invoice_total+')':'')+'</a>';
+      } else if(readOnlyPast){
+        invBtn='<span class="n" style="font-size:.82rem">Billing locked (past date)</span>';
       } else if(a.invoice && a.invoice_docstatus === 0){
         invBtn='<div class="inv-controls" style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap">' +
           '<span style="background:#fff3cd;color:#856404;font-size:.78rem;font-weight:700;padding:4px 8px;border-radius:6px;border:1px solid #ffeeba">Draft</span>' +
@@ -329,14 +351,15 @@ function render(){
       }
     }
     var ptId = (a.uid && a.uid !== a.name) ? a.uid : '';
+    var stDisabled = readOnlyPast ? ' disabled title="Only admin accounts can change past appointment status"' : '';
     return '<article class="'+cls+'"><div class="t"><strong>'+fmt(a.time)+'</strong><span>'+dur+' min</span></div>'+
       '<div><h3>'+esc(a.name)+(ptId ? ' <span style="font-size:.82em;font-weight:600;color:var(--ok)">('+esc(ptId)+')</span>' : '')+'</h3><p class="m"><span>Age '+(a.age==null?'not recorded':esc(a.age))+'</span>'+
       (a.sex?'<span>'+esc(a.sex)+'</span>':'')+'<span>Mobile '+(a.mobile?esc(a.mobile):'not on file')+'</span></p>'+
       '<p class="m">'+esc(a.type)+(data.can_pick?' with '+esc(a.practitioner_name):'')+' </p>'+
       (a.notes?'<p class="n">'+esc(a.notes)+'</p>':'')+' </div>'+
-      '<div class="x"><select class="st" data-id="'+esc(a.id)+'" aria-label="Status for '+esc(a.name)+'">'+opts+'</select>'+
-      '<a class="btn" href="/vitals?'+q+'" title="Record or view vitals">Vitals'+(a.has_vitals?' \u2713':'')+'</a>'+
-      '<a class="btn go" href="/consultation?'+q+'">'+((closed || a.has_encounter)?'Open Consultation':'Start Consultation')+'</a>'+invBtn+
+      '<div class="x"><select class="st"'+stDisabled+' data-id="'+esc(a.id)+'" aria-label="Status for '+esc(a.name)+'">'+opts+'</select>'+
+      '<a class="btn" href="/vitals?'+q+'" title="Record or view vitals">'+(readOnlyPast?'View Vitals':'Vitals')+(a.has_vitals?' \u2713':'')+'</a>'+
+      '<a class="btn go" href="/consultation?'+q+'">'+(readOnlyPast?'View Consultation':((closed || a.has_encounter)?'Open Consultation':'Start Consultation'))+'</a>'+invBtn+
       '<a class="btn" target="_blank" rel="noopener" href="/app/patient/'+encodeURIComponent(a.patient)+'">Patient record</a></div></article>'
   }).join('')}
 

@@ -7,10 +7,19 @@
 # frequency: All
 # disabled: 0
 
-ok = False
-for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": frappe.session.user, "role": r}):
-        ok = True
+user = frappe.session.user
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok:
+    for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            ok = True
+            break
 if not ok:
     frappe.throw("You don't have access to the pharmacy.")
 
@@ -28,17 +37,29 @@ patient = (f.get("patient") or "").strip()
 mode = (f.get("mode") or "").strip()
 charge_name = (f.get("charge_name") or "").strip()
 charge_amt = num(f.get("charge"))
-posting_date = (f.get("posting_date") or "").strip() or frappe.utils.today()
+today_str = str(frappe.utils.today())
+today_date = frappe.utils.getdate(today_str)
+posting_date = (f.get("posting_date") or "").strip() or today_str
 amend_invoice = (f.get("amend_invoice") or "").strip()
+
+try:
+    p_date = frappe.utils.getdate(posting_date)
+except Exception:
+    frappe.throw("Invalid sale date.")
+
+if p_date < today_date and not is_admin:
+    frappe.throw("Only admin accounts can create backdated sales entries. Use today's date.")
 
 if not wh or not lines:
     frappe.throw("Select a store and at least one drug.")
 
-# If amending an invoice, cancel the original submitted invoice now so stock is returned
+# If amending an invoice, validate and cancel the original submitted invoice now so stock is returned
 if amend_invoice:
     if not frappe.db.exists("Sales Invoice", amend_invoice):
         frappe.throw("Original sales invoice not found: " + amend_invoice)
     old_si = frappe.get_doc("Sales Invoice", amend_invoice)
+    if old_si.posting_date and frappe.utils.getdate(old_si.posting_date) < today_date and not is_admin:
+        frappe.throw("Only admin accounts can edit past-dated sales invoices.")
     pes = frappe.db.sql("""
         select distinct parent from `tabPayment Entry Reference`
         where reference_doctype='Sales Invoice' and reference_name=%s and docstatus=1

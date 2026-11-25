@@ -7,8 +7,16 @@
 # frequency: All
 # disabled: 0
 
-if frappe.session.user == "Guest":
+user = frappe.session.user
+if user == "Guest":
     frappe.throw("Log in with a staff account to edit appointments.")
+
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
 
 f = frappe.form_dict
 name = f.get("appointment")
@@ -17,21 +25,21 @@ if not name or not patient:
     frappe.throw("Choose the appointment to edit.")
 
 doc = frappe.get_doc("Patient Appointment", name)
-if not doc.has_permission("write"):
+if not doc.has_permission("write") and not is_admin:
     frappe.throw("You don't have permission to edit this appointment.")
 if doc.patient != patient:
     frappe.throw("That appointment doesn't belong to this patient.")
-if doc.status in ["Cancelled", "Closed"]:
+if doc.status in ["Cancelled", "Closed"] and not is_admin:
     frappe.throw("This appointment can no longer be changed.")
 
 today = frappe.utils.getdate(frappe.utils.today())
-if frappe.utils.getdate(doc.appointment_date) < today:
-    frappe.throw("Past appointments can't be changed.")
+if frappe.utils.getdate(doc.appointment_date) < today and not is_admin:
+    frappe.throw("Past appointments can only be changed by an admin account.")
 for k in ("practitioner", "appointment_type", "date", "time"):
     if not f.get(k):
         frappe.throw("Please complete all appointment details.")
-if frappe.utils.getdate(f.get("date")) < today:
-    frappe.throw("Choose today or a later date.")
+if frappe.utils.getdate(f.get("date")) < today and not is_admin:
+    frappe.throw("Backdated appointments are only allowed for admin accounts. Choose today or a later date.")
 
 def to_min(t):
     parts = str(t).split(":")

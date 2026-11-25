@@ -8,10 +8,10 @@
 # disabled: 0
 
 user = frappe.session.user
-is_admin = False
-if frappe.db.exists("Has Role", {"parent": user, "role": "Healthcare Administrator"}):
+is_admin = (user == "Administrator")
+if not is_admin and frappe.db.exists("Has Role", {"parent": user, "role": "Healthcare Administrator"}):
     is_admin = True
-if frappe.db.exists("Has Role", {"parent": user, "role": "System Manager"}):
+if not is_admin and frappe.db.exists("Has Role", {"parent": user, "role": "System Manager"}):
     is_admin = True
 is_doctor = bool(frappe.db.exists("Has Role", {"parent": user, "role": "Physician"}))
 if not (is_admin or is_doctor):
@@ -49,6 +49,13 @@ if not name:
     frappe.throw("Choose an appointment.")
 
 appt = frappe.get_doc("Patient Appointment", name)
+today_str = frappe.utils.today()
+today_date = frappe.utils.getdate(today_str)
+appt_date_val = frappe.utils.getdate(appt.appointment_date) if appt.appointment_date else today_date
+if appt_date_val < today_date and not is_admin:
+    frappe.throw("Only admin accounts can generate invoices for past-dated appointments.")
+inv_date = str(appt.appointment_date) if (appt.appointment_date and appt_date_val <= today_date) else str(today_str)
+
 if not is_admin:
     mine = frappe.db.get_value("Healthcare Practitioner", {"user_id": user}, "name")
     if not mine or appt.practitioner != mine:
@@ -83,6 +90,8 @@ if existing:
     inv_doc = frappe.get_doc("Sales Invoice", existing)
     if inv_doc.docstatus == 0:
         # Existing invoice is draft: update rate and submit!
+        inv_doc.posting_date = inv_date
+        inv_doc.set_posting_time = 1
         if inv_doc.items:
             inv_doc.items[0].rate = rate
             inv_doc.items[0].price_list_rate = rate
@@ -116,8 +125,9 @@ if existing:
                 pe = frappe.call("erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry",
                     dt="Sales Invoice", dn=inv_doc.name)
                 pe.mode_of_payment = mode
+                pe.posting_date = inv_date
                 pe.reference_no = inv_doc.name
-                pe.reference_date = frappe.utils.today()
+                pe.reference_date = inv_date
                 pe.insert(ignore_permissions=True)
                 pe.submit()
                 paid = True
@@ -151,7 +161,8 @@ else:
     si = frappe.new_doc("Sales Invoice")
     si.customer = cust
     si.company = company
-    si.posting_date = frappe.utils.today()
+    si.posting_date = inv_date
+    si.set_posting_time = 1
     si.update_stock = 0
     si.ignore_pricing_rule = 1
     si.currency = co.default_currency if co else "INR"
@@ -192,8 +203,9 @@ else:
             pe = frappe.call("erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry",
                 dt="Sales Invoice", dn=si.name)
             pe.mode_of_payment = mode
+            pe.posting_date = inv_date
             pe.reference_no = si.name
-            pe.reference_date = frappe.utils.today()
+            pe.reference_date = inv_date
             pe.insert(ignore_permissions=True)
             pe.submit()
             paid = True

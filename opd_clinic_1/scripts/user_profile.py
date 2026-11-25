@@ -22,6 +22,12 @@ else:
         "Stock Manager", "Stock User", "Accounts Manager", "Accounts User", "Sales User"
     ]
     can_dash = (user == "Administrator")
+    is_admin = (user == "Administrator")
+    if not is_admin:
+        for r in ["Healthcare Administrator", "System Manager"]:
+            if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+                is_admin = True
+                break
     if not can_dash:
         for r in allowed_roles:
             if frappe.db.exists("Has Role", {"parent": user, "role": r}):
@@ -40,5 +46,6 @@ else:
         "user_image": u.get("user_image") or "",
         "practitioner": prac.get("practitioner_name") or "",
         "department": prac.get("department") or "",
+        "is_admin": is_admin,
         "can_dashboard": can_dash
     }

@@ -261,7 +261,9 @@ var q=new URLSearchParams(location.search),
     V=q.get('vitals')||q.get('name')||'',
     csrf='',
     currentVitalsId='',
-    recordsMap={};
+    recordsMap={},
+    isAdmin=false,
+    serverToday='';
 
 var VK=['temperature','pulse','bp_systolic','bp_diastolic','respiratory_rate','height','weight'];
 
@@ -367,6 +369,22 @@ function getPayload(){
   return o;
 }
 
+function applyReadOnlyState(vDate){
+  var d=(vDate||'').slice(0,10);
+  var apptD=(window._apptDate||'').slice(0,10);
+  var isPast = !isAdmin && serverToday && ((d && d < serverToday) || (apptD && apptD < serverToday));
+  VK.forEach(function(k){ $('#v-'+k).readOnly = isPast; });
+  $('#v-note').readOnly = isPast;
+  $('#btn-save').disabled = isPast;
+  $('#btn-save-consult').disabled = isPast;
+  $('#btn-save').hidden = isPast;
+  $('#btn-save-consult').hidden = isPast;
+  if(isPast){
+    showMsg('Past-dated vitals are read-only. Only admin accounts can record or modify past vitals.');
+  }
+  return isPast;
+}
+
 function loadRecord(v){
   if(!v) return;
   currentVitalsId = v.name || '';
@@ -389,6 +407,7 @@ function loadRecord(v){
     $('#btn-clear-new').hidden = true;
     $('#btn-save').textContent = 'Save Vitals';
   }
+  applyReadOnlyState(v.date || (v.signs_date ? String(v.signs_date).slice(0,10) : ''));
 }
 
 function clearToNew(){
@@ -399,8 +418,10 @@ function clearToNew(){
   $('#edit-banner').hidden = true;
   $('#btn-clear-new').hidden = true;
   $('#btn-save').textContent = 'Save Vitals';
-  showMsg('Ready to record new vitals.', true);
-  setTimeout(function(){ showMsg(''); }, 2000);
+  if(!applyReadOnlyState('')){
+    showMsg('Ready to record new vitals.', true);
+    setTimeout(function(){ showMsg(''); }, 2000);
+  }
 }
 
 $('#btn-clear-new').onclick = clearToNew;
@@ -440,6 +461,9 @@ function init(){
   if(!P&&!A&&!V){showMsg('No patient or appointment provided in URL.');return}
   call('vitals_load',{appointment:A,patient:P,practitioner:D,vitals_id:V}).then(function(r){
     csrf=r.csrf||csrf;
+    isAdmin=!!r.is_admin;
+    serverToday=r.today||'';
+    window._apptDate=(r.appointment&&r.appointment.date)||'';
     P=r.patient.id;
     if(r.practitioner) D=r.practitioner;
     var p=r.patient,w=(p.name||'').split(/\s+/);
@@ -448,7 +472,7 @@ function init(){
     $('#pn').innerHTML = esc(p.name) + (uidStr ? ' <span style="font-size:0.92rem;font-weight:600;color:#8cc9b5;letter-spacing:0.3px">(' + esc(uidStr) + ')</span>' : '');
     $('#pm').textContent=['Age '+(p.age==null?'not recorded':p.age),p.sex,p.mobile?'Mobile '+p.mobile:''].filter(Boolean).join('   ');
     if(r.appointment&&r.appointment.id){
-      $('#ap').innerHTML='<b>'+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'');
+      $('#ap').innerHTML='<b>'+(r.appointment.date?esc(r.appointment.date)+' &middot; ':'')+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'');
     }
 
     recordsMap = {};
@@ -463,6 +487,7 @@ function init(){
       $('#hx-rows').innerHTML=r.history.map(function(h){
         recordsMap[h.name] = h;
         var bp = (h.bp_systolic&&h.bp_diastolic)?(h.bp_systolic+'/'+h.bp_diastolic):'-';
+        var rowLocked = !isAdmin && serverToday && h.date && h.date < serverToday;
         return '<tr>'+
           '<td><b>'+esc(h.date)+'</b> <span style="color:#5d7184">'+esc(h.time)+'</span></td>'+
           '<td>'+esc(bp)+'</td>'+
@@ -472,7 +497,7 @@ function init(){
           '<td>'+(h.height?h.height+' cm':'-')+'</td>'+
           '<td>'+(h.bmi?h.bmi:'-')+'</td>'+
           '<td><span style="font-size:.82rem;color:#5d7184">'+esc(h.note||'-')+'</span></td>'+
-          '<td style="text-align:center"><button type="button" class="btn sm btn-edit-row" data-id="'+esc(h.name)+'">Edit ✎</button></td>'+
+          '<td style="text-align:center"><button type="button" class="btn sm btn-edit-row" data-id="'+esc(h.name)+'">'+(rowLocked?'View':'Edit ✎')+'</button></td>'+
         '</tr>';
       }).join('');
       $('#hx-card').hidden=false;

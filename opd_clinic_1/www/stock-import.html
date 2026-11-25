@@ -103,6 +103,10 @@
 <div><label for="def-class" style="margin-top:0">Default Medication Class</label><select id="def-class"></select></div>
 <div><label for="def-group" style="margin-top:0">Default Item Group</label><select id="def-group"></select></div>
 </div>
+<div id="si-date-wrap" hidden style="margin-top:10px">
+<label for="si-date" style="margin-top:0">Stock Entry Date (Admin Backlog Mode)</label>
+<input id="si-date" type="date" style="max-width:220px">
+</div>
 <p class="hint">Columns supported in Excel/CSV/paste: <b>product, form, batch, expiry, hsn, gst, mrp, rate, upp, packs, units</b>. (Also supports optional: <b>generic, strength, unit</b>). If dosage form is not specified in a row, the Default Dosage Form selected above is used. Automatically creates both <b>Item</b> and <b>Medication</b> entries.</p>
 <p class="hint">Download template: <a id="tpl-xlsx" href="#" style="font-weight:700">Excel (.xlsx)</a> &nbsp;|&nbsp; <a id="tpl" download="stock-import-template.csv" href="#">CSV (.csv)</a></p>
 <label for="file">Excel or CSV file (.xlsx, .xls, .csv)</label>
@@ -348,7 +352,7 @@ $('#run').onclick=async function(){
     tries=0;done=false;
     while(!done){
       try{
-        var res=await call('ph_stock_save',{
+        var payload={
           product:r.product,
           form:r.form||defForm,
           generic:r.generic||'',
@@ -368,7 +372,9 @@ $('#run').onclick=async function(){
           units:r.units,
           disc:'0',
           warehouse:wh
-        },true);
+        };
+        if(window._siIsAdmin && $('#si-date') && $('#si-date').value){payload.posting_date=$('#si-date').value}
+        var res=await call('ph_stock_save',payload,true);
         ok++;done=true;
         $('#lg-b').insertAdjacentHTML('afterbegin','<tr><td>'+r.no+'</td><td>'+esc(r.product)+' <span class="badge">'+esc(r.form||defForm)+'</span></td><td>'+esc(r.batch)+'</td><td class="okt">Saved (Item & Medication created)</td></tr>')
       }catch(e){
@@ -385,6 +391,12 @@ $('#run').onclick=async function(){
 $('#wh').onchange=function(){wh=this.value};
 call('ph_meta').then(function(m){
   csrf=m.csrf||'';wh=m.warehouse||'';
+  window._siIsAdmin=!!m.is_admin;
+  if(window._siIsAdmin && $('#si-date-wrap')){
+    $('#si-date-wrap').hidden=false;
+    var ld=m.today||new Date().toLocaleDateString('en-CA');
+    if($('#si-date')) $('#si-date').value=ld;
+  }
   $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
   if(!m.warehouses.length)note('No store (warehouse) found. Create one in Desk first.',1);
 

@@ -8,10 +8,18 @@
 # disabled: 0
 
 user = frappe.session.user
-ok = False
-for r in ["Healthcare Administrator", "System Manager", "Physician", "Nursing User", "Desk User"]:
-    if frappe.db.exists("Has Role", {"parent": user, "role": r}):
-        ok = True
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok:
+    for r in ["Physician", "Nursing User", "Desk User"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            ok = True
+            break
 if not ok:
     frappe.throw("You don't have access to vitals.")
 
@@ -152,5 +160,7 @@ frappe.response["message"] = {
     "appointment": appt_info,
     "vitals": current_vs,
     "history": history,
+    "is_admin": is_admin,
+    "today": str(frappe.utils.today()),
     "csrf": token
 }

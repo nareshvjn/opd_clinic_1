@@ -7,10 +7,19 @@
 # frequency: All
 # disabled: 0
 
-ok = False
-for r in ["Stock User", "Stock Manager", "Accounts User", "Purchase User", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": frappe.session.user, "role": r}):
-        ok = True
+user = frappe.session.user
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok:
+    for r in ["Stock User", "Stock Manager", "Accounts User", "Purchase User", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            ok = True
+            break
 if not ok:
     frappe.throw("You don't have access to this page.")
 
@@ -103,7 +112,9 @@ if pi.is_return:
         "total": abs(pi.rounded_total or pi.grand_total),
         "reason": reason,
         "items": items,
-        "edit_items": edit_items
+        "edit_items": edit_items,
+        "is_admin": is_admin,
+        "today": str(frappe.utils.today())
     }
 else:
     # Original purchase invoice
@@ -145,5 +156,7 @@ else:
         "bill_no": pi.bill_no or "",
         "total": pi.rounded_total or pi.grand_total,
         "already_returned": len(existing) > 0,
-        "items": items
+        "items": items,
+        "is_admin": is_admin,
+        "today": str(frappe.utils.today())
     }

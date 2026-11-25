@@ -7,10 +7,19 @@
 # frequency: All
 # disabled: 0
 
-ok = False
-for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": frappe.session.user, "role": r}):
-        ok = True
+user = frappe.session.user
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok:
+    for r in ["Stock User", "Stock Manager", "Accounts User", "Sales User", "Purchase User", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            ok = True
+            break
 if not ok:
     frappe.throw("You don't have access to this action.")
 
@@ -33,6 +42,11 @@ if doc.docstatus != 1:
 
 if doc.is_return:
     frappe.throw("Use the Return page to manage return notes.")
+
+today_date = frappe.utils.getdate(frappe.utils.today())
+doc_date = frappe.utils.getdate(doc.posting_date) if doc.posting_date else today_date
+if doc_date < today_date and not is_admin:
+    frappe.throw("Only admin accounts can edit past-dated invoices.")
 
 # Note: The original invoice is NOT cancelled here!
 # It will only be cancelled and amended when the replacement is saved.

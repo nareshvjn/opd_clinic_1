@@ -194,6 +194,16 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
     <div id="hx"></div>
   </section>
 
+  <section class="card" id="sec-cdate" hidden style="grid-column:1/-1;background:#fffbe6;border-color:#f7dc6f;padding:10px 14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <b style="color:#966f00;font-size:.9rem">Consultation Date (Admin Backlog Mode)</b>
+        <span style="display:block;font-size:.78rem;color:#7d5d00">Defaults to appointment date; edit only if recording a backdated entry.</span>
+      </div>
+      <input type="date" id="c-date" style="width:auto;min-width:165px;padding:7px 10px;border:1.5px solid #cfe0d7;border-radius:8px;font:inherit;background:#fff">
+    </div>
+  </section>
+
   <section class="card" id="sec-vitals" style="grid-column:1/-1;background:#f8faf9;padding:10px 14px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -336,24 +346,34 @@ $('#meds').oninput=$('#meds').onchange=function(e){
 $('#add-med').onclick=function(){M.push(blankMed());renderMeds()};
 
 function payload(complete){
-  return {appointment:A,patient:P,practitioner:D,comment:$('#notes').value,complete:complete?'1':'0',amend:amend?'1':'0',
+  var o={appointment:A,patient:P,practitioner:D,comment:$('#notes').value,complete:complete?'1':'0',amend:amend?'1':'0',
     symptoms:JSON.stringify(T.sym),diagnosis:JSON.stringify(T.dx),labs:JSON.stringify(T.lab),
-    drugs:JSON.stringify(M.filter(function(m){return m.drug.trim()})),vitals:'{}'}
+    drugs:JSON.stringify(M.filter(function(m){return m.drug.trim()})),vitals:'{}'};
+  if($('#c-date') && !$('#sec-cdate').hidden && $('#c-date').value){
+    o.encounter_date=$('#c-date').value;
+  }
+  return o;
 }
 
 function init(r){
   csrf=r.csrf||'';P=r.patient.id;D=r.practitioner||D;L=r.lists||{};
+  var isAdmin=!!r.is_admin, serverToday=r.today||'';
   ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};
   var p=r.patient,words=(p.name||'').split(/\s+/);
   $('#av').textContent=((words[0]||'?')[0]+(words[1]?words[1][0]:'')).toUpperCase();
   var uidStr = (p.uid && p.uid !== p.name) ? p.uid : '';
   $('#pn').innerHTML = esc(p.name) + (uidStr ? ' <span style="font-size:0.92rem;font-weight:600;color:#8cc9b5;letter-spacing:0.3px">(' + esc(uidStr) + ')</span>' : '');
   $('#pm').textContent=['Age '+(p.age==null?'not recorded':p.age),p.sex,p.mobile?'Mobile '+p.mobile:''].filter(Boolean).join('   ');
-  if(r.appointment){$('#ap').innerHTML='<b>'+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'')}
+  if(r.appointment){$('#ap').innerHTML='<b>'+(r.appointment.date?esc(r.appointment.date)+' &middot; ':'')+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'')}
   fill('dl-sym',L.complaints);fill('dl-dx',L.diagnoses);fill('dl-med',L.medications.concat(L.items));fill('dl-lab',L.labs);fill('dl-uom',L.uoms);
   if(!(L.medications.length+L.items.length))$('#med-hint').textContent='No medicines saved yet. Type a medicine name to add a new one.';
   var e=r.encounter;
   if(e){window.currentEncounter=e.name;T.sym=e.symptoms||[];T.dx=e.diagnosis||[];T.lab=e.labs||[];M=e.drugs||[];$('#notes').value=e.comment||''}
+  var targetDate=(e&&e.date)||(r.appointment&&r.appointment.date)||serverToday;
+  if(isAdmin && $('#sec-cdate')){
+    $('#sec-cdate').hidden=false;
+    if($('#c-date')) $('#c-date').value=targetDate||serverToday;
+  }
   var vitLink='/vitals?'+(A?'appointment='+encodeURIComponent(A)+'&':'')+'patient='+encodeURIComponent(P)+(D?'&practitioner='+encodeURIComponent(D):'');
   $('#vitals-link').href=vitLink;
   if(r.vitals){
@@ -416,6 +436,14 @@ function init(r){
     pb.href=pu(e.name);
     pb.hidden=false;
     msg('This consultation is completed. Change anything below and press Save changes: the original is cancelled and the corrected one is saved. Vitals stay as recorded.',true)}
+  var isPastReadOnly = !isAdmin && serverToday && targetDate && targetDate < serverToday;
+  if(isPastReadOnly){
+    $('#draft').hidden=true;
+    $('#complete').hidden=true;
+    $('#add-med').hidden=true;
+    $('#notes').readOnly=true;
+    msg('Past-dated consultations are read-only. Only admin accounts can modify backlog entries.');
+  }
 }
 
 function learn(){

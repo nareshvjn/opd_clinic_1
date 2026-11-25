@@ -8,14 +8,15 @@
 # disabled: 0
 
 user = frappe.session.user
-admin = False
-ok = False
+admin = (user == "Administrator")
+ok = admin
 for r in ["Physician", "Healthcare Administrator", "System Manager"]:
     if frappe.db.exists("Has Role", {"parent": user, "role": r}):
         ok = True
-for r in ["Healthcare Administrator", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": user, "role": r}):
-        admin = True
+if not admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            admin = True
 if not ok:
     frappe.throw("Only doctors can edit a consultation.")
 
@@ -39,6 +40,26 @@ if not admin:
     mine = frappe.db.get_value("Healthcare Practitioner", {"user_id": user}, "name")
     if mine and old.practitioner != mine:
         frappe.throw("This consultation belongs to another doctor.")
+
+today_str = str(frappe.utils.today())
+today_date = frappe.utils.getdate(today_str)
+old_enc_date = frappe.utils.getdate(old.encounter_date) if old.encounter_date else today_date
+appt_date = None
+if old.appointment:
+    ad = frappe.db.get_value("Patient Appointment", old.appointment, "appointment_date")
+    if ad:
+        appt_date = frappe.utils.getdate(ad)
+if not admin and (old_enc_date < today_date or (appt_date and appt_date < today_date)):
+    frappe.throw("Only admin accounts can modify past-dated consultations.")
+
+req_enc_date = (f.get("encounter_date") or "").strip()
+if req_enc_date:
+    try:
+        req_ed = frappe.utils.getdate(req_enc_date)
+    except Exception:
+        frappe.throw("Invalid consultation date.")
+    if req_ed < today_date and not admin:
+        frappe.throw("Only admin accounts can set a backdated consultation date.")
 
 # Ensure patient has UID
 if old.patient and frappe.db.exists("Patient", old.patient):
@@ -129,7 +150,9 @@ new.practitioner = old.practitioner
 new.appointment = old.appointment
 new.company = old.company
 new.encounter_comment = (f.get("comment") if has_form_data else old.encounter_comment) or ""
-if old.encounter_date:
+if req_enc_date:
+    new.encounter_date = req_enc_date
+elif old.encounter_date:
     new.encounter_date = old.encounter_date
 else:
     new.encounter_date = frappe.utils.today()

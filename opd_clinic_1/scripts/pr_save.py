@@ -7,10 +7,19 @@
 # frequency: All
 # disabled: 0
 
-ok = False
-for r in ["Stock User", "Stock Manager", "Accounts User", "Purchase User", "System Manager"]:
-    if frappe.db.exists("Has Role", {"parent": frappe.session.user, "role": r}):
-        ok = True
+user = frappe.session.user
+is_admin = (user == "Administrator")
+if not is_admin:
+    for r in ["Healthcare Administrator", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            is_admin = True
+            break
+ok = is_admin
+if not ok:
+    for r in ["Stock User", "Stock Manager", "Accounts User", "Purchase User", "System Manager"]:
+        if frappe.db.exists("Has Role", {"parent": user, "role": r}):
+            ok = True
+            break
 if not ok:
     frappe.throw("You don't have access to this page.")
 
@@ -26,9 +35,23 @@ amend_return = (f.get("amend_return") or "").strip()
 lines        = json.loads(f.get("lines") or "[]")
 reason       = (f.get("reason") or "Wrong Item").strip()
 
+today_str = str(frappe.utils.today())
+today_date = frappe.utils.getdate(today_str)
+posting_date = (f.get("posting_date") or "").strip() or today_str
+try:
+    p_date = frappe.utils.getdate(posting_date)
+except Exception:
+    frappe.throw("Invalid return date.")
+
+if p_date < today_date and not is_admin:
+    frappe.throw("Only admin accounts can create backdated purchase returns. Use today's date.")
+
 if amend_return:
     if not frappe.db.exists("Purchase Invoice", amend_return):
         frappe.throw("Original return note not found: " + amend_return)
+    old_ret = frappe.get_doc("Purchase Invoice", amend_return)
+    if old_ret.posting_date and frappe.utils.getdate(old_ret.posting_date) < today_date and not is_admin:
+        frappe.throw("Only admin accounts can modify past-dated purchase return notes.")
     # Cancel linked payment entries if any to prevent TimestampMismatchError
     pes = frappe.db.sql("""
         select distinct parent from `tabPayment Entry Reference`
@@ -38,7 +61,6 @@ if amend_return:
         pe_doc = frappe.get_doc("Payment Entry", p.parent)
         if pe_doc.docstatus == 1:
             pe_doc.cancel()
-    old_ret = frappe.get_doc("Purchase Invoice", amend_return)
     if not invoice:
         invoice = old_ret.return_against
     if old_ret.docstatus == 1:
@@ -61,7 +83,7 @@ co = frappe.db.get_value("Company", company,
 ret = frappe.new_doc("Purchase Invoice")
 ret.supplier = pi.supplier
 ret.company = company
-ret.posting_date = frappe.utils.today()
+ret.posting_date = posting_date
 ret.set_posting_time = 1
 ret.update_stock = 1
 ret.is_return = 1
