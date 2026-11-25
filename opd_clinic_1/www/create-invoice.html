@@ -795,10 +795,10 @@ $('#btn-draft').onclick=function(){ submitInvoice(true); };
 
 // Default quick-pick services in fixed order & default rates (merged with catalog codes when inv_meta loads)
 var DEFAULT_QUICK_SERVICES=[
-  {code:'', name:'Consultation Fee', rate:100, description:'Consultation Fee', aliases:['consultation','consultation fee','clinical consultation'], matchCodes:['CONSULT-GEN']},
-  {code:'', name:'Injection Fee', rate:50, description:'Injection Fee', aliases:['injection fee','injection'], matchCodes:[]},
-  {code:'', name:'Nebulisation Fee', rate:50, description:'Nebulisation Fee', aliases:['nebulisation fee','nebulization fee','nebulisation'], matchCodes:[]},
-  {code:'', name:'IV Fluid Fee', rate:100, description:'IV Fluid Fee', aliases:['iv fluid fee','iv fluid'], matchCodes:[]}
+  {code:'', name:'Consultation Fee', rate:100, aliases:['consultation','consultation fee','clinical consultation','doctor consultation','opd consultation','general consultation','consultation charges','consultation charge'], matchCodes:['CONSULT-GEN']},
+  {code:'', name:'Injection Fee', rate:50, aliases:['injection fee','injection','injection charges','injection charge'], matchCodes:[]},
+  {code:'', name:'Nebulisation Fee', rate:50, aliases:['nebulisation fee','nebulization fee','nebulisation','nebulization','nebulisation charges','nebulization charges'], matchCodes:[]},
+  {code:'', name:'IV Fluid Fee', rate:100, aliases:['iv fluid fee','iv fluid','iv fluids','iv fluid charges'], matchCodes:[]}
 ];
 
 function renderQuickChips(catalogItems){
@@ -820,11 +820,12 @@ function renderQuickChips(catalogItems){
       seenCodes[cd]=true;
     });
     if(match && match.code) seenCodes[String(match.code).trim().toUpperCase()]=true;
+    var desc=(match && match.description && match.description.trim()!==def.name) ? match.description : '';
     merged.push({
       code: match ? (match.code||'') : '',
       name: def.name,
       rate: def.rate,
-      description: (match && match.description) ? match.description : def.description
+      description: desc
     });
   });
   (catalogItems||[]).forEach(function(it){

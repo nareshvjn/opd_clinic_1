@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import frappe
@@ -39,5 +40,57 @@ def after_migrate():
                     os.symlink(app_public, symlink_target)
                 except Exception:
                     pass
+
+        # 4. Ensure Web Page rows match fixtures/web_page.json (even if DB modified timestamp was newer)
+        try:
+            wp_path = frappe.get_app_path("opd_clinic_1", "fixtures", "web_page.json")
+            if os.path.exists(wp_path):
+                with open(wp_path, "r", encoding="utf-8") as fp:
+                    wps = json.load(fp)
+                updated_wp = False
+                for wp in wps:
+                    name = wp.get("name")
+                    if not name or not frappe.db.exists("Web Page", name):
+                        continue
+                    cur = frappe.db.get_value(
+                        "Web Page",
+                        name,
+                        ["main_section", "main_section_html", "css"],
+                        as_dict=True,
+                    ) or {}
+                    target_main = wp.get("main_section") or ""
+                    target_html = wp.get("main_section_html") or target_main
+                    target_css = wp.get("css") or ""
+                    if (
+                        (cur.get("main_section") or "") != target_main
+                        or (cur.get("main_section_html") or "") != target_html
+                        or (cur.get("css") or "") != target_css
+                    ):
+                        frappe.db.set_value(
+                            "Web Page",
+                            name,
+                            {
+                                "main_section": target_main,
+                                "main_section_html": target_html,
+                                "css": target_css,
+                            },
+                            update_modified=False,
+                        )
+                        updated_wp = True
+                if updated_wp:
+                    frappe.db.commit()
+        except Exception:
+            pass
+
+        # 5. Clear Frappe & Website caches so updated Web Pages serve immediately
+        try:
+            from frappe.website.utils import clear_website_cache
+            clear_website_cache()
+        except Exception:
+            pass
+        try:
+            frappe.clear_cache()
+        except Exception:
+            pass
     except Exception:
         pass

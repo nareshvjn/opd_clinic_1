@@ -24,6 +24,20 @@ if not ok:
 if not ok:
     frappe.throw("You do not have permission to create invoices.")
 
+def default_service_rate(code, name, std_rate):
+    val = float(std_rate or 0)
+    if val > 0:
+        return val
+    nm = (name or "").strip().lower()
+    cd = (code or "").strip().upper()
+    if cd == "CONSULT-GEN" or "consultation" in nm:
+        return 100.0
+    if "iv fluid" in nm:
+        return 100.0
+    if "injection" in nm or "nebulis" in nm or "nebuliz" in nm:
+        return 50.0
+    return 0.0
+
 f = frappe.form_dict
 action = (f.get("action") or "").strip()
 q = (f.get("q") or "").strip()
@@ -80,7 +94,7 @@ elif action == "search_items":
             "name": it.item_name or it.name,
             "group": it.item_group or "",
             "uom": it.stock_uom or "Nos",
-            "rate": float(it.standard_rate or 0),
+            "rate": default_service_rate(it.name, it.item_name, it.standard_rate),
             "is_stock": int(it.is_stock_item or 0),
             "has_batch": int(it.has_batch_no or 0),
             "description": it.description or ""
@@ -234,7 +248,7 @@ else:
             "name": it.item_name or it.name,
             "group": it.item_group or "",
             "uom": it.stock_uom or "Nos",
-            "rate": float(it.standard_rate or 0),
+            "rate": default_service_rate(it.name, it.item_name, it.standard_rate),
             "description": it.description or ""
         })
 
