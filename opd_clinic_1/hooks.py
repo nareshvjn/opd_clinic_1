@@ -31,7 +31,7 @@ app_include_js = ["/assets/opd_clinic_1/js/pwa.js", "/files/pwa.js"]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/opd_clinic_1/css/opd_clinic_1.css"
-web_include_js = "/files/pwa.js?v=7"
+web_include_js = "/files/pwa.js?v=8"
 
 website_context = {
 	"favicon": "/files/logo.png",

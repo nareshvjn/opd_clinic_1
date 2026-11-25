@@ -31,11 +31,12 @@
     } catch(e) {}
   }
 
-  // Inject PWA Manifest & App Icons
-  ensureTag('manifest', '/assets/opd_clinic_1/manifest.json');
-  ensureTag('apple-touch-icon', '/files/logo.png');
-  ensureTag('icon', '/files/logo.png', { type: 'image/png' });
-  ensureTag('shortcut icon', '/files/logo.png', { type: 'image/png' });
+  // Inject PWA Manifest & App Icons (served reliably from /files/)
+  ensureTag('manifest', '/files/manifest.json?v=2');
+  ensureTag('apple-touch-icon', '/files/icon-192.png', { sizes: '192x192' });
+  ensureTag('icon', '/files/icon-192.png', { type: 'image/png', sizes: '192x192' });
+  ensureTag('icon', '/files/icon-512.png', { type: 'image/png', sizes: '512x512' });
+  ensureTag('shortcut icon', '/files/icon-192.png', { type: 'image/png' });
 
   // Web App Meta Tags
   setMeta('theme-color', '#125c3a');
@@ -43,6 +44,51 @@
   setMeta('apple-mobile-web-app-capable', 'yes');
   setMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
   setMeta('apple-mobile-web-app-title', 'Jeevan Health');
+
+  // Register Service Worker at root scope (required by Samsung Internet & Android WebAPK)
+  if ('serviceWorker' in navigator && (window.isSecureContext || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
+  }
+
+  function isStandaloneMode() {
+    try {
+      return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+    } catch (e) { return false; }
+  }
+
+  window._clinicInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    window._clinicInstallPrompt = e;
+    document.querySelectorAll('.clinic-profile-slot').forEach(function(s) {
+      s.removeAttribute('data-clinic-profile-user');
+    });
+    if (typeof ensureUserProfile === 'function') ensureUserProfile();
+  });
+  window.addEventListener('appinstalled', function() {
+    window._clinicInstallPrompt = null;
+    document.querySelectorAll('.clinic-profile-slot').forEach(function(s) {
+      s.removeAttribute('data-clinic-profile-user');
+    });
+    if (typeof ensureUserProfile === 'function') ensureUserProfile();
+  });
+
+  window.clinicInstallApp = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+    var p = window._clinicInstallPrompt;
+    if (!p) return;
+    p.prompt();
+    p.userChoice.then(function() {
+      window._clinicInstallPrompt = null;
+      document.querySelectorAll('.clinic-profile-slot').forEach(function(s) {
+        s.removeAttribute('data-clinic-profile-user');
+      });
+      var pop = document.getElementById('clinic-ham-dropdown-menu');
+      if (pop) pop.remove();
+      if (typeof ensureUserProfile === 'function') ensureUserProfile();
+    }).catch(function() {});
+  };
 
   // Helper: Cookie Reader
   function getCookie(name) {
@@ -207,6 +253,7 @@
         '<a href="/doctor-desk" class="clinic-menu-item"><span>🩺</span> Doctor Desk</a>' +
         '<a href="/pharmacy-home" class="clinic-menu-item"><span>💊</span> Pharmacy</a>' +
         '<a href="/app" class="clinic-menu-item"><span>⚙️</span> ERPNext Desk</a>' +
+        ((window._clinicInstallPrompt && !isStandaloneMode()) ? '<button type="button" class="clinic-menu-item" onclick="window.clinicInstallApp(event)"><span>📲</span> Install App</button>' : '') +
         '<div class="clinic-menu-divider"></div>' +
         '<button type="button" class="clinic-menu-item danger" onclick="window.clinicLogout(event)"><span>🚪</span> Logout</button>' +
       '</div>';
