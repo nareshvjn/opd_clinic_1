@@ -29,8 +29,8 @@ soon = frappe.utils.add_days(today, 90)
 
 inv_total = "sum(if(ifnull(rounded_total, 0) = 0, grand_total, rounded_total))"
 
-sales = one("select " + inv_total + " from `tabSales Invoice` where docstatus = 1 and posting_date between %s and %s", p)
-bills = one("select count(*) from `tabSales Invoice` where docstatus = 1 and is_return = 0 and posting_date between %s and %s", p)
+sales = one("select " + inv_total + " from `tabSales Invoice` where docstatus = 1 and update_stock = 1 and posting_date between %s and %s", p)
+bills = one("select count(*) from `tabSales Invoice` where docstatus = 1 and is_return = 0 and update_stock = 1 and posting_date between %s and %s", p)
 purchase = one("select " + inv_total + " from `tabPurchase Invoice` where docstatus = 1 and posting_date between %s and %s", p)
 
 # sales without GST (the sale rate includes GST; the GST rate is kept on the batch)
@@ -38,7 +38,7 @@ sales_ex = one("""select sum(sii.amount / (1 + ifnull(b.gst_rate, 0) / 100))
     from `tabSales Invoice Item` sii
     join `tabSales Invoice` si on si.name = sii.parent
     left join `tabBatch` b on b.name = sii.batch_no
-    where si.docstatus = 1 and si.posting_date between %s and %s""", p)
+    where si.docstatus = 1 and si.update_stock = 1 and si.posting_date between %s and %s""", p)
 # cost of goods sold, from the stock ledger
 cogs = -one("""select sum(stock_value_difference) from `tabStock Ledger Entry`
     where voucher_type = 'Sales Invoice' and is_cancelled = 0 and posting_date between %s and %s""", p)
