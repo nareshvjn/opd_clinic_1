@@ -188,6 +188,7 @@ login_required: 1
   #ci .bar .pay-val{font-size:1.35rem;font-weight:900;color:var(--pri)}
   #ci .badge{display:inline-block;padding:2px 9px;border-radius:6px;font-size:.78rem;font-weight:800;color:#fff;background:var(--pri)}
   #ci .badge.warn{background:#d97706}
+  #ci .badge.bad{background:var(--err)}
   #ci .badge.sec{background:#5d7184}
   #ci [hidden]{display:none!important}
   @media(max-width:740px){
@@ -203,7 +204,7 @@ login_required: 1
   }
 </style>
 
-<a href="/home" class="back-link">&#8592; Back to Clinic Home</a>
+<a href="/dashboard" class="back-link">&#8592; Back to Dashboard</a>
 
 <div class="top">
   <div>
@@ -214,6 +215,16 @@ login_required: 1
 </div>
 
 <div id="toast" role="status" hidden></div>
+
+<div id="edit-banner" class="card" style="background:#fff8e1;border:1.5px solid #ffe082;display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div>
+      <b style="color:#b06000" id="edit-banner-title">Editing Invoice</b>
+      <p class="hint" id="edit-banner-note" style="color:#795548;margin:2px 0 0">Original invoice remains active until you save changes.</p>
+    </div>
+    <button type="button" class="btn sm" id="btn-cancel-edit" style="background:#b3261e">Cancel Edit</button>
+  </div>
+</div>
 
 <!-- 1. Patient / Customer & Details -->
 <div class="card">
@@ -337,7 +348,7 @@ if(curUser === 'Guest'){
 var $=function(s){return document.querySelector('#ci '+s)};
 var $$=function(s){return document.querySelectorAll('#ci '+s)};
 
-var csrf='', serverToday='', isAdmin=false, quickItems=[];
+var csrf='', serverToday='', isAdmin=false, quickItems=[], editingInvoice=null, editingDocstatus=0;
 var state={patient:null, lines:[]};
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
@@ -615,7 +626,128 @@ $('#ci-chips').onclick=function(e){
   if(it) addCatalogItem(it);
 };
 
-// Save Draft / Submit Invoice
+// Save Draft / Submit Invoice & Edit/Cancel Actions
+function setEditMode(inv){
+  editingInvoice=inv.name;
+  editingDocstatus=inv.docstatus;
+  $('#edit-banner').style.display='block';
+  $('#edit-banner-title').textContent='Editing '+(inv.docstatus===0?'Draft ':'')+'Invoice '+inv.name;
+  $('#edit-banner-note').textContent=inv.docstatus===0
+    ? 'Saving will update this draft invoice.'
+    : 'Original invoice remains active until you save changes (it will then be cancelled and amended).';
+  $('#btn-submit').textContent='Save Changes & Submit';
+  $('#btn-draft').textContent=inv.docstatus===0?'Update Draft':'Save as Draft';
+  $('#inv-receipt').hidden=true;
+
+  state.patient=inv.patient||null;
+  state._autoCust=false;
+  if(inv.patient){
+    var sel=$('#ci-pat-sel');
+    sel.hidden=false;
+    sel.innerHTML='<span><b>'+esc(inv.patient.name)+'</b> <span class="hint">('+(inv.patient.mobile?esc(inv.patient.mobile):esc(inv.patient.id))+')</span></span>'+
+      '<button type="button" class="link" id="ci-pat-clear">Clear</button>';
+  } else {
+    $('#ci-pat-sel').hidden=true;
+    $('#ci-pat-sel').innerHTML='';
+  }
+
+  $('#ci-cust').value=inv.customer||'';
+  if(inv.posting_date) $('#ci-date').value=inv.posting_date;
+  if(inv.mode){
+    var opt=Array.prototype.slice.call($('#ci-mode').options).some(function(o){return o.value===inv.mode});
+    if(opt) $('#ci-mode').value=inv.mode;
+  }
+  $('#ci-prac').value=inv.practitioner||'';
+  $('#ci-remarks').value=inv.remarks||'';
+  $('#cc-amt').value=n(inv.charge)>0?String(n(inv.charge)):'';
+  $('#cc-name').value=inv.charge_name||'';
+  if(n(inv.charge)>0){
+    $('#ci-chg-body').hidden=false;
+    $('[data-tg="ci-chg-body"]').setAttribute('aria-expanded','true');
+  }
+  $('#bd-pct').value=''; $('#bd-amt').value='';
+
+  state.lines=(inv.lines&&inv.lines.length)?inv.lines.map(newLine):[newLine({qty:1, rate:0, disc:0})];
+  renderLines();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function clearEditMode(){
+  editingInvoice=null;
+  editingDocstatus=0;
+  $('#edit-banner').style.display='none';
+  $('#btn-submit').textContent='Create & Submit Invoice';
+  $('#btn-draft').textContent='Save Draft';
+}
+
+function resetFormFields(){
+  state.patient=null; state._autoCust=false;
+  state.lines=[newLine({qty:1, rate:0, disc:0})];
+  $('#ci-pat-sel').hidden=true; $('#ci-pat-sel').innerHTML='';
+  $('#ci-cust').value=''; $('#ci-remarks').value=''; $('#ci-prac').value='';
+  if(serverToday) $('#ci-date').value=serverToday;
+  ['bd-pct','bd-amt','cc-name','cc-amt'].forEach(function(id){ $('#'+id).value=''; });
+  renderLines();
+}
+
+function loadInvoiceForEdit(invName){
+  toast('');
+  call('inv_meta', {action:'load_invoice', name:invName}).then(function(r){
+    if(r && r.invoice) setEditMode(r.invoice);
+  }).catch(function(e){ toast(e.message, 1); });
+}
+
+$('#btn-cancel-edit').onclick=function(){
+  if(!confirm('Discard edits and leave the original invoice unchanged?')) return;
+  clearEditMode();
+  resetFormFields();
+  toast('Edit cancelled.');
+};
+
+function renderReceipt(r){
+  var rc=$('#inv-receipt');
+  rc.hidden=false;
+  var badge = r.docstatus===0 ? '<span class="badge warn">Draft</span>' : (r.paid ? '<span class="badge">Paid</span>' : (r.mode==='Credit' ? '<span class="badge warn">Credit</span>' : '<span class="badge sec">Submitted</span>'));
+  rc.innerHTML='<h2>'+(r.docstatus===0?'Draft Invoice Saved':'Invoice Created')+'</h2>'+
+    '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">'+
+      '<div>Invoice: <b id="ci-rc-id">'+esc(r.invoice)+'</b> <span id="ci-rc-badge">'+badge+'</span></div>'+
+      '<div>Customer: <b>'+esc(r.customer)+'</b></div>'+
+      '<div>Total: <b style="color:var(--pri);font-size:1.1rem">'+inr(r.total)+'</b>'+(r.mode && r.docstatus===1 && r.paid?' <span class="hint">('+esc(r.mode)+')</span>':'')+'</div>'+
+    '</div>'+
+    (r.note?'<p class="hint">'+esc(r.note)+'</p>':'')+
+    '<div id="ci-rc-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">'+
+      '<a class="btn go" id="ci-rc-print" href="/printview?doctype=Sales%20Invoice&name='+encodeURIComponent(r.invoice)+'&trigger_print=1" target="_blank" rel="noopener">Print Invoice</a>'+
+      '<button type="button" class="btn sec" id="ci-rc-edit">Edit Invoice</button>'+
+      '<button type="button" class="btn" id="ci-rc-cancel" style="background:var(--err)">Cancel Invoice</button>'+
+      '<a class="btn" id="ci-rc-open" style="background:#5d7184" href="/app/sales-invoice/'+encodeURIComponent(r.invoice)+'" target="_blank" rel="noopener">Open in ERPNext</a>'+
+      '<button type="button" class="btn sec" id="ci-another">New Invoice</button>'+
+    '</div>';
+
+  $('#ci-rc-edit').onclick=function(){ loadInvoiceForEdit(r.invoice); };
+  $('#ci-rc-cancel').onclick=function(){
+    var msg = r.docstatus===0 ? ('Delete draft invoice '+r.invoice+'?') : ('Cancel invoice '+r.invoice+'?');
+    if(!confirm(msg)) return;
+    var b=this; b.disabled=true;
+    var ed=$('#ci-rc-edit'); if(ed) ed.disabled=true;
+    call('inv_save', {action:'cancel', invoice:r.invoice}, true).then(function(res){
+      var deleted=(res&&res.status==='deleted');
+      $('#ci-rc-badge').innerHTML='<span class="badge bad">'+(deleted?'Deleted':'Cancelled')+'</span>';
+      ['ci-rc-print','ci-rc-edit','ci-rc-cancel'].forEach(function(id){
+        var el=$('#'+id); if(el) el.remove();
+      });
+      if(deleted){
+        var op=$('#ci-rc-open'); if(op) op.remove();
+      }
+      toast('Invoice '+r.invoice+(deleted?' deleted.':' cancelled.'));
+    }).catch(function(e){
+      b.disabled=false;
+      if(ed) ed.disabled=false;
+      toast(e.message, 1);
+    });
+  };
+  $('#ci-another').onclick=function(){ rc.hidden=true; window.scrollTo({top:0, behavior:'smooth'}); };
+}
+
 function submitInvoice(asDraft){
   toast('');
   if(!state.lines.length){ toast('Add at least one item or service first.', 1); return; }
@@ -646,33 +778,13 @@ function submitInvoice(asDraft){
     charge_name: $('#cc-name').value.trim(),
     save_draft: asDraft ? '1' : '0'
   };
+  if(editingInvoice) payload.amend_invoice=editingInvoice;
 
   call('inv_save', payload, true).then(function(r){
-    var rc=$('#inv-receipt');
-    rc.hidden=false;
-    var badge = r.docstatus===0 ? '<span class="badge warn">Draft</span>' : (r.paid ? '<span class="badge">Paid</span>' : (r.mode==='Credit' ? '<span class="badge warn">Credit</span>' : '<span class="badge sec">Submitted</span>'));
-    rc.innerHTML='<h2>'+(r.docstatus===0?'Draft Invoice Saved':'Invoice Created')+'</h2>'+
-      '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">'+
-        '<div>Invoice: <b>'+esc(r.invoice)+'</b> '+badge+'</div>'+
-        '<div>Customer: <b>'+esc(r.customer)+'</b></div>'+
-        '<div>Total: <b style="color:var(--pri);font-size:1.1rem">'+inr(r.total)+'</b>'+(r.mode && r.docstatus===1 && r.paid?' <span class="hint">('+esc(r.mode)+')</span>':'')+'</div>'+
-      '</div>'+
-      (r.note?'<p class="hint">'+esc(r.note)+'</p>':'')+
-      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">'+
-        '<a class="btn go" href="/printview?doctype=Sales%20Invoice&name='+encodeURIComponent(r.invoice)+'&trigger_print=1" target="_blank" rel="noopener">Print Invoice</a>'+
-        '<a class="btn" style="background:#5d7184" href="/app/sales-invoice/'+encodeURIComponent(r.invoice)+'" target="_blank" rel="noopener">Open in ERPNext</a>'+
-        '<button type="button" class="btn sec" id="ci-another">New Invoice</button>'+
-      '</div>';
-
-    // Reset form for next invoice
-    state.patient=null; state._autoCust=false;
-    state.lines=[newLine({qty:1, rate:0, disc:0})];
-    $('#ci-pat-sel').hidden=true; $('#ci-pat-sel').innerHTML='';
-    $('#ci-cust').value=''; $('#ci-remarks').value=''; $('#ci-prac').value='';
-    ['bd-pct','bd-amt','cc-name','cc-amt'].forEach(function(id){ $('#'+id).value=''; });
-    renderLines();
-    rc.scrollIntoView({block:'nearest'});
-    $('#ci-another').onclick=function(){ rc.hidden=true; window.scrollTo({top:0, behavior:'smooth'}); };
+    clearEditMode();
+    renderReceipt(r);
+    resetFormFields();
+    $('#inv-receipt').scrollIntoView({block:'nearest'});
   }).catch(function(e){ toast(e.message, 1); }).then(function(){
     bDraft.disabled=false; bSub.disabled=false;
   });
@@ -681,35 +793,47 @@ function submitInvoice(asDraft){
 $('#btn-submit').onclick=function(){ submitInvoice(false); };
 $('#btn-draft').onclick=function(){ submitInvoice(true); };
 
-// Default quick-pick services (also merged with catalog items when inv_meta loads)
+// Default quick-pick services in fixed order & default rates (merged with catalog codes when inv_meta loads)
 var DEFAULT_QUICK_SERVICES=[
-  {code:'', name:'Nebulisation Fee', rate:50, description:'Nebulisation Fee'},
-  {code:'', name:'IV Fluid Fee', rate:100, description:'IV Fluid Fee'},
-  {code:'', name:'Injection Fee', rate:50, description:'Injection Fee'}
+  {code:'', name:'Consultation Fee', rate:100, description:'Consultation Fee', aliases:['consultation','consultation fee','clinical consultation'], matchCodes:['CONSULT-GEN']},
+  {code:'', name:'Injection Fee', rate:50, description:'Injection Fee', aliases:['injection fee','injection'], matchCodes:[]},
+  {code:'', name:'Nebulisation Fee', rate:50, description:'Nebulisation Fee', aliases:['nebulisation fee','nebulization fee','nebulisation'], matchCodes:[]},
+  {code:'', name:'IV Fluid Fee', rate:100, description:'IV Fluid Fee', aliases:['iv fluid fee','iv fluid'], matchCodes:[]}
 ];
 
 function renderQuickChips(catalogItems){
-  var merged=[], seen={};
-  var byName={};
+  var merged=[], seen={}, seenCodes={};
+  var byName={}, byCode={};
   (catalogItems||[]).forEach(function(it){
     var key=String(it.name||'').trim().toLowerCase();
     if(key && !byName[key]) byName[key]=it;
+    if(it.code) byCode[String(it.code).trim().toUpperCase()]=it;
   });
   DEFAULT_QUICK_SERVICES.forEach(function(def){
-    var key=def.name.toLowerCase(), match=byName[key];
-    seen[key]=true;
+    var match=null;
+    (def.aliases||[def.name.toLowerCase()]).forEach(function(al){
+      if(!match && byName[al]) match=byName[al];
+      seen[al]=true;
+    });
+    (def.matchCodes||[]).forEach(function(cd){
+      if(!match && byCode[cd]) match=byCode[cd];
+      seenCodes[cd]=true;
+    });
+    if(match && match.code) seenCodes[String(match.code).trim().toUpperCase()]=true;
     merged.push({
       code: match ? (match.code||'') : '',
       name: def.name,
-      rate: (match && n(match.rate)>0) ? n(match.rate) : def.rate,
+      rate: def.rate,
       description: (match && match.description) ? match.description : def.description
     });
   });
   (catalogItems||[]).forEach(function(it){
     if(merged.length>=12) return;
     var key=String(it.name||'').trim().toLowerCase();
-    if(key && !seen[key]){
+    var codeKey=String(it.code||'').trim().toUpperCase();
+    if(key && !seen[key] && !seenCodes[codeKey]){
       seen[key]=true;
+      if(codeKey) seenCodes[codeKey]=true;
       merged.push(it);
     }
   });
@@ -730,7 +854,7 @@ call('inv_meta').then(function(m){
   csrf=m.csrf||'';
   isAdmin=!!m.is_admin;
   serverToday=m.today||localIso();
-  $('#ci-date').value=serverToday;
+  if(!editingInvoice) $('#ci-date').value=serverToday;
   if(!isAdmin) $('#ci-date').min=serverToday;
 
   var modes=(m.modes&&m.modes.length?m.modes:['Cash']).concat(['Credit']);
@@ -749,6 +873,9 @@ call('inv_meta').then(function(m){
   }
 
   renderQuickChips(m.items||[]);
+
+  var editParam=new URLSearchParams(location.search).get('edit');
+  if(editParam && editParam.trim()) loadInvoiceForEdit(editParam.trim());
 }).catch(function(e){ toast(e.message, 1); });
 })();
 </script>

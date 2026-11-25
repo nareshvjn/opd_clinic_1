@@ -110,6 +110,106 @@ elif action == "search_customers":
         })
     frappe.response["message"] = {"customers": out}
 
+elif action == "load_invoice":
+    inv_name = (f.get("name") or "").strip()
+    if not inv_name or not frappe.db.exists("Sales Invoice", inv_name):
+        frappe.throw("Invoice not found.")
+    doc = frappe.get_doc("Sales Invoice", inv_name)
+    if doc.docstatus == 2:
+        frappe.throw("Cancelled invoices cannot be edited.")
+
+    today_d = frappe.utils.getdate(frappe.utils.today())
+    doc_d = frappe.utils.getdate(doc.posting_date) if doc.posting_date else today_d
+    if doc_d < today_d and not is_admin:
+        frappe.throw("Only admin accounts can edit past-dated invoices.")
+
+    mode = ""
+    if doc.payments:
+        mode = doc.payments[0].mode_of_payment or ""
+    if not mode and doc.docstatus == 1:
+        pe_rows = frappe.db.sql("""
+            select pe.mode_of_payment
+            from `tabPayment Entry` pe
+            join `tabPayment Entry Reference` per on per.parent = pe.name
+            where per.reference_doctype = 'Sales Invoice' and per.reference_name = %s and pe.docstatus = 1
+            limit 1
+        """, inv_name, as_dict=True)
+        if pe_rows and pe_rows[0].get("mode_of_payment"):
+            mode = pe_rows[0].get("mode_of_payment")
+    if not mode:
+        mode = "Credit" if float(doc.outstanding_amount or 0) > 0 and doc.docstatus == 1 else "Cash"
+
+    pat_obj = None
+    if doc.get("patient") and frappe.db.exists("Patient", doc.patient):
+        pv = frappe.db.get_value("Patient", doc.patient, ["name", "patient_name", "mobile", "uid", "customer"], as_dict=True)
+        if pv:
+            pat_obj = {
+                "id": pv.name,
+                "name": pv.patient_name or pv.name,
+                "mobile": pv.mobile or "",
+                "uid": pv.get("uid") or "",
+                "customer": pv.get("customer") or ""
+            }
+
+    prac_id = doc.get("practitioner") or ""
+    clean_remarks = (doc.remarks or "").strip()
+    if clean_remarks.startswith("Doctor: "):
+        parts = clean_remarks.split(" | ", 1)
+        clean_remarks = parts[1].strip() if len(parts) > 1 else ""
+
+    charge_amt = 0.0
+    charge_name = ""
+    for tx in (doc.taxes or []):
+        if tx.charge_type == "Actual" or (tx.tax_amount and not tx.rate):
+            charge_amt = float(tx.tax_amount or 0)
+            charge_name = tx.description or ""
+            break
+
+    inv_lines = []
+    for it in (doc.items or []):
+        qty = float(it.qty or 1)
+        disc = float(it.discount_percentage or 0)
+        pl_rate = float(it.price_list_rate or 0)
+        net_rate = float(it.rate or 0)
+        if pl_rate > 0:
+            base_rate = pl_rate
+        elif 0 < disc < 100 and net_rate > 0:
+            base_rate = round(net_rate / (1.0 - disc / 100.0), 2)
+        else:
+            base_rate = net_rate
+        if disc <= 0 and base_rate > 0 and net_rate < base_rate - 0.01:
+            disc = round((1.0 - net_rate / base_rate) * 100.0, 4)
+
+        ic = "" if it.item_code in ["MISC-SERVICE", "CLINIC-SERVICE"] else (it.item_code or "")
+        iname = it.item_name or it.item_code or ""
+        desc = it.description or ""
+        if desc == iname:
+            desc = ""
+        inv_lines.append({
+            "item_code": ic,
+            "item_name": iname,
+            "description": desc,
+            "qty": qty,
+            "rate": base_rate,
+            "disc": disc
+        })
+
+    frappe.response["message"] = {
+        "invoice": {
+            "name": doc.name,
+            "docstatus": doc.docstatus,
+            "customer": doc.customer or "",
+            "patient": pat_obj,
+            "practitioner": prac_id,
+            "posting_date": str(doc.posting_date or today_d),
+            "mode": mode,
+            "remarks": clean_remarks,
+            "charge": charge_amt,
+            "charge_name": charge_name,
+            "lines": inv_lines
+        }
+    }
+
 else:
     company = frappe.db.get_single_value("Global Defaults", "default_company") or ""
     currency = "INR"
