@@ -325,7 +325,7 @@ function render(){
         }
       } else {
         invBtn='<a class="btn" href="/create-invoice?edit='+encodeURIComponent(a.invoice)+'&'+ciQ+'">View invoice'+(a.invoice_docstatus===0?' (Draft)':'')+(a.invoice_total?' (₹'+a.invoice_total+')':'')+'</a>'+
-          '<a class="btn" target="_blank" rel="noopener" href="'+invUrl(a.invoice)+'">🖨️ Print invoice</a>';
+          (a.invoice_docstatus===1?'<a class="btn" target="_blank" rel="noopener" href="'+invUrl(a.invoice)+'">🖨️ Print invoice</a>':'');
       }
     } else if(closed){
       if(readOnlyPast){
