@@ -45,6 +45,9 @@ if mode == "existing":
     patient = f.get("patient")
     if not patient or not frappe.db.exists("Patient", {"name": patient, "status": "Active"}):
         frappe.throw("Select the patient from the search results.")
+    p_info = frappe.db.get_value("Patient", patient, ["patient_name", "uid"], as_dict=True) or {}
+    pt_name = (p_info.get("patient_name") or "").strip() or patient
+    pt_uid = (p_info.get("uid") or "").strip()
 else:
     first = (f.get("first_name") or "").strip()
     last = (f.get("last_name") or "").strip()
@@ -107,6 +110,8 @@ else:
     p.uid = assigned_uid
     p.insert(ignore_permissions=True)
     patient = p.name
+    pt_name = (first + (" " + last if last else "")).strip() or patient
+    pt_uid = assigned_uid
 
     # Force database persistence to bypass guest permission stripping on custom field
     try:
@@ -129,10 +134,9 @@ a.company = frappe.db.get_single_value("Global Defaults", "default_company")
 a.notes = f.get("notes")
 a.insert(ignore_permissions=True)
 
-pt_name = (first + (" " + last if last else "")).strip() if first else patient
 frappe.response["message"] = {
     "appointment": a.name,
     "patient": patient,
     "patient_name": pt_name,
-    "uid": assigned_uid if mode != "existing" else (frappe.db.get_value("Patient", patient, "uid") or "")
+    "uid": pt_uid
 }

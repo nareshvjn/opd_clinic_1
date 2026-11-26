@@ -3,6 +3,33 @@ import os
 import shutil
 import frappe
 
+def _sync_fixture_fields(fixture_filename, doctype, fields):
+    """Force-sync specific fixture fields to DB even if DB modified timestamp is newer."""
+    path = frappe.get_app_path("opd_clinic_1", "fixtures", fixture_filename)
+    if not os.path.exists(path):
+        return
+    with open(path, "r", encoding="utf-8") as fp:
+        rows = json.load(fp)
+    updated = False
+    for row in rows:
+        name = row.get("name")
+        if not name or not frappe.db.exists(doctype, name):
+            continue
+        cur = frappe.db.get_value(doctype, name, fields, as_dict=True) or {}
+        updates = {}
+        for field in fields:
+            target = row.get(field) or ""
+            if field == "main_section_html" and not target:
+                target = row.get("main_section") or ""
+            if (cur.get(field) or "") != target:
+                updates[field] = target
+        if updates:
+            frappe.db.set_value(doctype, name, updates, update_modified=False)
+            updated = True
+    if updated:
+        frappe.db.commit()
+
+
 def after_migrate():
     """Ensure logo, PWA icons, manifest, pwa script, service worker, and assets symlink exist on the site."""
     try:
@@ -41,46 +68,15 @@ def after_migrate():
                 except Exception:
                     pass
 
-        # 4. Ensure Web Page rows match fixtures/web_page.json (even if DB modified timestamp was newer)
-        try:
-            wp_path = frappe.get_app_path("opd_clinic_1", "fixtures", "web_page.json")
-            if os.path.exists(wp_path):
-                with open(wp_path, "r", encoding="utf-8") as fp:
-                    wps = json.load(fp)
-                updated_wp = False
-                for wp in wps:
-                    name = wp.get("name")
-                    if not name or not frappe.db.exists("Web Page", name):
-                        continue
-                    cur = frappe.db.get_value(
-                        "Web Page",
-                        name,
-                        ["main_section", "main_section_html", "css"],
-                        as_dict=True,
-                    ) or {}
-                    target_main = wp.get("main_section") or ""
-                    target_html = wp.get("main_section_html") or target_main
-                    target_css = wp.get("css") or ""
-                    if (
-                        (cur.get("main_section") or "") != target_main
-                        or (cur.get("main_section_html") or "") != target_html
-                        or (cur.get("css") or "") != target_css
-                    ):
-                        frappe.db.set_value(
-                            "Web Page",
-                            name,
-                            {
-                                "main_section": target_main,
-                                "main_section_html": target_html,
-                                "css": target_css,
-                            },
-                            update_modified=False,
-                        )
-                        updated_wp = True
-                if updated_wp:
-                    frappe.db.commit()
-        except Exception:
-            pass
+        # 4. Force-sync Web Page and Server Script rows from fixtures even if DB modified is newer
+        for fixture_file, dt, sync_fields in (
+            ("web_page.json", "Web Page", ["main_section", "main_section_html", "css"]),
+            ("server_script.json", "Server Script", ["script"]),
+        ):
+            try:
+                _sync_fixture_fields(fixture_file, dt, sync_fields)
+            except Exception:
+                pass
 
         # 5. Clear Frappe & Website caches so updated Web Pages serve immediately
         try:
