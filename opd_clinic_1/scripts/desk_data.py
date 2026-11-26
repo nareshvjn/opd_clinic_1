@@ -58,14 +58,32 @@ if rows:
             fields=["name", "dob", "sex", "mobile", "uid"]):
         info[p.name] = p
 
-def find_invoice_info(appt):
+has_si_patient = False
+try:
+    has_si_patient = frappe.get_meta("Sales Invoice").has_field("patient")
+except Exception:
+    has_si_patient = False
+
+def is_valid_appt_invoice(vals, patient_id):
+    if not vals or vals.docstatus >= 2 or int(vals.get("is_return") or 0):
+        return False
+    if has_si_patient and patient_id and vals.get("patient") and vals.get("patient") != patient_id:
+        return False
+    if vals.docstatus == 1 and frappe.db.exists("Sales Invoice", {"return_against": vals.name, "docstatus": 1}):
+        return False
+    return True
+
+def find_invoice_info(appt, patient_id=None):
+    si_fields = ["name", "docstatus", "grand_total", "is_return"]
+    if has_si_patient:
+        si_fields.append("patient")
     active_draft = None
     try:
         for r in frappe.get_all("Sales Invoice Item",
                 filters={"reference_dt": "Patient Appointment", "reference_dn": appt},
                 fields=["parent"], order_by="modified desc", limit=20):
-            vals = frappe.db.get_value("Sales Invoice", r.parent, ["name", "docstatus", "grand_total"], as_dict=True)
-            if not vals or vals.docstatus >= 2:
+            vals = frappe.db.get_value("Sales Invoice", r.parent, si_fields, as_dict=True)
+            if not is_valid_appt_invoice(vals, patient_id):
                 continue
             if vals.docstatus == 1:
                 return vals
@@ -73,11 +91,27 @@ def find_invoice_info(appt):
                 active_draft = vals
     except:
         pass
-    found = frappe.get_all("Sales Invoice",
-        filters={"remarks": ["like", "%Consultation: " + appt + "%"], "docstatus": ["<", 2]},
-        fields=["name", "docstatus", "grand_total"], order_by="docstatus desc, modified desc", limit=1)
-    if found:
-        return found[0]
+    marker = "Consultation: " + appt
+    try:
+        rem_rows = frappe.get_all("Sales Invoice",
+            filters={"remarks": ["like", "%" + marker + "%"], "docstatus": ["<", 2]},
+            fields=si_fields + ["remarks"], order_by="docstatus desc, modified desc", limit=20)
+        for vals in rem_rows:
+            rem = vals.get("remarks") or ""
+            idx = rem.find(marker)
+            if idx < 0:
+                continue
+            after = rem[idx + len(marker):idx + len(marker) + 1]
+            if after and after not in " \t\r\n|,;":
+                continue
+            if not is_valid_appt_invoice(vals, patient_id):
+                continue
+            if vals.docstatus == 1:
+                return vals
+            if active_draft is None:
+                active_draft = vals
+    except:
+        pass
     return active_draft
 
 today = frappe.utils.getdate(frappe.utils.today())
@@ -93,7 +127,7 @@ for r in rows:
         if p.dob:
             d = frappe.utils.getdate(p.dob)
             age = today.year - d.year - (1 if (today.month, today.day) < (d.month, d.day) else 0)
-    inv_info = find_invoice_info(r.name)
+    inv_info = find_invoice_info(r.name, r.patient)
     inv = inv_info.name if inv_info else ""
     inv_docstatus = inv_info.docstatus if inv_info else None
     inv_total = float(inv_info.grand_total or 0) if inv_info else 0.0

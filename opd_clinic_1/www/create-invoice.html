@@ -240,7 +240,10 @@ login_required: 1
       <b style="color:#b06000" id="edit-banner-title">Editing Invoice</b>
       <p class="hint" id="edit-banner-note" style="color:#795548;margin:2px 0 0">Original invoice remains active until you save changes.</p>
     </div>
-    <button type="button" class="btn sm" id="btn-cancel-edit" style="background:#b3261e">Cancel Edit</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn sm" id="btn-delete-inv" style="background:var(--err)">Cancel Invoice</button>
+      <button type="button" class="btn sm sec" id="btn-cancel-edit">Cancel Edit</button>
+    </div>
   </div>
 </div>
 
@@ -674,6 +677,8 @@ function setEditMode(inv){
     : 'Original invoice remains active until you save changes (it will then be cancelled and amended).';
   $('#btn-submit').textContent='Save Changes & Submit';
   $('#btn-draft').textContent=inv.docstatus===0?'Update Draft':'Save as Draft';
+  $('#btn-delete-inv').textContent=inv.docstatus===0?'Delete Draft':'Cancel Invoice';
+  $('#btn-delete-inv').disabled=false;
   $('#inv-receipt').hidden=true;
 
   state.patient=inv.patient||null;
@@ -735,6 +740,37 @@ function loadInvoiceForEdit(invName){
   }).catch(function(e){ toast(e.message, 1); });
 }
 
+function performCancelInvoice(invName, docstatus, btns, onDone){
+  var msg=docstatus===0?('Delete draft invoice '+invName+'?'):('Cancel invoice '+invName+'?');
+  if(!confirm(msg)) return;
+  (btns||[]).forEach(function(b){ if(b) b.disabled=true; });
+  call('inv_save', {action:'cancel', invoice:invName}, true).then(function(res){
+    var deleted=(res&&res.status==='deleted');
+    if(onDone) onDone(deleted);
+    toast('Invoice '+invName+(deleted?' deleted.':' cancelled.'));
+  }).catch(function(e){
+    (btns||[]).forEach(function(b){ if(b) b.disabled=false; });
+    toast(e.message, 1);
+  });
+}
+
+$('#btn-delete-inv').onclick=function(){
+  if(!editingInvoice) return;
+  var invName=editingInvoice;
+  performCancelInvoice(invName, editingDocstatus, [this, $('#btn-cancel-edit'), $('#btn-draft'), $('#btn-submit')], function(){
+    $('#btn-draft').disabled=false;
+    $('#btn-submit').disabled=false;
+    $('#btn-cancel-edit').disabled=false;
+    clearEditMode();
+    if(window.history && window.history.replaceState){
+      var u=new URL(location.href);
+      u.searchParams.delete('edit');
+      window.history.replaceState(null, '', u.pathname + (u.searchParams.toString() ? '?' + u.searchParams.toString() : ''));
+    }
+    resetFormFields();
+  });
+};
+
 $('#btn-cancel-edit').onclick=function(){
   if(!confirm('Discard edits and leave the original invoice unchanged?')) return;
   clearEditMode();
@@ -763,12 +799,7 @@ function renderReceipt(r){
 
   $('#ci-rc-edit').onclick=function(){ loadInvoiceForEdit(r.invoice); };
   $('#ci-rc-cancel').onclick=function(){
-    var msg = r.docstatus===0 ? ('Delete draft invoice '+r.invoice+'?') : ('Cancel invoice '+r.invoice+'?');
-    if(!confirm(msg)) return;
-    var b=this; b.disabled=true;
-    var ed=$('#ci-rc-edit'); if(ed) ed.disabled=true;
-    call('inv_save', {action:'cancel', invoice:r.invoice}, true).then(function(res){
-      var deleted=(res&&res.status==='deleted');
+    performCancelInvoice(r.invoice, r.docstatus, [this, $('#ci-rc-edit')], function(deleted){
       $('#ci-rc-badge').innerHTML='<span class="badge bad">'+(deleted?'Deleted':'Cancelled')+'</span>';
       ['ci-rc-print','ci-rc-edit','ci-rc-cancel'].forEach(function(id){
         var el=$('#'+id); if(el) el.remove();
@@ -776,11 +807,6 @@ function renderReceipt(r){
       if(deleted){
         var op=$('#ci-rc-open'); if(op) op.remove();
       }
-      toast('Invoice '+r.invoice+(deleted?' deleted.':' cancelled.'));
-    }).catch(function(e){
-      b.disabled=false;
-      if(ed) ed.disabled=false;
-      toast(e.message, 1);
     });
   };
   $('#ci-another').onclick=function(){ rc.hidden=true; window.scrollTo({top:0, behavior:'smooth'}); };
