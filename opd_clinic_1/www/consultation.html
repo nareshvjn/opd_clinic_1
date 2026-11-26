@@ -310,13 +310,50 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 (function(){
 var $=function(s){return document.querySelector('#en '+s)};
 var q=new URLSearchParams(location.search),A=q.get('appointment')||'',P=q.get('patient')||'',D=q.get('practitioner')||'',E=q.get('encounter')||'';
-var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},MEDM={},LABM={},LABI={},TPLS=[],NEW={sym:'complaints',dx:'diagnoses'};
+var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},MEDM={},LABM={},LABI={},TPLS=[],INV=null,invWatcher=false,NEW={sym:'complaints',dx:'diagnoses'};
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function fmt(t){var p=String(t).split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
 function ciUrl(encName){
   var dt=($('#c-date')&&!$('#sec-cdate').hidden&&$('#c-date').value)?$('#c-date').value:'';
   return '/create-invoice?patient='+encodeURIComponent(P)+(A?'&appointment='+encodeURIComponent(A):'')+(encName?'&encounter='+encodeURIComponent(encName):'')+(D?'&practitioner='+encodeURIComponent(D):'')+(dt?'&date='+encodeURIComponent(dt):'');
+}
+function invPrintUrl(invName){return '/printview?doctype=Sales%20Invoice&name='+encodeURIComponent(invName)+'&trigger_print=1'}
+function invEditUrl(invName,encName){return '/create-invoice?edit='+encodeURIComponent(invName)+'&patient='+encodeURIComponent(P)+(A?'&appointment='+encodeURIComponent(A):'')+(encName?'&encounter='+encodeURIComponent(encName):'')+(D?'&practitioner='+encodeURIComponent(D):'')}
+function renderInvAction(el,encName){
+  if(!el)return;
+  if(INV&&INV.name){
+    if(INV.docstatus===1){
+      el.textContent='Print invoice';
+      el.href=invPrintUrl(INV.name);
+      el.target='_blank';
+      el.rel='noopener';
+    }else{
+      el.textContent='View invoice (Draft)';
+      el.href=invEditUrl(INV.name,encName);
+      el.removeAttribute('target');
+      el.removeAttribute('rel');
+    }
+  }else{
+    el.textContent='Create invoice';
+    el.href=ciUrl(encName);
+    el.removeAttribute('target');
+    el.removeAttribute('rel');
+  }
+}
+function syncDoneInvBtn(){
+  var doneBtn=$('#done-ci-btn');
+  if(doneBtn)renderInvAction(doneBtn,doneBtn.dataset.enc||window.currentEncounter||'');
+}
+function refreshInvoiceState(){
+  if(!A&&!P&&!E&&!window.currentEncounter)return;
+  call('enc_load',{appointment:A,patient:P,encounter:window.currentEncounter||E,only_invoice:'1'}).then(function(r){
+    if(!r)return;
+    INV=r.invoice||null;
+    var cb=$('#ci-btn');
+    if(cb&&!cb.hidden)renderInvAction(cb,window.currentEncounter||(cb.dataset&&cb.dataset.enc)||'');
+    syncDoneInvBtn();
+  }).catch(function(){});
 }
 function pu(n){return '/printview?doctype=Patient%20Encounter&name='+encodeURIComponent(n)+'&trigger_print=1'}
 function msg(t,ok){var e=$('#msg');e.textContent=t||'';e.className='note'+(ok?'':' bad');e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
@@ -964,7 +1001,7 @@ function payload(complete){
 function init(r){
   csrf=r.csrf||'';P=r.patient.id;D=r.practitioner||D;L=r.lists||{};
   var isAdmin=!!r.is_admin, serverToday=r.today||'';
-  ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};MEDM=r.med_meta||{};LABM=r.lab_meta||{};LABI=r.lab_items||{};
+  ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};MEDM=r.med_meta||{};LABM=r.lab_meta||{};LABI=r.lab_items||{};INV=r.invoice||null;
   TPLS=r.templates||[];
   renderTplOptions('');
   var p=r.patient,words=(p.name||'').split(/\s+/);
@@ -1044,7 +1081,12 @@ function init(r){
     pb.href=pu(e.name);
     pb.hidden=false;
     var cb=$('#ci-btn');
-    if(cb){cb.href=ciUrl(e.name);cb.hidden=false}
+    if(cb){
+      cb.dataset.enc=e.name;
+      renderInvAction(cb,e.name);
+      cb.onclick=function(){if(!INV||INV.docstatus!==1)invWatcher=true};
+      cb.hidden=false;
+    }
     msg('This consultation is completed. Change anything below and press Save changes: the original is cancelled and the corrected one is saved. Vitals stay as recorded.',true)}
   var isPastReadOnly = !isAdmin && serverToday && targetDate && targetDate < serverToday;
   if(isPastReadOnly){
@@ -1084,8 +1126,15 @@ function save(complete){
   if(amend && window.currentEncounter){ data.encounter = window.currentEncounter; }
   call(endpoint, data, true).then(function(r){
     if(r.completed){
+      window.currentEncounter=r.encounter;
       $('#form').hidden=true;var d=$('#done');d.hidden=false;
-      d.innerHTML='<b>Consultation completed.</b><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px"><a class="pb" href="'+pu(r.encounter)+'" target="_blank" rel="noopener">Print encounter</a><a class="pb" style="background:#fff;color:var(--brand);border:1.5px solid var(--brand);box-shadow:none" href="'+ciUrl(r.encounter)+'">Create invoice</a><a href="/doctor-desk">Back to doctor desk</a><a href="/app/patient-encounter/'+encodeURIComponent(r.encounter)+'" target="_blank" rel="noopener">View in Desk</a></div>'
+      d.innerHTML='<b>Consultation completed.</b><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px"><a class="pb" href="'+pu(r.encounter)+'" target="_blank" rel="noopener">Print encounter</a><a class="pb" id="done-ci-btn" data-enc="'+esc(r.encounter)+'" style="background:#fff;color:var(--brand);border:1.5px solid var(--brand);box-shadow:none" href="'+ciUrl(r.encounter)+'">Create invoice</a><a href="/doctor-desk">Back to doctor desk</a><a href="/app/patient-encounter/'+encodeURIComponent(r.encounter)+'" target="_blank" rel="noopener">View in Desk</a></div>';
+      var doneCi=$('#done-ci-btn');
+      if(doneCi){
+        renderInvAction(doneCi,r.encounter);
+        doneCi.onclick=function(){if(!INV||INV.docstatus!==1)invWatcher=true};
+      }
+      refreshInvoiceState();
     }else{learn();msg(amend ? 'Changes saved.' : 'Draft saved.',true)}
   }).catch(function(e){msg(e.message)}).then(function(){b1.disabled=b2.disabled=false})
 }
@@ -1094,6 +1143,9 @@ $('#complete').onclick=function(){save(true)};
 
 if(!A&&!P&&!E){$('#pn').textContent='No patient selected';msg('Open this page with the Start consultation button on the doctor desk.')}
 else call('enc_load',{appointment:A,patient:P,encounter:E}).then(init).catch(function(e){$('#pn').textContent='Could not open consultation';msg(e.message)});
+
+window.addEventListener('pageshow',function(ev){if(ev.persisted||(invWatcher&&(!INV||INV.docstatus!==1))){invWatcher=false;refreshInvoiceState()}});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&invWatcher){invWatcher=false;refreshInvoiceState()}});
 })();
 </script>
 </div>

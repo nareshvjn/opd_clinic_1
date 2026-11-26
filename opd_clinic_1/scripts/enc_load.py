@@ -133,6 +133,271 @@ elif appt_id:
 current_enc_name = enc.get("name") if enc else ""
 current_appt_name = appt_id or ""
 
+# Look up existing consultation / fee invoice (excluding drug/pharmacy/stock/lab-only invoices)
+inv_out = None
+inv_check_date = (enc.get("date") if enc else "") or (str(appt.appointment_date) if appt else "")
+if current_appt_name or current_enc_name or (patient_id and inv_check_date):
+    try:
+        inv_cands = []
+        seen_cands = set()
+        direct_appt_inv = set()
+        direct_enc_inv = set()
+        if current_appt_name:
+            for r in frappe.get_all("Sales Invoice Item",
+                    filters={"reference_dt": "Patient Appointment", "reference_dn": current_appt_name},
+                    fields=["parent"], limit=50):
+                if r.parent:
+                    direct_appt_inv.add(r.parent)
+                    if r.parent not in seen_cands:
+                        seen_cands.add(r.parent)
+                        inv_cands.append(r.parent)
+        if current_enc_name:
+            for r in frappe.get_all("Sales Invoice Item",
+                    filters={"reference_dt": "Patient Encounter", "reference_dn": current_enc_name},
+                    fields=["parent"], limit=50):
+                if r.parent:
+                    direct_enc_inv.add(r.parent)
+                    if r.parent not in seen_cands:
+                        seen_cands.add(r.parent)
+                        inv_cands.append(r.parent)
+        si_meta = frappe.get_meta("Sales Invoice")
+        if current_appt_name and si_meta.has_field("appointment"):
+            for r in frappe.get_all("Sales Invoice",
+                    filters={"appointment": current_appt_name, "docstatus": ["<", 2]},
+                    fields=["name"], limit=20):
+                if r.name:
+                    direct_appt_inv.add(r.name)
+                    if r.name not in seen_cands:
+                        seen_cands.add(r.name)
+                        inv_cands.append(r.name)
+        if current_enc_name:
+            for efld in ("encounter", "patient_encounter"):
+                if si_meta.has_field(efld):
+                    for r in frappe.get_all("Sales Invoice",
+                            filters={efld: current_enc_name, "docstatus": ["<", 2]},
+                            fields=["name"], limit=20):
+                        if r.name:
+                            direct_enc_inv.add(r.name)
+                            if r.name not in seen_cands:
+                                seen_cands.add(r.name)
+                                inv_cands.append(r.name)
+        for mk_pfx, mk_id, mk_set in (
+            ("Consultation: ", current_appt_name, direct_appt_inv),
+            ("Encounter: ", current_enc_name, direct_enc_inv),
+        ):
+            if mk_id:
+                mk = mk_pfx + mk_id
+                for r in frappe.get_all("Sales Invoice",
+                        filters={"remarks": ["like", "%" + mk + "%"], "docstatus": ["<", 2]},
+                        fields=["name", "remarks"], limit=20):
+                    rem = r.get("remarks") or ""
+                    pos = rem.find(mk)
+                    if pos < 0:
+                        continue
+                    aft = rem[pos + len(mk):pos + len(mk) + 1]
+                    if aft and aft not in " \t\r\n|,;":
+                        continue
+                    if r.name:
+                        mk_set.add(r.name)
+                        if r.name not in seen_cands:
+                            seen_cands.add(r.name)
+                            inv_cands.append(r.name)
+        if patient_id and inv_check_date and si_meta.has_field("patient"):
+            for r in frappe.get_all("Sales Invoice",
+                    filters={"patient": patient_id, "posting_date": str(inv_check_date), "docstatus": ["<", 2]},
+                    fields=["name"], order_by="docstatus desc, modified desc", limit=25):
+                if r.name and r.name not in seen_cands:
+                    seen_cands.add(r.name)
+                    inv_cands.append(r.name)
+
+        if inv_cands:
+            consult_codes = {"CONSULT-GEN"}
+            try:
+                if frappe.db.exists("DocType", "Healthcare Practitioner"):
+                    for hp in frappe.get_all("Healthcare Practitioner", fields=["op_consulting_charge_item"], limit=200):
+                        if hp.get("op_consulting_charge_item"):
+                            consult_codes.add(hp.get("op_consulting_charge_item"))
+            except Exception:
+                pass
+            drug_codes = set()
+            try:
+                if frappe.db.exists("DocType", "Medication"):
+                    m_meta_i = frappe.get_meta("Medication")
+                    for mf in ("item", "item_code"):
+                        if m_meta_i.has_field(mf):
+                            for mr in frappe.get_all("Medication", fields=[mf], limit=2000):
+                                if mr.get(mf):
+                                    drug_codes.add(mr.get(mf))
+                if frappe.db.exists("DocType", "Medication Linked Item"):
+                    mli_i = frappe.get_meta("Medication Linked Item")
+                    if mli_i.has_field("item"):
+                        for mr in frappe.get_all("Medication Linked Item", fields=["item"], limit=2000):
+                            if mr.get("item"):
+                                drug_codes.add(mr.get("item"))
+            except Exception:
+                pass
+
+            si_flds = ["name", "docstatus", "grand_total", "is_return", "modified", "update_stock", "set_warehouse", "remarks"]
+            for opt_f in ("patient", "appointment", "encounter", "patient_encounter", "ref_practitioner", "practitioner"):
+                if si_meta.has_field(opt_f):
+                    si_flds.append(opt_f)
+            sii_flds = ["item_code", "item_name", "description"]
+            try:
+                sii_m = frappe.get_meta("Sales Invoice Item")
+                for opt_f in ("batch_no", "warehouse", "item_group", "is_stock_item", "reference_dt", "reference_dn"):
+                    if sii_m.has_field(opt_f):
+                        sii_flds.append(opt_f)
+            except Exception:
+                pass
+            item_flds = ["name", "item_name"]
+            try:
+                itm_m = frappe.get_meta("Item")
+                for opt_f in ("item_group", "is_stock_item"):
+                    if itm_m.has_field(opt_f):
+                        item_flds.append(opt_f)
+            except Exception:
+                pass
+            item_map_inv = {}
+            prac_id_chk = (appt.practitioner if appt else "") or (curr_enc.practitioner if (enc_id and frappe.db.exists("Patient Encounter", enc_id)) else "") or ""
+
+            best_inv = None
+            best_rank = None
+            for cname in inv_cands:
+                vals = frappe.db.get_value("Sales Invoice", cname, si_flds, as_dict=True)
+                if not vals or int(vals.get("docstatus") or 0) >= 2 or int(vals.get("is_return") or 0):
+                    continue
+                if int(vals.get("docstatus") or 0) == 1:
+                    try:
+                        if frappe.db.exists("Sales Invoice", {"return_against": vals.name, "docstatus": 1}):
+                            continue
+                    except Exception:
+                        pass
+                inv_pat = vals.get("patient") or ""
+                if patient_id and inv_pat and inv_pat != patient_id:
+                    continue
+                inv_appt = str(vals.get("appointment") or "").strip()
+                if current_appt_name and inv_appt and inv_appt != current_appt_name:
+                    continue
+                inv_enc = str(vals.get("encounter") or vals.get("patient_encounter") or "").strip()
+                if current_enc_name and inv_enc and inv_enc != current_enc_name:
+                    continue
+                is_direct_appt = cname in direct_appt_inv
+                is_direct_enc = cname in direct_enc_inv
+                is_direct = is_direct_appt or is_direct_enc
+                if not is_direct and prac_id_chk:
+                    inv_prac = str(vals.get("ref_practitioner") or vals.get("practitioner") or "").strip()
+                    if inv_prac and inv_prac != prac_id_chk:
+                        continue
+                if int(vals.get("update_stock") or 0) == 1:
+                    continue
+
+                inv_items = frappe.get_all("Sales Invoice Item", filters={"parent": cname}, fields=sii_flds, limit=100)
+                other_ref = False
+                matched_ref = False
+                miss_codes = []
+                for it in inv_items:
+                    rdt = str(it.get("reference_dt") or "").strip()
+                    rdn = str(it.get("reference_dn") or "").strip()
+                    if rdt == "Patient Appointment" and rdn:
+                        if current_appt_name and rdn == current_appt_name:
+                            matched_ref = True
+                        elif current_appt_name and rdn != current_appt_name:
+                            other_ref = True
+                    if rdt == "Patient Encounter" and rdn:
+                        if current_enc_name and rdn == current_enc_name:
+                            matched_ref = True
+                        elif current_enc_name and rdn != current_enc_name:
+                            other_ref = True
+                    ic = str(it.get("item_code") or "").strip()
+                    if ic and ic not in item_map_inv and ic not in miss_codes:
+                        miss_codes.append(ic)
+                if other_ref and not matched_ref and not is_direct:
+                    continue
+                if inv_enc and not current_enc_name and not is_direct:
+                    continue
+                if miss_codes:
+                    try:
+                        for itm in frappe.get_all("Item", filters={"name": ["in", miss_codes]}, fields=item_flds):
+                            item_map_inv[itm.name] = itm
+                    except Exception:
+                        pass
+                    for mc in miss_codes:
+                        item_map_inv.setdefault(mc, {})
+
+                has_drug = False
+                all_drug = bool(inv_items)
+                all_lab = bool(inv_items)
+                has_consult = False
+                has_fee_svc = False
+                for it in inv_items:
+                    ic = str(it.get("item_code") or "").strip()
+                    im = item_map_inv.get(ic) or {}
+                    ig = str(it.get("item_group") or im.get("item_group") or "").strip().lower()
+                    is_stk = int(im.get("is_stock_item") or it.get("is_stock_item") or 0)
+                    has_bch = bool(str(it.get("batch_no") or "").strip())
+                    rdt = str(it.get("reference_dt") or "").strip()
+                    rtxt = " ".join([ic, str(it.get("item_name") or ""), str(im.get("item_name") or ""), str(it.get("description") or ""), ig]).lower()
+                    is_drg = (
+                        rdt == "Drug Prescription"
+                        or has_bch
+                        or is_stk == 1
+                        or (bool(ic) and ic in drug_codes)
+                        or ("drug" in ig) or ("medic" in ig) or ("pharm" in ig)
+                        or ("consult" not in rtxt and ("drug" in rtxt or "medic" in rtxt or "pharm" in rtxt or "tablet" in rtxt or "capsule" in rtxt or "syrup" in rtxt))
+                    )
+                    is_lb = (
+                        rdt in ("Lab Test", "Sample Collection", "Radiology", "Clinical Procedure")
+                        or ("lab" in ig and "consult" not in rtxt)
+                        or ("diagnostic" in ig and "consult" not in rtxt)
+                    )
+                    is_con = (not is_drg) and (
+                        (bool(ic) and ic in consult_codes)
+                        or ("consult" in rtxt) or ("opd" in rtxt)
+                        or ("doctor visit" in rtxt) or ("doctor fee" in rtxt) or ("checkup" in rtxt)
+                    )
+                    if is_drg:
+                        has_drug = True
+                    else:
+                        all_drug = False
+                        if not is_lb:
+                            has_fee_svc = True
+                    if not is_lb:
+                        all_lab = False
+                    if is_con:
+                        has_consult = True
+
+                rem_str = str(vals.get("remarks") or "")
+                rem_con = False
+                if current_appt_name:
+                    mk = "Consultation: " + current_appt_name
+                    mi = rem_str.find(mk)
+                    if mi >= 0:
+                        ma = rem_str[mi + len(mk):mi + len(mk) + 1]
+                        if not ma or ma not in " \t\r\n|,;":
+                            rem_con = True
+                has_wh = bool(str(vals.get("set_warehouse") or "").strip())
+                if all_drug:
+                    continue
+                if (has_drug or has_wh) and not has_consult:
+                    continue
+                if all_lab and not has_consult:
+                    continue
+                if not (has_fee_svc or has_consult or rem_con) and not is_direct_appt:
+                    continue
+
+                rank = (1 if int(vals.get("docstatus") or 0) == 1 else 0, 1 if (has_consult or rem_con) else 0, 2 if is_direct_appt else (1 if is_direct_enc else 0), str(vals.get("modified") or ""))
+                if best_rank is None or rank > best_rank:
+                    best_rank = rank
+                    best_inv = vals
+            if best_inv:
+                inv_out = {
+                    "name": best_inv.name,
+                    "docstatus": int(best_inv.get("docstatus") or 0),
+                    "total": float(best_inv.get("grand_total") or 0),
+                }
+    except Exception:
+        inv_out = None
+
 history = []
 hx_filters = {"patient": patient_id, "docstatus": 1}
 if current_enc_name:
@@ -360,33 +625,37 @@ if frappe.db.exists("DocType", "Clinic Treatment Template"):
     except Exception:
         templates = []
 
-frappe.response["message"] = {
-    "patient": {"id": pat.name, "uid": pat.uid or "", "name": pat.patient_name, "age": age,
-                "sex": pat.sex or "", "mobile": pat.mobile or ""},
-    "appointment": appt_out,
-    "practitioner": appt.practitioner if appt else "",
-    "encounter": enc,
-    "vitals": vit,
-    "history": history,
-    "templates": templates,
-    "lists": {
-        "complaints": names("Complaint"),
-        "diagnoses": names("Diagnosis"),
-        "medications": names("Medication"),
-        "items": stock_items,
-        "item_groups": igs,
-        "dosages": names("Prescription Dosage"),
-        "periods": names("Prescription Duration"),
-        "labs": names("Lab Test Template"),
-        "forms": names("Dosage Form"),
-        "classes": names("Medication Class", limit=None),
-        "uoms": names("UOM"),
-    },
-    "med_forms": med_forms,
-    "med_meta": med_meta,
-    "lab_meta": lab_meta,
-    "lab_items": lab_items,
-    "is_admin": is_admin,
-    "today": str(frappe.utils.today()),
-    "csrf": token,
-}
+if frappe.form_dict.get("only_invoice") == "1":
+    frappe.response["message"] = {"invoice": inv_out}
+else:
+    frappe.response["message"] = {
+        "patient": {"id": pat.name, "uid": pat.uid or "", "name": pat.patient_name, "age": age,
+                    "sex": pat.sex or "", "mobile": pat.mobile or ""},
+        "appointment": appt_out,
+        "practitioner": appt.practitioner if appt else "",
+        "encounter": enc,
+        "invoice": inv_out,
+        "vitals": vit,
+        "history": history,
+        "templates": templates,
+        "lists": {
+            "complaints": names("Complaint"),
+            "diagnoses": names("Diagnosis"),
+            "medications": names("Medication"),
+            "items": stock_items,
+            "item_groups": igs,
+            "dosages": names("Prescription Dosage"),
+            "periods": names("Prescription Duration"),
+            "labs": names("Lab Test Template"),
+            "forms": names("Dosage Form"),
+            "classes": names("Medication Class", limit=None),
+            "uoms": names("UOM"),
+        },
+        "med_forms": med_forms,
+        "med_meta": med_meta,
+        "lab_meta": lab_meta,
+        "lab_items": lab_items,
+        "is_admin": is_admin,
+        "today": str(frappe.utils.today()),
+        "csrf": token,
+    }
