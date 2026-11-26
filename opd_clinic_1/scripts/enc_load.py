@@ -241,6 +241,50 @@ if appt:
     appt_out = {"id": appt.name, "date": str(appt.appointment_date),
                 "time": str(appt.appointment_time), "type": appt.appointment_type}
 
+templates = []
+if frappe.db.exists("DocType", "Clinic Treatment Template"):
+    try:
+        tpl_rows = frappe.get_all(
+            "Clinic Treatment Template",
+            filters={"is_active": 1},
+            fields=["name", "template_name", "practitioner", "notes", "summary", "template_json"],
+            order_by="template_name asc",
+            limit=200,
+        )
+        cur_prac = (appt.practitioner if appt else "") or frappe.db.get_value("Healthcare Practitioner", {"user_id": user}, "name") or ""
+        for tr in tpl_rows:
+            data = {}
+            try:
+                if tr.get("template_json"):
+                    data = json.loads(tr.get("template_json")) or {}
+            except Exception:
+                data = {}
+            templates.append({
+                "name": tr.get("name"),
+                "template_name": tr.get("template_name") or tr.get("name"),
+                "practitioner": tr.get("practitioner") or "",
+                "summary": tr.get("summary") or "",
+                "complaints": data.get("complaints") or [],
+                "diagnosis": data.get("diagnosis") or [],
+                "drugs": data.get("drugs") or [],
+                "labs": data.get("labs") or [],
+                "notes": data.get("notes") if data.get("notes") is not None else (tr.get("notes") or ""),
+            })
+        if cur_prac:
+            own = []
+            shared = []
+            others = []
+            for t in templates:
+                if t["practitioner"] == cur_prac:
+                    own.append(t)
+                elif not t["practitioner"]:
+                    shared.append(t)
+                else:
+                    others.append(t)
+            templates = own + shared + others
+    except Exception:
+        templates = []
+
 frappe.response["message"] = {
     "patient": {"id": pat.name, "uid": pat.uid or "", "name": pat.patient_name, "age": age,
                 "sex": pat.sex or "", "mobile": pat.mobile or ""},
@@ -249,6 +293,7 @@ frappe.response["message"] = {
     "encounter": enc,
     "vitals": vit,
     "history": history,
+    "templates": templates,
     "lists": {
         "complaints": names("Complaint"),
         "diagnoses": names("Diagnosis"),

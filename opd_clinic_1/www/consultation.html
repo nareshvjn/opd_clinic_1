@@ -98,6 +98,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 #en #form{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
 #en #sec-hx{grid-column:1/-1;background:#f9fcfb}
 #en #sec-vitals{grid-column:1/-1}
+#en #sec-tpl{grid-column:1/-1;background:#f9fcfb}
 #en #sec-sym{grid-column:1}
 #en #sec-dx{grid-column:2}
 #en #sec-meds{grid-column:1/-1}
@@ -137,8 +138,24 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 #en .nn .hint{margin:0 0 6px;font-size:.82rem;color:var(--mute);display:block}
 #en .nn-fields{display:grid;grid-template-columns:minmax(180px,1.5fr) 120px 120px;gap:8px;max-width:600px;align-items:end}
 #en .mf{display:flex;gap:10px;align-items:center;padding-top:4px}
-#en button.sm{padding:7px 14px;border:1.5px solid var(--brand);border-radius:8px;background:#fff;color:var(--brand);font:inherit;font-weight:700;cursor:pointer}
+#en button.sm{padding:7px 14px;border:1.5px solid var(--brand);border-radius:8px;background:#fff;color:var(--brand);font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
 #en button.sm:hover{background:var(--bg)}
+#en button.sm.go{background:linear-gradient(135deg,#125c3a,#0d3d27);border-color:#0d3d27;color:#fff}
+#en button.sm.go:hover{filter:brightness(1.08)}
+#en button.sm.go:disabled{opacity:.5;cursor:not-allowed;filter:none}
+#en button.sm.sec-btn{border-color:var(--line);color:var(--mute)}
+#en button.rm-sm{padding:7px 12px;border:1.5px solid var(--err);border-radius:8px;background:#fff;color:var(--err);font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+#en button.rm-sm:hover{background:var(--err);color:#fff}
+#en .tpl-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+#en .tpl-head h2{margin:0}
+#en .tpl-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#en .tpl-bar select{flex:1 1 260px;min-width:0}
+#en .tpl-preview{margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff;border:1px solid var(--line);font-size:.85rem;color:var(--ink);line-height:1.45}
+#en .tpl-preview b{color:var(--brand)}
+#en .tpl-save-box{margin-top:10px;padding:10px 12px;border-radius:8px;background:#fff;border:1.5px solid #cfe0d7;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+#en .tpl-save-btns{display:flex;gap:8px;align-items:center}
+#en .tpl-status{margin-top:8px;padding:7px 10px;border-radius:8px;font-size:.86rem;font-weight:600;background:#e8f5ee;color:var(--ok);border-left:4px solid var(--ok)}
+#en .tpl-status.bad{background:#fdf2f2;color:var(--err);border-color:var(--err)}
 #en .hint{color:var(--mute);font-size:.85rem;margin:0}
 
 #en #notes{min-height:58px;resize:vertical}
@@ -169,6 +186,8 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 }
 @media(max-width:540px){
   #en .vg{grid-template-columns:repeat(2,1fr)}
+  #en .tpl-save-box{grid-template-columns:1fr}
+  #en .tpl-bar select{flex-basis:100%}
   #en .pt{flex-wrap:wrap;gap:8px}
   #en .pt .ap{margin-left:0;text-align:left;width:100%;border-top:1px solid rgba(255,255,255,0.2);padding-top:6px;margin-top:4px}
   #en .acts{justify-content:stretch;flex-direction:column}
@@ -214,6 +233,33 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
     </div>
   </section>
 
+  <section class="card" id="sec-tpl">
+    <div class="tpl-head">
+      <h2>Treatment template</h2>
+      <button type="button" class="sm" id="tpl-save-open">Save current as template</button>
+    </div>
+    <div class="tpl-bar">
+      <select id="tpl-sel" aria-label="Select treatment template">
+        <option value="">-- Select treatment template --</option>
+      </select>
+      <button type="button" class="sm go" id="tpl-apply" disabled>Apply template</button>
+      <button type="button" class="rm-sm" id="tpl-del" hidden>Delete</button>
+    </div>
+    <div id="tpl-preview" class="tpl-preview" hidden></div>
+    <div id="tpl-save-box" class="tpl-save-box" hidden>
+      <div>
+        <label for="tpl-name">Template name</label>
+        <input id="tpl-name" list="dl-tpl" placeholder="e.g. Viral Fever, URTI, Acute Gastritis" autocomplete="off">
+        <datalist id="dl-tpl"></datalist>
+      </div>
+      <div class="tpl-save-btns">
+        <button type="button" class="sm go" id="tpl-save-go">Save template</button>
+        <button type="button" class="sm sec-btn" id="tpl-save-cancel">Cancel</button>
+      </div>
+    </div>
+    <div id="tpl-status" class="tpl-status" hidden></div>
+  </section>
+
   <section class="card" id="sec-sym">
     <h2>Complaints</h2>
     <div class="tags" id="tg-sym"><input id="in-sym" list="dl-sym" placeholder="Type and press Enter (new ones are added)" aria-label="Add complaint"></div>
@@ -253,7 +299,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 (function(){
 var $=function(s){return document.querySelector('#en '+s)};
 var q=new URLSearchParams(location.search),A=q.get('appointment')||'',P=q.get('patient')||'',D=q.get('practitioner')||'',E=q.get('encounter')||'';
-var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},NEW={sym:'complaints',dx:'diagnoses'};
+var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},TPLS=[],NEW={sym:'complaints',dx:'diagnoses'};
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function fmt(t){var p=String(t).split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
@@ -300,7 +346,11 @@ $('#form').onclick=function(e){
   if(r){M.splice(+r.dataset.rm,1);renderMeds()}
 };
 
-function opts(list,cur,ph){return '<option value="">'+ph+'</option>'+list.map(function(v){return '<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'}).join('')}
+function opts(list,cur,ph){
+  var arr=(list||[]).slice();
+  if(cur&&arr.indexOf(cur)<0)arr.unshift(cur);
+  return '<option value="">'+ph+'</option>'+arr.map(function(v){return '<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'}).join('')
+}
 function guess(v){
   var m=v.match(/(\d+(?:\.\d+)?)\s*(mcg|mg|ml|iu|g|%)(?![a-z])/i);if(!m)return null;
   var al={mg:['mg','Milligram'],mcg:['mcg','Microgram'],g:['g','Gram'],ml:['ml','Millilitre','Milliliter'],iu:['IU'],'%':['%','Percent']}[m[2].toLowerCase()],u=m[2].toLowerCase();
@@ -345,6 +395,188 @@ $('#meds').oninput=$('#meds').onchange=function(e){
 };
 $('#add-med').onclick=function(){M.push(blankMed());renderMeds()};
 
+function tplMsg(txt,bad){
+  var el=$('#tpl-status');
+  if(!el)return;
+  el.textContent=txt||'';
+  el.className='tpl-status'+(bad?' bad':'');
+  el.hidden=!txt;
+}
+function findTpl(name){
+  for(var i=0;i<TPLS.length;i++){
+    if(TPLS[i].name===name||TPLS[i].template_name===name)return TPLS[i];
+  }
+  return null;
+}
+function tplHint(t){
+  if(t.summary)return t.summary;
+  var p=[];
+  if((t.complaints||[]).length)p.push('Complaints: '+t.complaints.slice(0,3).join(', '));
+  if((t.diagnosis||[]).length)p.push('Diagnosis: '+t.diagnosis.slice(0,3).join(', '));
+  if((t.drugs||[]).length)p.push(t.drugs.length+' medicine'+(t.drugs.length===1?'':'s'));
+  if((t.labs||[]).length)p.push(t.labs.length+' lab'+(t.labs.length===1?'':'s'));
+  if((t.notes||'').trim())p.push('Notes');
+  return p.join(' | ');
+}
+function updateTplPreview(){
+  var sel=$('#tpl-sel'),val=sel?sel.value:'';
+  var t=val?findTpl(val):null;
+  var pv=$('#tpl-preview'),ap=$('#tpl-apply'),dl=$('#tpl-del');
+  if(!t){
+    if(pv)pv.hidden=true;
+    if(ap)ap.disabled=true;
+    if(dl)dl.hidden=true;
+    return;
+  }
+  if(ap)ap.disabled=false;
+  if(dl)dl.hidden=false;
+  var parts=[];
+  if((t.complaints||[]).length)parts.push('<b>Complaints:</b> '+esc(t.complaints.join(', ')));
+  if((t.diagnosis||[]).length)parts.push('<b>Diagnosis:</b> '+esc(t.diagnosis.join(', ')));
+  if((t.drugs||[]).length){
+    parts.push('<b>Medicines:</b> '+t.drugs.map(function(dr){
+      return esc([dr.drug,dr.dosage,dr.period].filter(Boolean).join(' '));
+    }).join(', '));
+  }
+  if((t.labs||[]).length)parts.push('<b>Lab tests:</b> '+esc(t.labs.join(', ')));
+  if((t.notes||'').trim())parts.push('<b>Notes:</b> '+esc(t.notes.trim()));
+  if(pv){
+    pv.innerHTML=parts.length?parts.join(' &middot; '):'Empty template';
+    pv.hidden=false;
+  }
+}
+function renderTplOptions(selectedName){
+  var sel=$('#tpl-sel'),dl=$('#dl-tpl');
+  if(!sel)return;
+  var ph=TPLS.length?'-- Select treatment template --':'-- No saved templates yet --';
+  sel.innerHTML='<option value="">'+ph+'</option>'+TPLS.map(function(t){
+    var info=tplHint(t);
+    var label=(t.template_name||t.name)+(info?' — '+info:'');
+    return '<option value="'+esc(t.name)+'"'+(t.name===selectedName?' selected':'')+'>'+esc(label)+'</option>';
+  }).join('');
+  if(dl){
+    dl.innerHTML=TPLS.map(function(t){return '<option value="'+esc(t.template_name||t.name)+'">'}).join('');
+  }
+  updateTplPreview();
+}
+function mergeUniqueTag(key,vals){
+  (vals||[]).forEach(function(raw){
+    var v=String(raw||'').trim();
+    if(!v)return;
+    var exists=T[key].some(function(x){return String(x).trim().toLowerCase()===v.toLowerCase()});
+    if(!exists)T[key].push(v);
+  });
+  renderTags(key);
+}
+function applySelectedTemplate(){
+  tplMsg('');
+  var t=findTpl($('#tpl-sel').value);
+  if(!t){tplMsg('Choose a treatment template first.',true);return}
+  mergeUniqueTag('sym',t.complaints);
+  mergeUniqueTag('dx',t.diagnosis);
+  mergeUniqueTag('lab',t.labs);
+
+  M=M.filter(function(m){return (m.drug||'').trim()||m.form||m.dosage||m.period||(m.comment||'').trim()});
+  (t.drugs||[]).forEach(function(dr){
+    var nm=String(dr.drug||'').trim();
+    if(!nm)return;
+    var dup=M.some(function(cur){return (cur.drug||'').trim().toLowerCase()===nm.toLowerCase()});
+    if(dup)return;
+    var row={
+      drug:nm,
+      form:dr.form||MF[nm]||'',
+      mclass:dr.mclass||'',
+      strength:dr.strength||'',
+      unit:dr.unit||'',
+      dosage:dr.dosage||'',
+      period:dr.period||'',
+      comment:dr.comment||''
+    };
+    if(!row.strength||!row.unit){
+      var gs=guess(nm);
+      if(gs){if(!row.strength)row.strength=gs.s;if(!row.unit)row.unit=gs.u}
+    }
+    M.push(row);
+  });
+  renderMeds();
+
+  var tn=(t.notes||'').trim(),cn=($('#notes').value||'').trim();
+  if(tn){
+    if(!cn)$('#notes').value=tn;
+    else if(cn.indexOf(tn)<0)$('#notes').value=cn+'\n'+tn;
+  }
+  tplMsg('Applied template "'+(t.template_name||t.name)+'". Review and adjust before saving.');
+}
+
+if($('#tpl-sel'))$('#tpl-sel').onchange=function(){tplMsg('');updateTplPreview()};
+if($('#tpl-apply'))$('#tpl-apply').onclick=applySelectedTemplate;
+if($('#tpl-save-open'))$('#tpl-save-open').onclick=function(){
+  tplMsg('');
+  var box=$('#tpl-save-box');
+  box.hidden=!box.hidden;
+  if(!box.hidden){
+    var curTpl=findTpl($('#tpl-sel').value);
+    $('#tpl-name').value=curTpl?(curTpl.template_name||curTpl.name):'';
+    $('#tpl-name').focus();
+  }
+};
+if($('#tpl-save-cancel'))$('#tpl-save-cancel').onclick=function(){$('#tpl-save-box').hidden=true;tplMsg('')};
+if($('#tpl-save-go'))$('#tpl-save-go').onclick=function(){
+  tplMsg('');
+  var rawName=($('#tpl-name').value||'').trim();
+  if(!rawName){tplMsg('Enter a template name.',true);$('#tpl-name').focus();return}
+  var cleanDrugs=M.filter(function(m){return (m.drug||'').trim()});
+  var noteVal=($('#notes').value||'').trim();
+  if(!T.sym.length&&!T.dx.length&&!cleanDrugs.length&&!T.lab.length&&!noteVal){
+    tplMsg('Add complaints, diagnosis, medicines, lab tests, or notes before saving a template.',true);
+    return;
+  }
+  var existing=null;
+  for(var i=0;i<TPLS.length;i++){
+    if((TPLS[i].template_name||TPLS[i].name).toLowerCase()===rawName.toLowerCase()){existing=TPLS[i];break}
+  }
+  var overwrite=false;
+  if(existing){
+    if(!window.confirm('Template "'+(existing.template_name||existing.name)+'" already exists. Update it with the current consultation details?'))return;
+    overwrite=true;
+    rawName=existing.template_name||existing.name;
+  }
+  var b=$('#tpl-save-go');b.disabled=true;b.textContent='Saving...';
+  call('tpl_save',{
+    template_name:rawName,
+    practitioner:D,
+    overwrite:overwrite?'1':'0',
+    symptoms:JSON.stringify(T.sym),
+    diagnosis:JSON.stringify(T.dx),
+    drugs:JSON.stringify(cleanDrugs),
+    labs:JSON.stringify(T.lab),
+    notes:noteVal
+  },true).then(function(r){
+    var saved=r&&r.template;
+    if(saved){
+      var idx=-1;
+      for(var j=0;j<TPLS.length;j++){if(TPLS[j].name===saved.name){idx=j;break}}
+      if(idx>-1)TPLS[idx]=saved;
+      else TPLS.unshift(saved);
+      renderTplOptions(saved.name);
+      $('#tpl-save-box').hidden=true;
+      tplMsg((overwrite?'Updated':'Saved')+' template "'+saved.template_name+'".');
+    }
+  }).catch(function(e){tplMsg(e.message,true)}).then(function(){b.disabled=false;b.textContent='Save template'});
+};
+if($('#tpl-del'))$('#tpl-del').onclick=function(){
+  tplMsg('');
+  var t=findTpl($('#tpl-sel').value);
+  if(!t)return;
+  if(!window.confirm('Delete treatment template "'+(t.template_name||t.name)+'"?'))return;
+  var b=$('#tpl-del');b.disabled=true;
+  call('tpl_delete',{template_name:t.name},true).then(function(){
+    TPLS=TPLS.filter(function(x){return x.name!==t.name});
+    renderTplOptions('');
+    tplMsg('Deleted template "'+(t.template_name||t.name)+'".');
+  }).catch(function(e){tplMsg(e.message,true)}).then(function(){b.disabled=false});
+};
+
 function payload(complete){
   var o={appointment:A,patient:P,practitioner:D,comment:$('#notes').value,complete:complete?'1':'0',amend:amend?'1':'0',
     symptoms:JSON.stringify(T.sym),diagnosis:JSON.stringify(T.dx),labs:JSON.stringify(T.lab),
@@ -359,6 +591,8 @@ function init(r){
   csrf=r.csrf||'';P=r.patient.id;D=r.practitioner||D;L=r.lists||{};
   var isAdmin=!!r.is_admin, serverToday=r.today||'';
   ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};
+  TPLS=r.templates||[];
+  renderTplOptions('');
   var p=r.patient,words=(p.name||'').split(/\s+/);
   $('#av').textContent=((words[0]||'?')[0]+(words[1]?words[1][0]:'')).toUpperCase();
   var uidStr = (p.uid && p.uid !== p.name) ? p.uid : '';
@@ -441,6 +675,7 @@ function init(r){
     $('#draft').hidden=true;
     $('#complete').hidden=true;
     $('#add-med').hidden=true;
+    if($('#sec-tpl'))$('#sec-tpl').hidden=true;
     $('#notes').readOnly=true;
     msg('Past-dated consultations are read-only. Only admin accounts can modify backlog entries.');
   }
