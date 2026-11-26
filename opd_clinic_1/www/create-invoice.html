@@ -650,9 +650,23 @@ $('#ci-chips').onclick=function(e){
 };
 
 // Save Draft / Submit Invoice & Edit/Cancel Actions
+function selectDefaultPaymentMode(){
+  var sel=$('#ci-mode');
+  if(!sel) return;
+  var opts=Array.prototype.slice.call(sel.options);
+  for(var i=0;i<opts.length;i++){
+    if(opts[i].value.trim().toLowerCase()==='cash'){
+      sel.value=opts[i].value;
+      return;
+    }
+  }
+  if(opts.length) sel.selectedIndex=0;
+}
+
 function setEditMode(inv){
   editingInvoice=inv.name;
   editingDocstatus=inv.docstatus;
+  if(inv.appointment) linkedAppointment=inv.appointment;
   $('#edit-banner').style.display='block';
   $('#edit-banner-title').textContent='Editing '+(inv.docstatus===0?'Draft ':'')+'Invoice '+inv.name;
   $('#edit-banner-note').textContent=inv.docstatus===0
@@ -704,11 +718,12 @@ function clearEditMode(){
 }
 
 function resetFormFields(){
-  state.patient=null; state._autoCust=false;
+  state.patient=null; state._autoCust=false; linkedAppointment='';
   state.lines=[newLine({qty:1, rate:0, disc:0})];
   $('#ci-pat-sel').hidden=true; $('#ci-pat-sel').innerHTML='';
   $('#ci-cust').value=''; $('#ci-remarks').value=''; $('#ci-prac').value='';
   if(serverToday) $('#ci-date').value=serverToday;
+  selectDefaultPaymentMode();
   ['bd-pct','bd-amt','cc-name','cc-amt'].forEach(function(id){ $('#'+id).value=''; });
   renderLines();
 }
@@ -793,6 +808,7 @@ function submitInvoice(asDraft){
     lines: JSON.stringify(state.lines),
     customer: $('#ci-cust').value.trim(),
     patient: state.patient ? state.patient.id : '',
+    appointment: linkedAppointment || '',
     practitioner: $('#ci-prac').value,
     mode: $('#ci-mode').value,
     posting_date: invDate,
@@ -804,7 +820,13 @@ function submitInvoice(asDraft){
   if(editingInvoice) payload.amend_invoice=editingInvoice;
 
   call('inv_save', payload, true).then(function(r){
+    var wasEditing=!!editingInvoice;
     clearEditMode();
+    if(wasEditing && window.history && window.history.replaceState){
+      var u=new URL(location.href);
+      u.searchParams.delete('edit');
+      window.history.replaceState(null, '', u.pathname + (u.searchParams.toString() ? '?' + u.searchParams.toString() : ''));
+    }
     renderReceipt(r);
     resetFormFields();
     $('#inv-receipt').scrollIntoView({block:'nearest'});
@@ -877,6 +899,7 @@ renderQuickChips([]);
 var urlParams=new URLSearchParams(location.search);
 var editParam=(urlParams.get('edit')||'').trim();
 var patientParam=(urlParams.get('patient')||'').trim();
+var linkedAppointment=(urlParams.get('appointment')||'').trim();
 var pracParam=(urlParams.get('practitioner')||'').trim();
 var dateParam=(urlParams.get('date')||'').trim();
 
@@ -888,7 +911,11 @@ call('inv_meta', patientParam ? {patient: patientParam} : {}).then(function(m){
   if(!isAdmin) $('#ci-date').min=serverToday;
 
   var modes=(m.modes&&m.modes.length?m.modes:['Cash']).concat(['Credit']);
-  $('#ci-mode').innerHTML=modes.map(function(x){ return '<option value="'+esc(x)+'">'+esc(x)+'</option>'; }).join('');
+  $('#ci-mode').innerHTML=modes.map(function(x){
+    var sel=x.trim().toLowerCase()==='cash'?' selected':'';
+    return '<option value="'+esc(x)+'"'+sel+'>'+esc(x)+'</option>';
+  }).join('');
+  selectDefaultPaymentMode();
 
   if(m.practitioners && m.practitioners.length){
     $('#ci-prac').innerHTML='<option value="">-- Optional --</option>'+m.practitioners.map(function(p){

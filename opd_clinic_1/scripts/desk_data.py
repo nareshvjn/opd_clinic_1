@@ -59,21 +59,26 @@ if rows:
         info[p.name] = p
 
 def find_invoice_info(appt):
+    active_draft = None
     try:
         for r in frappe.get_all("Sales Invoice Item",
                 filters={"reference_dt": "Patient Appointment", "reference_dn": appt},
-                fields=["parent"], limit=5):
+                fields=["parent"], order_by="modified desc", limit=20):
             vals = frappe.db.get_value("Sales Invoice", r.parent, ["name", "docstatus", "grand_total"], as_dict=True)
-            if vals and vals.docstatus < 2:
+            if not vals or vals.docstatus >= 2:
+                continue
+            if vals.docstatus == 1:
                 return vals
+            if active_draft is None:
+                active_draft = vals
     except:
         pass
     found = frappe.get_all("Sales Invoice",
         filters={"remarks": ["like", "%Consultation: " + appt + "%"], "docstatus": ["<", 2]},
-        fields=["name", "docstatus", "grand_total"], limit=1)
+        fields=["name", "docstatus", "grand_total"], order_by="docstatus desc, modified desc", limit=1)
     if found:
         return found[0]
-    return None
+    return active_draft
 
 today = frappe.utils.getdate(frappe.utils.today())
 out = []
@@ -88,9 +93,7 @@ for r in rows:
         if p.dob:
             d = frappe.utils.getdate(p.dob)
             age = today.year - d.year - (1 if (today.month, today.day) < (d.month, d.day) else 0)
-    inv_info = None
-    if r.status in ["Closed", "Checked Out"]:
-        inv_info = find_invoice_info(r.name)
+    inv_info = find_invoice_info(r.name)
     inv = inv_info.name if inv_info else ""
     inv_docstatus = inv_info.docstatus if inv_info else None
     inv_total = float(inv_info.grand_total or 0) if inv_info else 0.0

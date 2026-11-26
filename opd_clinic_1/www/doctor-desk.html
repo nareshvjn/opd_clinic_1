@@ -314,15 +314,22 @@ function render(){
     var cls='a'+(isToday&&nowM>=st&&nowM<st+dur?' now':'')+(/closed|checked out/i.test(a.status)?' done':'');
     var opts=data.statuses.map(function(s){return '<option'+(s===a.status?' selected':'')+'>'+esc(s)+'</option>'}).join('');
     var q='patient='+encodeURIComponent(a.patient)+'&appointment='+encodeURIComponent(a.id)+'&practitioner='+encodeURIComponent(a.practitioner);
-    var ciQ='patient='+encodeURIComponent(a.patient)+(a.practitioner?'&practitioner='+encodeURIComponent(a.practitioner):'')+(selDate?'&date='+encodeURIComponent(selDate):'');
+    var ciQ='patient='+encodeURIComponent(a.patient)+'&appointment='+encodeURIComponent(a.id)+(a.practitioner?'&practitioner='+encodeURIComponent(a.practitioner):'')+(selDate?'&date='+encodeURIComponent(selDate):'');
     var closed=/closed|checked out/i.test(a.status),invBtn='';
-    if(closed){
-      if(a.invoice && a.invoice_docstatus === 1){
-        invBtn='<a class="btn" target="_blank" rel="noopener" href="'+invUrl(a.invoice)+'">🖨️ Print invoice'+(a.invoice_total?' (₹'+a.invoice_total+')':'')+'</a>';
-      } else if(readOnlyPast){
+    if(a.invoice){
+      if(readOnlyPast){
+        if(a.invoice_docstatus === 1){
+          invBtn='<a class="btn" target="_blank" rel="noopener" href="'+invUrl(a.invoice)+'">🖨️ Print invoice'+(a.invoice_total?' (₹'+a.invoice_total+')':'')+'</a>';
+        } else {
+          invBtn='<span class="n" style="font-size:.82rem">Billing locked (past date)</span>';
+        }
+      } else {
+        invBtn='<a class="btn" href="/create-invoice?edit='+encodeURIComponent(a.invoice)+'&'+ciQ+'">View invoice'+(a.invoice_docstatus===0?' (Draft)':'')+(a.invoice_total?' (₹'+a.invoice_total+')':'')+'</a>'+
+          '<a class="btn" target="_blank" rel="noopener" href="'+invUrl(a.invoice)+'">🖨️ Print invoice</a>';
+      }
+    } else if(closed){
+      if(readOnlyPast){
         invBtn='<span class="n" style="font-size:.82rem">Billing locked (past date)</span>';
-      } else if(a.invoice && a.invoice_docstatus === 0){
-        invBtn='<a class="btn" href="/create-invoice?edit='+encodeURIComponent(a.invoice)+'&'+ciQ+'">Edit draft invoice</a>';
       } else {
         invBtn='<a class="btn" href="/create-invoice?'+ciQ+'">Create invoice</a>';
       }
@@ -355,6 +362,7 @@ $('#d-date').onchange=load;
 $('#d-prac').onchange=load;
 $('#d-date').value=iso(new Date());
 load();
+window.addEventListener('pageshow',function(ev){if(ev&&ev.persisted)load()});
 setInterval(function(){if(!document.hidden&&document.activeElement.tagName!=='SELECT')load()},60000);
 })();
 </script>

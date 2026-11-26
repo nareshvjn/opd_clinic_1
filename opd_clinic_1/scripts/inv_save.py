@@ -64,6 +64,7 @@ else:
     lines = json.loads(f.get("lines") or "[]")
     customer_input = (f.get("customer") or "").strip()
     patient = (f.get("patient") or "").strip()
+    appointment = (f.get("appointment") or "").strip()
     practitioner = (f.get("practitioner") or "").strip()
     mode = (f.get("mode") or "").strip()
     remarks = (f.get("remarks") or "").strip()
@@ -84,6 +85,13 @@ else:
 
     if not lines:
         frappe.throw("Add at least one line item to the invoice.")
+    for ln in lines:
+        if num(ln.get("qty")) <= 0:
+            frappe.throw("Every line item must have quantity greater than zero.")
+        if num(ln.get("rate")) < 0:
+            frappe.throw("Rate cannot be negative.")
+        if not ((ln.get("item_code") or "").strip() or (ln.get("item_name") or "").strip()):
+            frappe.throw("Each line item must specify an item or service name.")
 
     updating_draft = False
     amend_from = ""
@@ -95,6 +103,14 @@ else:
             frappe.throw("Cannot edit a cancelled invoice.")
         if old_si.posting_date and frappe.utils.getdate(old_si.posting_date) < today_date and not is_admin:
             frappe.throw("Only admin accounts can edit past-dated invoices.")
+        if not appointment:
+            if old_si.meta.has_field("appointment") and old_si.get("appointment"):
+                appointment = (old_si.get("appointment") or "").strip()
+            if not appointment:
+                for oit in (old_si.items or []):
+                    if oit.get("reference_dt") == "Patient Appointment" and oit.get("reference_dn"):
+                        appointment = (oit.get("reference_dn") or "").strip()
+                        break
         if old_si.docstatus == 0:
             updating_draft = True
         else:
@@ -200,6 +216,9 @@ else:
     if si.meta.has_field("practitioner"):
         si.practitioner = practitioner or None
 
+    if appointment and si.meta.has_field("appointment") and frappe.db.exists("Patient Appointment", appointment):
+        si.appointment = appointment
+
     remark_parts = []
     if practitioner:
         prac_name = frappe.db.get_value("Healthcare Practitioner", practitioner, "practitioner_name") or practitioner
@@ -293,6 +312,15 @@ else:
 
     if not si.debit_to and co:
         si.debit_to = co.default_receivable_account
+
+    if appointment and si.items and frappe.db.exists("Patient Appointment", appointment):
+        try:
+            si_item_meta = frappe.get_meta("Sales Invoice Item")
+            if si_item_meta.has_field("reference_dt") and si_item_meta.has_field("reference_dn"):
+                si.items[0].reference_dt = "Patient Appointment"
+                si.items[0].reference_dn = appointment
+        except Exception:
+            pass
 
     if charge_amt > 0:
         charge_acc = co.default_income_account if co else None

@@ -211,12 +211,20 @@ elif action == "load_invoice":
             "disc": disc
         })
 
+    appt_id = (doc.get("appointment") or "").strip() if hasattr(doc, "appointment") else ""
+    if not appt_id:
+        for it in (doc.items or []):
+            if it.get("reference_dt") == "Patient Appointment" and it.get("reference_dn"):
+                appt_id = it.get("reference_dn")
+                break
+
     frappe.response["message"] = {
         "invoice": {
             "name": doc.name,
             "docstatus": doc.docstatus,
             "customer": doc.customer or "",
             "patient": pat_obj,
+            "appointment": appt_id,
             "practitioner": prac_id,
             "posting_date": str(doc.posting_date or today_d),
             "mode": mode,
@@ -238,6 +246,9 @@ else:
         modes.append(m.name)
     if not modes:
         modes = ["Cash"]
+    cash_modes = [m for m in modes if m.strip().lower() == "cash"]
+    other_modes = [m for m in modes if m.strip().lower() != "cash"]
+    modes = cash_modes + other_modes
 
     # Preload non-stock service / procedure / lab items first for quick picking
     service_items = []
