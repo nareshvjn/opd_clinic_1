@@ -206,11 +206,30 @@ elif action == "load_invoice":
                 "customer": pv.get("customer") or ""
             }
 
-    prac_id = doc.get("practitioner") or ""
-    clean_remarks = (doc.remarks or "").strip()
-    if clean_remarks.startswith("Doctor: "):
-        parts = clean_remarks.split(" | ", 1)
-        clean_remarks = parts[1].strip() if len(parts) > 1 else ""
+    prac_id = doc.get("ref_practitioner") or doc.get("practitioner") or ""
+    rem_appt = ""
+    rem_enc = ""
+    kept_rem = []
+    for rpart in (doc.remarks or "").strip().split(" | "):
+        rs = rpart.strip()
+        if not rs:
+            continue
+        if rs.startswith("Doctor: "):
+            continue
+        if rs.startswith("Consultation: "):
+            tok = rs[len("Consultation: "):].strip().split()[0] if rs[len("Consultation: "):].strip() else ""
+            if tok and frappe.db.exists("Patient Appointment", tok):
+                if not rem_appt:
+                    rem_appt = tok
+                continue
+        if rs.startswith("Encounter: "):
+            tok = rs[len("Encounter: "):].strip().split()[0] if rs[len("Encounter: "):].strip() else ""
+            if tok and frappe.db.exists("Patient Encounter", tok):
+                if not rem_enc:
+                    rem_enc = tok
+                continue
+        kept_rem.append(rs)
+    clean_remarks = " | ".join(kept_rem)
 
     charge_amt = 0.0
     charge_name = ""
@@ -260,6 +279,10 @@ elif action == "load_invoice":
             appt_id = it.get("reference_dn")
         if not enc_id and it.get("reference_dt") == "Patient Encounter" and it.get("reference_dn"):
             enc_id = it.get("reference_dn")
+    if not appt_id and rem_appt:
+        appt_id = rem_appt
+    if not enc_id and rem_enc:
+        enc_id = rem_enc
 
     encounters_list = get_patient_encounters(doc.get("patient") or "")
 

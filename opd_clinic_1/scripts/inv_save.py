@@ -24,6 +24,33 @@ if not ok:
 if not ok:
     frappe.throw("You do not have permission to create invoices.")
 
+def is_ref_free(ref_dt, ref_dn, exclude_inv=""):
+    if not ref_dt or not ref_dn or not frappe.db.exists(ref_dt, ref_dn):
+        return False
+    try:
+        ref_meta = frappe.get_meta(ref_dt)
+        if ref_meta.has_field("invoiced") and int(frappe.db.get_value(ref_dt, ref_dn, "invoiced") or 0) == 1:
+            return False
+    except Exception:
+        pass
+    try:
+        existing_rows = frappe.db.sql("""
+            select sii.parent
+            from `tabSales Invoice Item` sii
+            join `tabSales Invoice` si on si.name = sii.parent
+            where sii.reference_dt = %s
+              and sii.reference_dn = %s
+              and si.docstatus < 2
+              and ifnull(si.is_return, 0) = 0
+              and si.name != %s
+            limit 1
+        """, (ref_dt, ref_dn, exclude_inv or ""))
+        if existing_rows:
+            return False
+    except Exception:
+        pass
+    return True
+
 def num(v):
     try:
         return float(v or 0)
@@ -118,6 +145,17 @@ else:
                     appointment = (oit.get("reference_dn") or "").strip()
                 if not encounter and oit.get("reference_dt") == "Patient Encounter" and oit.get("reference_dn"):
                     encounter = (oit.get("reference_dn") or "").strip()
+        if (not appointment or not encounter) and old_si.get("remarks"):
+            for rpart in str(old_si.get("remarks") or "").split(" | "):
+                rs = rpart.strip()
+                if not appointment and rs.startswith("Consultation: "):
+                    cand_a = rs[len("Consultation: "):].strip().split()[0] if rs[len("Consultation: "):].strip() else ""
+                    if cand_a and frappe.db.exists("Patient Appointment", cand_a):
+                        appointment = cand_a
+                if not encounter and rs.startswith("Encounter: "):
+                    cand_e = rs[len("Encounter: "):].strip().split()[0] if rs[len("Encounter: "):].strip() else ""
+                    if cand_e and frappe.db.exists("Patient Encounter", cand_e):
+                        encounter = cand_e
         if old_si.docstatus == 0:
             updating_draft = True
         else:
@@ -288,17 +326,31 @@ else:
             if si.meta.has_field(enc_fld):
                 si.set(enc_fld, encounter)
 
-    remark_parts = []
-    if practitioner:
-        prac_name = frappe.db.get_value("Healthcare Practitioner", practitioner, "practitioner_name") or practitioner
-        remark_parts.append("Doctor: " + prac_name)
-    if remarks:
-        remark_parts.append(remarks)
-    if remark_parts:
-        si.remarks = " | ".join(remark_parts)
+    item_fetch_fields = ["item_name", "stock_uom"]
+    try:
+        item_meta_doc = frappe.get_meta("Item")
+        if item_meta_doc.has_field("item_group"):
+            item_fetch_fields.append("item_group")
+        if item_meta_doc.has_field("is_stock_item"):
+            item_fetch_fields.append("is_stock_item")
+    except Exception:
+        pass
+    has_med_item = False
+    has_med_item_code = False
+    has_mli_dt = False
+    try:
+        if frappe.db.exists("DocType", "Medication"):
+            med_meta = frappe.get_meta("Medication")
+            has_med_item = med_meta.has_field("item")
+            has_med_item_code = med_meta.has_field("item_code")
+        has_mli_dt = bool(frappe.db.exists("DocType", "Medication Linked Item"))
+    except Exception:
+        pass
 
     misc_item_code = ""
     line_pricing = []
+    has_drug_line = False
+    has_nondrug_line = False
     for ln in lines:
         item_code = (ln.get("item_code") or "").strip()
         custom_name = (ln.get("item_name") or "").strip()
@@ -329,10 +381,41 @@ else:
         else:
             frappe.throw("Each line item must specify an item or service name.")
 
-        item_meta_vals = frappe.db.get_value("Item", resolved_code, ["item_name", "stock_uom"], as_dict=True) or {}
+        item_meta_vals = frappe.db.get_value("Item", resolved_code, item_fetch_fields, as_dict=True) or {}
         final_name = custom_name or item_meta_vals.get("item_name") or resolved_code
         final_desc = desc or final_name
         uom = item_meta_vals.get("stock_uom") or "Nos"
+        ig = str(item_meta_vals.get("item_group") or "").strip().lower()
+        is_stock = int(item_meta_vals.get("is_stock_item") or 0)
+        med_linked = False
+        if resolved_code and resolved_code not in ["MISC-SERVICE", "CLINIC-SERVICE"] and not is_stock:
+            try:
+                if has_med_item and frappe.db.exists("Medication", {"item": resolved_code}):
+                    med_linked = True
+                elif has_med_item_code and frappe.db.exists("Medication", {"item_code": resolved_code}):
+                    med_linked = True
+                elif has_mli_dt and frappe.db.exists("Medication Linked Item", {"item": resolved_code}):
+                    med_linked = True
+            except Exception:
+                pass
+        line_txt = (resolved_code + " " + final_name + " " + ig).lower()
+        is_drug_line = ("consult" not in line_txt) and (
+            is_stock == 1
+            or med_linked
+            or ("drug" in ig)
+            or ("medic" in ig)
+            or ("pharm" in ig)
+            or ("drug" in line_txt)
+            or ("medic" in line_txt)
+            or ("pharm" in line_txt)
+            or ("tablet" in line_txt)
+            or ("capsule" in line_txt)
+            or ("syrup" in line_txt)
+        )
+        if is_drug_line:
+            has_drug_line = True
+        else:
+            has_nondrug_line = True
 
         disc_unit = rate * (disc / 100.0)
         net_unit = rate - disc_unit
@@ -364,6 +447,20 @@ else:
             "cost_center": co.cost_center if co else None
         })
 
+    is_drug_only_inv = bool(line_pricing) and has_drug_line and (not has_nondrug_line)
+    remark_parts = []
+    if practitioner:
+        prac_name = frappe.db.get_value("Healthcare Practitioner", practitioner, "practitioner_name") or practitioner
+        remark_parts.append("Doctor: " + prac_name)
+    if appointment and not is_drug_only_inv and frappe.db.exists("Patient Appointment", appointment):
+        remark_parts.append("Consultation: " + appointment)
+    if encounter and frappe.db.exists("Patient Encounter", encounter):
+        remark_parts.append("Encounter: " + encounter)
+    if remarks:
+        remark_parts.append(remarks)
+    if remark_parts:
+        si.remarks = " | ".join(remark_parts)
+
     si.run_method("set_missing_values")
     # Re-apply explicit item names, descriptions, and discounted rates after set_missing_values().
     si.ignore_pricing_rule = 1
@@ -382,22 +479,23 @@ else:
     if not si.debit_to and co:
         si.debit_to = co.default_receivable_account
 
-    if si.items:
-        has_enc = bool(encounter and frappe.db.exists("Patient Encounter", encounter))
-        has_appt = bool(appointment and frappe.db.exists("Patient Appointment", appointment))
-        if has_enc or has_appt:
+    if si.items and not is_drug_only_inv:
+        exclude_name = amend_invoice if updating_draft else ""
+        can_ref_appt = is_ref_free("Patient Appointment", appointment, exclude_name) if appointment else False
+        can_ref_enc = is_ref_free("Patient Encounter", encounter, exclude_name) if encounter else False
+        if can_ref_enc or can_ref_appt:
             try:
                 si_item_meta = frappe.get_meta("Sales Invoice Item")
                 if si_item_meta.has_field("reference_dt") and si_item_meta.has_field("reference_dn"):
-                    if has_enc and has_appt and len(si.items) >= 2:
+                    if can_ref_appt and can_ref_enc and len(si.items) >= 2:
                         si.items[0].reference_dt = "Patient Appointment"
                         si.items[0].reference_dn = appointment
                         si.items[1].reference_dt = "Patient Encounter"
                         si.items[1].reference_dn = encounter
-                    elif has_enc:
+                    elif can_ref_enc:
                         si.items[0].reference_dt = "Patient Encounter"
                         si.items[0].reference_dn = encounter
-                    elif has_appt:
+                    elif can_ref_appt:
                         si.items[0].reference_dt = "Patient Appointment"
                         si.items[0].reference_dn = appointment
             except Exception:
@@ -441,7 +539,7 @@ else:
 
     if not save_draft:
         si.submit()
-        if appointment and frappe.db.exists("Patient Appointment", appointment):
+        if appointment and not is_drug_only_inv and frappe.db.exists("Patient Appointment", appointment):
             try:
                 frappe.db.set_value("Patient Appointment", appointment, "invoiced", 1, update_modified=False)
             except Exception:

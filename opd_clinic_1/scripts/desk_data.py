@@ -176,6 +176,27 @@ def find_invoice_info(appt, patient_id=None, encounter_id=None, appt_date=None, 
         except Exception:
             pass
 
+    enc_marker = ("Encounter: " + encounter_id) if encounter_id else ""
+    if enc_marker:
+        try:
+            for r in frappe.get_all("Sales Invoice",
+                    filters={"remarks": ["like", "%" + enc_marker + "%"], "docstatus": ["<", 2]},
+                    fields=["name", "remarks"], limit=20):
+                rem = r.get("remarks") or ""
+                idx = rem.find(enc_marker)
+                if idx < 0:
+                    continue
+                after = rem[idx + len(enc_marker):idx + len(enc_marker) + 1]
+                if after and after not in " \t\r\n|,;":
+                    continue
+                if r.name:
+                    direct_enc_names.add(r.name)
+                    if r.name not in seen_candidates:
+                        seen_candidates.add(r.name)
+                        candidate_names.append(r.name)
+        except Exception:
+            pass
+
     if patient_id and appt_date and si_meta and si_meta.has_field("patient"):
         try:
             for r in frappe.get_all("Sales Invoice",
