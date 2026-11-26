@@ -131,7 +131,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 #en .meds{display:flex;flex-direction:column;gap:10px}
 #en #meds{display:flex;flex-direction:column;gap:8px}
 #en .med{background:#fafcfb;border:1.5px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
-#en .med-row{display:grid;grid-template-columns:minmax(180px,2.4fr) 115px 115px 115px minmax(140px,1.8fr) auto;gap:8px;align-items:end}
+#en .med-row{display:grid;grid-template-columns:minmax(180px,2.4fr) 125px 125px minmax(160px,2fr) auto;gap:8px;align-items:end}
 #en .med button.rm{height:36px;padding:0 14px;border:1.5px solid var(--err);background:#fff;color:var(--err);border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap}
 #en .med button.rm:hover{background:var(--err);color:#fff}
 #en .nn{padding:8px 0 2px;margin-top:2px;border-top:1px dashed var(--line)}
@@ -182,7 +182,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
   #en #sec-sym,#en #sec-dx,#en #sec-lab,#en #sec-notes{grid-column:1}
   #en .vg{grid-template-columns:repeat(4,1fr)}
   #en .med-row{grid-template-columns:1fr 1fr}
-  #en .med-row>div:first-child,#en .med-row>div:nth-child(5){grid-column:1/-1}
+  #en .med-row>div:first-child,#en .med-row>div:nth-child(4){grid-column:1/-1}
 }
 @media(max-width:540px){
   #en .vg{grid-template-columns:repeat(2,1fr)}
@@ -366,7 +366,6 @@ function renderMeds(){
     return '<div class="med">'+
       '<div class="med-row">'+
         '<div><label>Medicine</label><input list="dl-med" data-i="'+i+'" data-f="drug" value="'+esc(m.drug)+'" placeholder="Search, or type a new medicine"></div>'+
-        '<div><label>Form</label><select data-i="'+i+'" data-f="form">'+opts(L.forms,m.form,'Select')+'</select></div>'+
         '<div><label>Dosage</label><select data-i="'+i+'" data-f="dosage">'+opts(L.dosages,m.dosage,'Select')+'</select></div>'+
         '<div><label>Duration</label><select data-i="'+i+'" data-f="period">'+opts(L.periods,m.period,'Select')+'</select></div>'+
         '<div><label>Instructions</label><input data-i="'+i+'" data-f="comment" value="'+esc(m.comment)+'" placeholder="For example after food" aria-label="Instructions"></div>'+
@@ -384,13 +383,13 @@ $('#meds').oninput=$('#meds').onchange=function(e){
   var t=e.target;if(!t.dataset.f)return;
   M[+t.dataset.i][t.dataset.f]=t.value;
   if(t.dataset.f==='drug'){
-    var row=t.closest('.med'),v=t.value.trim(),sel=row.querySelector('select[data-f=form]');
+    var row=t.closest('.med'),v=t.value.trim();
     var known=!v||L.medications.indexOf(v)>-1;
     row.querySelector('.nn').hidden=known;
     row.querySelector('.nn .hint').textContent=L.items.indexOf(v)>-1?'Pharmacy item with no Medication record yet. One will be created when you save.':'New medicine. It will be added to the item list and to Medication when you save.';
     if(!known){var gs=guess(v),st=row.querySelector('[data-f=strength]'),un=row.querySelector('[data-f=unit]'),mr=M[+t.dataset.i];
       if(gs){if(!st.value){st.value=gs.s;mr.strength=gs.s}if(!un.value){un.value=gs.u;mr.unit=gs.u}}}
-    if(MF[v]&&sel&&!sel.value){sel.value=MF[v];M[+t.dataset.i].form=MF[v]}
+    if(MF[v]&&!M[+t.dataset.i].form){M[+t.dataset.i].form=MF[v]}
   }
 };
 $('#add-med').onclick=function(){M.push(blankMed());renderMeds()};
