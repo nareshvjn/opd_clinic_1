@@ -189,48 +189,96 @@ except:
 
 med_forms = {}
 med_meta = {}
+med_by_alias = {}
 if frappe.db.exists("DocType", "Medication"):
     try:
         m_meta_doc = frappe.get_meta("Medication")
-        m_fields = ["name", "dosage_form"]
-        if m_meta_doc.has_field("generic_name"):
-            m_fields.append("generic_name")
-        if m_meta_doc.has_field("medication_name"):
-            m_fields.append("medication_name")
+        m_fields = ["name"]
+        for kf in ("dosage_form", "generic_name", "medication_name", "item", "item_code"):
+            if m_meta_doc.has_field(kf):
+                m_fields.append(kf)
+        med_linked = {}
+        if frappe.db.exists("DocType", "Medication Linked Item"):
+            try:
+                mli_meta = frappe.get_meta("Medication Linked Item")
+                if mli_meta.has_field("item") and mli_meta.has_field("parent"):
+                    for mli in frappe.get_all("Medication Linked Item", fields=["parent", "item"], limit=2000):
+                        par = (mli.get("parent") or "").strip()
+                        itm = (mli.get("item") or "").strip()
+                        if par and itm and par not in med_linked:
+                            med_linked[par] = itm
+            except Exception:
+                pass
         for m in frappe.get_all("Medication", fields=m_fields, limit=1000):
-            if m.dosage_form:
-                med_forms[m.name] = m.dosage_form
+            med_by_alias[m.name.lower()] = m.name
+            if m.get("dosage_form"):
+                med_forms[m.name] = m.get("dosage_form")
             hint_parts = []
-            for kf in ("medication_name", "generic_name"):
+            seen_hints = {m.name.lower()}
+            for kf in ("medication_name", "generic_name", "item", "item_code"):
                 val = (m.get(kf) or "").strip()
-                if val and val.lower() != m.name.lower() and val not in hint_parts:
-                    hint_parts.append(val)
-            if m.dosage_form:
-                hint_parts.append(m.dosage_form)
+                if val:
+                    if kf != "generic_name":
+                        med_by_alias.setdefault(val.lower(), m.name)
+                    if val.lower() not in seen_hints:
+                        seen_hints.add(val.lower())
+                        hint_parts.append(val)
+            linked_item = med_linked.get(m.name, "")
+            if linked_item:
+                med_by_alias.setdefault(linked_item.lower(), m.name)
+                if linked_item.lower() not in seen_hints:
+                    seen_hints.add(linked_item.lower())
+                    hint_parts.append(linked_item)
+            if m.get("dosage_form"):
+                hint_parts.append(m.get("dosage_form"))
             if hint_parts:
                 med_meta[m.name] = " | ".join(hint_parts)
     except Exception:
         pass
 
 lab_meta = {}
+lab_items = {}
+lab_by_alias = {}
 if frappe.db.exists("DocType", "Lab Test Template"):
     try:
         lt_meta_doc = frappe.get_meta("Lab Test Template")
         lt_fields = ["name"]
-        if lt_meta_doc.has_field("lab_test_name"):
-            lt_fields.append("lab_test_name")
-        if lt_meta_doc.has_field("lab_test_code"):
-            lt_fields.append("lab_test_code")
+        for kf in ("lab_test_name", "item", "item_code", "lab_test_code"):
+            if lt_meta_doc.has_field(kf):
+                lt_fields.append(kf)
         for lt in frappe.get_all("Lab Test Template", fields=lt_fields, limit=1000):
+            lab_by_alias[lt.name.lower()] = lt.name
+            lt_item = (lt.get("item") or lt.get("item_code") or lt.get("lab_test_code") or "").strip()
+            if lt_item:
+                lab_items[lt.name] = lt_item
             hint_parts = []
-            for kf in ("lab_test_name", "lab_test_code"):
+            seen_hints = {lt.name.lower()}
+            for kf in ("item", "item_code", "lab_test_code", "lab_test_name"):
                 val = (lt.get(kf) or "").strip()
-                if val and val.lower() != lt.name.lower() and val not in hint_parts:
-                    hint_parts.append(val)
+                if val:
+                    lab_by_alias.setdefault(val.lower(), lt.name)
+                    if val.lower() not in seen_hints:
+                        seen_hints.add(val.lower())
+                        hint_parts.append(val)
             if hint_parts:
                 lab_meta[lt.name] = " | ".join(hint_parts)
     except Exception:
         pass
+
+if enc:
+    for dr in enc.get("drugs") or []:
+        dc = (dr.get("drug") or "").strip()
+        if dc:
+            canon = med_by_alias.get(dc.lower(), dc)
+            dr["drug"] = canon
+            if not dr.get("form") and med_forms.get(canon):
+                dr["form"] = med_forms[canon]
+    norm_labs = []
+    for lv in enc.get("labs") or []:
+        ls = (lv or "").strip()
+        if ls:
+            norm_labs.append(lab_by_alias.get(ls.lower(), ls))
+    enc["labs"] = norm_labs
 
 token = ""
 try:
@@ -261,6 +309,31 @@ if frappe.db.exists("DocType", "Clinic Treatment Template"):
                     data = json.loads(tr.get("template_json")) or {}
             except Exception:
                 data = {}
+            raw_tpl_drugs = data.get("drugs") or []
+            norm_tpl_drugs = []
+            for dr in raw_tpl_drugs:
+                if isinstance(dr, str):
+                    dr = {"drug": dr}
+                elif not isinstance(dr, dict):
+                    continue
+                dnm = (dr.get("drug") or dr.get("drug_code") or dr.get("medication") or dr.get("item") or dr.get("name") or "").strip()
+                if not dnm:
+                    continue
+                canon_d = med_by_alias.get(dnm.lower(), dnm)
+                norm_tpl_drugs.append({
+                    "drug": canon_d,
+                    "form": (dr.get("form") or dr.get("dosage_form") or med_forms.get(canon_d) or "").strip(),
+                    "dosage": (dr.get("dosage") or "").strip(),
+                    "period": (dr.get("period") or "").strip(),
+                    "comment": (dr.get("comment") or "").strip(),
+                })
+            norm_tpl_labs = []
+            for lv in (data.get("labs") or []):
+                ls = (str(lv or "")).strip()
+                if ls:
+                    canon_l = lab_by_alias.get(ls.lower(), ls)
+                    if canon_l not in norm_tpl_labs:
+                        norm_tpl_labs.append(canon_l)
             templates.append({
                 "name": tr.get("name"),
                 "template_name": tr.get("template_name") or tr.get("name"),
@@ -268,8 +341,8 @@ if frappe.db.exists("DocType", "Clinic Treatment Template"):
                 "summary": tr.get("summary") or "",
                 "complaints": data.get("complaints") or [],
                 "diagnosis": data.get("diagnosis") or [],
-                "drugs": data.get("drugs") or [],
-                "labs": data.get("labs") or [],
+                "drugs": norm_tpl_drugs,
+                "labs": norm_tpl_labs,
                 "notes": data.get("notes") if data.get("notes") is not None else (tr.get("notes") or ""),
             })
         if cur_prac:
@@ -312,6 +385,7 @@ frappe.response["message"] = {
     "med_forms": med_forms,
     "med_meta": med_meta,
     "lab_meta": lab_meta,
+    "lab_items": lab_items,
     "is_admin": is_admin,
     "today": str(frappe.utils.today()),
     "csrf": token,

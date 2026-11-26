@@ -274,23 +274,73 @@ else:
         new.append("drug_prescription", row)
 
 new.set("lab_test_prescription", [])
+has_lab_dt = frappe.db.exists("DocType", "Lab Test Template")
+lt_meta = frappe.get_meta("Lab Test Template") if has_lab_dt else None
+lab_rx_meta = None
+lab_target_dt = "Lab Test Template"
+try:
+    lab_rx_meta = frappe.get_meta("Lab Prescription")
+    df_lab = lab_rx_meta.get_field("lab_test_code")
+    if df_lab and df_lab.options:
+        lab_target_dt = df_lab.options
+except Exception:
+    lab_target_dt = "Lab Test Template"
+
 for lt in labs:
     lt_val = (lt or "").strip()
     if not lt_val:
         continue
     lt_name = None
-    if frappe.db.exists("DocType", "Lab Test Template"):
+    lt_item = ""
+    lt_label = ""
+    if has_lab_dt:
         lt_name = frappe.db.get_value("Lab Test Template", lt_val, "name")
-        if not lt_name:
-            try:
-                lt_name = frappe.db.get_value("Lab Test Template", {"lab_test_name": lt_val}, "name") or frappe.db.get_value("Lab Test Template", {"lab_test_code": lt_val}, "name")
-            except Exception:
-                lt_name = None
+        if not lt_name and lt_meta:
+            for fld in ("item", "item_code", "lab_test_name", "lab_test_code"):
+                if lt_meta.has_field(fld):
+                    try:
+                        lt_name = frappe.db.get_value("Lab Test Template", {fld: lt_val}, "name")
+                        if lt_name:
+                            break
+                    except Exception:
+                        pass
         if not lt_name:
             frappe.throw("Lab test '" + lt_val + "' was not found in Lab Test Template. Please choose a test from the list.")
+        if lt_meta:
+            for fld in ("item", "item_code", "lab_test_code"):
+                if lt_meta.has_field(fld):
+                    try:
+                        val = (frappe.db.get_value("Lab Test Template", lt_name, fld) or "").strip()
+                        if val:
+                            lt_item = val
+                            break
+                    except Exception:
+                        pass
+            if lt_meta.has_field("lab_test_name"):
+                try:
+                    lt_label = (frappe.db.get_value("Lab Test Template", lt_name, "lab_test_name") or "").strip()
+                except Exception:
+                    pass
     else:
         lt_name = lt_val
-    new.append("lab_test_prescription", {"lab_test_code": lt_name})
+        lt_item = lt_val
+
+    if lab_target_dt == "Item":
+        if not lt_item or not frappe.db.exists("Item", lt_item):
+            frappe.throw("Lab test '" + lt_name + "' does not have a linked Item.")
+        final_lab_code = lt_item
+    else:
+        final_lab_code = lt_name
+
+    lab_row = {"lab_test_code": final_lab_code}
+    if lab_rx_meta:
+        if lt_item and lab_rx_meta.has_field("item"):
+            lab_row["item"] = lt_item
+        elif lt_item and lab_rx_meta.has_field("item_code"):
+            lab_row["item_code"] = lt_item
+        if lt_label and lab_rx_meta.has_field("lab_test_name"):
+            lab_row["lab_test_name"] = lt_label
+    new.append("lab_test_prescription", lab_row)
 
 new.insert(ignore_permissions=True)
 if complete:

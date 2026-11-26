@@ -48,15 +48,20 @@ notes = (f.get("notes") or "").strip()
 
 labs = []
 has_lab_dt = frappe.db.exists("DocType", "Lab Test Template")
+lt_meta = frappe.get_meta("Lab Test Template") if has_lab_dt else None
 for lt_val in raw_labs:
     lt_name = lt_val
     if has_lab_dt:
         lt_name = frappe.db.get_value("Lab Test Template", lt_val, "name")
-        if not lt_name:
-            try:
-                lt_name = frappe.db.get_value("Lab Test Template", {"lab_test_name": lt_val}, "name") or frappe.db.get_value("Lab Test Template", {"lab_test_code": lt_val}, "name")
-            except Exception:
-                lt_name = None
+        if not lt_name and lt_meta:
+            for fld in ("item", "item_code", "lab_test_name", "lab_test_code"):
+                if lt_meta.has_field(fld):
+                    try:
+                        lt_name = frappe.db.get_value("Lab Test Template", {fld: lt_val}, "name")
+                        if lt_name:
+                            break
+                    except Exception:
+                        pass
         if not lt_name:
             frappe.throw("Lab test '" + lt_val + "' was not found in Lab Test Template. Please select an existing lab test.")
     if lt_name not in labs:
@@ -65,19 +70,33 @@ for lt_val in raw_labs:
 has_med_dt = frappe.db.exists("DocType", "Medication")
 meta_med = frappe.get_meta("Medication") if has_med_dt else None
 has_med_name = meta_med.has_field("medication_name") if meta_med else False
+has_med_item = meta_med.has_field("item") if meta_med else False
+has_med_item_code = meta_med.has_field("item_code") if meta_med else False
+has_mli_dt = frappe.db.exists("DocType", "Medication Linked Item")
 
 drugs = []
 seen_drugs = set()
 for dr in (raw_drugs or []):
-    if not isinstance(dr, dict):
+    if isinstance(dr, str):
+        dr = {"drug": dr}
+    elif not isinstance(dr, dict):
         continue
-    dname = (dr.get("drug") or "").strip()
+    dname = (dr.get("drug") or dr.get("drug_code") or dr.get("medication") or dr.get("item") or "").strip()
     if not dname:
         continue
     if has_med_dt:
         med = frappe.db.get_value("Medication", dname, "name")
         if not med and has_med_name:
             med = frappe.db.get_value("Medication", {"medication_name": dname}, "name")
+        if not med and has_med_item:
+            med = frappe.db.get_value("Medication", {"item": dname}, "name")
+        if not med and has_med_item_code:
+            med = frappe.db.get_value("Medication", {"item_code": dname}, "name")
+        if not med and has_mli_dt:
+            try:
+                med = frappe.db.get_value("Medication Linked Item", {"item": dname}, "parent")
+            except Exception:
+                med = None
         if not med:
             frappe.throw("Medication '" + dname + "' is not available in the Medication list. Please select an existing medication.")
         dname = med
@@ -87,7 +106,7 @@ for dr in (raw_drugs or []):
     seen_drugs.add(dk)
     drugs.append({
         "drug": dname,
-        "form": (dr.get("form") or "").strip(),
+        "form": (dr.get("form") or dr.get("dosage_form") or "").strip(),
         "dosage": (dr.get("dosage") or "").strip(),
         "period": (dr.get("period") or "").strip(),
         "comment": (dr.get("comment") or "").strip(),

@@ -126,6 +126,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 #en .tags:focus-within{outline:3px solid #8cc9b5}
 #en .chip{display:inline-flex;gap:4px;align-items:center;padding:3px 4px 3px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:.88rem;font-weight:600}
 #en .chip.new{border-style:dashed;color:var(--brand)}
+#en .chip-code{font-size:.76rem;color:var(--mute);background:#fff;border:1px solid var(--line);border-radius:999px;padding:1px 6px;font-weight:700}
 #en .chip button{border:0;background:none;color:var(--mute);font-size:1.1rem;line-height:1;cursor:pointer;padding:2px 6px}
 
 #en .meds{display:flex;flex-direction:column;gap:10px}
@@ -309,7 +310,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 (function(){
 var $=function(s){return document.querySelector('#en '+s)};
 var q=new URLSearchParams(location.search),A=q.get('appointment')||'',P=q.get('patient')||'',D=q.get('practitioner')||'',E=q.get('encounter')||'';
-var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},MEDM={},LABM={},TPLS=[],NEW={sym:'complaints',dx:'diagnoses'};
+var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},MEDM={},LABM={},LABI={},TPLS=[],NEW={sym:'complaints',dx:'diagnoses'};
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function fmt(t){var p=String(t).split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
@@ -343,7 +344,8 @@ function renderTags(k){
   var box=$('#tg-'+k),inp=$('#in-'+k);
   box.querySelectorAll('.chip').forEach(function(c){c.remove()});
   T[k].forEach(function(v,i){var c=document.createElement('span');c.className='chip'+(NEW[k]&&(L[NEW[k]]||[]).indexOf(v)<0?' new':'');
-    c.innerHTML=esc(v)+'<button type="button" aria-label="Remove '+esc(v)+'" data-k="'+k+'" data-i="'+i+'">&times;</button>';
+    var codeHtml=(k==='lab'&&LABI[v])?'<span class="chip-code" title="Item code from Lab Test Template">'+esc(LABI[v])+'</span>':'';
+    c.innerHTML=esc(v)+codeHtml+'<button type="button" aria-label="Remove '+esc(v)+'" data-k="'+k+'" data-i="'+i+'">&times;</button>';
     box.insertBefore(c,inp)})
 }
 function addTag(k,v){v=(v||'').trim();if(!v||T[k].indexOf(v)>-1)return;T[k].push(v);renderTags(k)}
@@ -519,7 +521,17 @@ function findCanonical(val,list,metaMap){
   return '';
 }
 function findExactMed(val){return findCanonical(val,L.medications,MEDM)}
-function findExactLab(val){return findCanonical(val,L.labs,LABM)}
+function findExactLab(val){
+  var hit=findCanonical(val,L.labs,LABM);
+  if(hit)return hit;
+  var vl=normQ(val);
+  if(vl){
+    for(var k in LABI){
+      if(Object.prototype.hasOwnProperty.call(LABI,k)&&LABI[k]&&normQ(LABI[k])===vl)return k;
+    }
+  }
+  return '';
+}
 $('#form').onclick=function(e){
   var b=e.target.closest('.chip button');
   if(b){T[b.dataset.k].splice(+b.dataset.i,1);renderTags(b.dataset.k);return}
@@ -759,6 +771,20 @@ function tplHint(t){
   if((t.notes||'').trim())p.push('Notes');
   return p.join(' | ');
 }
+function tplDrugName(dr){
+  if(typeof dr==='string')return dr.trim();
+  if(!dr||typeof dr!=='object')return '';
+  return String(dr.drug||dr.drug_code||dr.medication||dr.item||dr.name||'').trim();
+}
+function matchOpt(list,val){
+  var v=String(val||'').trim();
+  if(!v)return '';
+  var arr=list||[],vl=v.toLowerCase();
+  for(var i=0;i<arr.length;i++){
+    if(String(arr[i]).toLowerCase()===vl)return arr[i];
+  }
+  return v;
+}
 function updateTplPreview(){
   var sel=$('#tpl-sel'),val=sel?sel.value:'';
   var t=val?findTpl(val):null;
@@ -776,10 +802,16 @@ function updateTplPreview(){
   if((t.diagnosis||[]).length)parts.push('<b>Diagnosis:</b> '+esc(t.diagnosis.join(', ')));
   if((t.drugs||[]).length){
     parts.push('<b>Medicines:</b> '+t.drugs.map(function(dr){
-      return esc([dr.drug,dr.dosage,dr.period].filter(Boolean).join(' '));
+      var dn=tplDrugName(dr);
+      var ds=(dr&&typeof dr==='object')?(dr.dosage||''):'';
+      var pr=(dr&&typeof dr==='object')?(dr.period||''):'';
+      return esc([dn,ds,pr].filter(Boolean).join(' '));
     }).join(', '));
   }
-  if((t.labs||[]).length)parts.push('<b>Lab tests:</b> '+esc(t.labs.join(', ')));
+  if((t.labs||[]).length)parts.push('<b>Lab tests:</b> '+esc(t.labs.map(function(x){
+    var canon=findExactLab(x)||x;
+    return LABI[canon]&&LABI[canon]!==canon?(canon+' ['+LABI[canon]+']'):canon;
+  }).join(', ')));
   if((t.notes||'').trim())parts.push('<b>Notes:</b> '+esc(t.notes.trim()));
   if(pv){
     pv.innerHTML=parts.length?parts.join(' &middot; '):'Empty template';
@@ -819,17 +851,18 @@ function applySelectedTemplate(){
 
   M=M.filter(function(m){return (m.drug||'').trim()||m.form||m.dosage||m.period||(m.comment||'').trim()});
   (t.drugs||[]).forEach(function(dr){
-    var nm=String(dr.drug||'').trim();
+    var nm=tplDrugName(dr);
     if(!nm)return;
     nm=findExactMed(nm)||nm;
     var dup=M.some(function(cur){return (cur.drug||'').trim().toLowerCase()===nm.toLowerCase()});
     if(dup)return;
+    var obj=(dr&&typeof dr==='object')?dr:{};
     M.push({
       drug:nm,
-      form:dr.form||MF[nm]||'',
-      dosage:dr.dosage||'',
-      period:dr.period||'',
-      comment:dr.comment||''
+      form:String(obj.form||obj.dosage_form||MF[nm]||'').trim(),
+      dosage:matchOpt(L.dosages,obj.dosage),
+      period:matchOpt(L.periods,obj.period),
+      comment:String(obj.comment||'').trim()
     });
   });
   renderMeds();
@@ -842,7 +875,7 @@ function applySelectedTemplate(){
   tplMsg('Applied template "'+(t.template_name||t.name)+'". Review and adjust before saving.');
 }
 
-if($('#tpl-sel'))$('#tpl-sel').onchange=function(){tplMsg('');updateTplPreview()};
+if($('#tpl-sel'))$('#tpl-sel').onchange=function(){tplMsg('');updateTplPreview();if(this.value)applySelectedTemplate()};
 if($('#tpl-apply'))$('#tpl-apply').onclick=applySelectedTemplate;
 if($('#tpl-save-open'))$('#tpl-save-open').onclick=function(){
   tplMsg('');
@@ -931,7 +964,7 @@ function payload(complete){
 function init(r){
   csrf=r.csrf||'';P=r.patient.id;D=r.practitioner||D;L=r.lists||{};
   var isAdmin=!!r.is_admin, serverToday=r.today||'';
-  ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};MEDM=r.med_meta||{};LABM=r.lab_meta||{};
+  ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};MEDM=r.med_meta||{};LABM=r.lab_meta||{};LABI=r.lab_items||{};
   TPLS=r.templates||[];
   renderTplOptions('');
   var p=r.patient,words=(p.name||'').split(/\s+/);
