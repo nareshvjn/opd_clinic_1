@@ -180,166 +180,48 @@ for dr in drugs:
         continue
 
     form = (dr.get("form") or "").strip()
-    strength = dr.get("strength")
-    unit = (dr.get("unit") or "").strip()
-    cls = (dr.get("mclass") or "").strip()
 
-    # 1. Resolve or create Item (medicine name saved as both item_code and item_name)
-    item_code = None
-    if frappe.db.exists("Item", nm):
-        item_code = nm
-    else:
-        try:
-            item_code = frappe.db.get_value("Item", {"item_name": nm}, "name")
-        except:
-            pass
-    if not item_code:
-        try:
-            item_code = frappe.db.get_value("Item", {"item_code": nm}, "name")
-        except:
-            pass
-
+    # 1. Resolve existing Medication strictly (do not create new Medication or Item)
     meta_med = frappe.get_meta("Medication") if frappe.db.exists("DocType", "Medication") else None
     has_med_name = meta_med.has_field("medication_name") if meta_med else False
     has_item_fld = meta_med.has_field("item") if meta_med else False
     has_item_code_fld = meta_med.has_field("item_code") if meta_med else False
-    has_generic_fld = meta_med.has_field("generic_name") if meta_med else False
 
-    if not item_code and meta_med:
-        if frappe.db.exists("Medication", nm):
-            if has_item_fld:
-                item_code = frappe.db.get_value("Medication", nm, "item")
-            elif has_item_code_fld:
-                item_code = frappe.db.get_value("Medication", nm, "item_code")
-
-    if not item_code:
-        grp = "Drug"
-        if not frappe.db.exists("Item Group", "Drug"):
-            grp = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
-        
-        stock_uom = "Nos"
-        if unit:
-            if not frappe.db.exists("UOM", unit):
-                try:
-                    frappe.get_doc({"doctype": "UOM", "uom_name": unit}).insert(ignore_permissions=True)
-                except:
-                    pass
-            if frappe.db.exists("UOM", unit):
-                stock_uom = unit
-        if not frappe.db.exists("UOM", stock_uom):
-            try:
-                frappe.get_doc({"doctype": "UOM", "uom_name": stock_uom}).insert(ignore_permissions=True)
-            except:
-                pass
-
-        try:
-            it = frappe.new_doc("Item")
-            it.item_code = nm
-            it.item_name = nm
-            it.item_group = grp
-            it.stock_uom = stock_uom
-            it.is_stock_item = 1
-            it.has_batch_no = 1
-            it.has_expiry_date = 1
-            it.create_new_batch = 0
-            it.flags.ignore_mandatory = True
-            it.insert(ignore_permissions=True, ignore_mandatory=True)
-            item_code = it.name or nm
-        except Exception:
-            item_code = frappe.db.exists("Item", nm) or nm
-
-    # 2. Resolve or create Medication
     med = None
     if meta_med:
-        if frappe.db.exists("Medication", nm):
-            med = nm
-        if not med:
-            for pfx in ["Tablet ", "tablet "]:
-                for sfx in [" mg", ""]:
-                    old_cand = pfx + nm + sfx
-                    if frappe.db.exists("Medication", old_cand):
-                        try:
-                            frappe.rename_doc("Medication", old_cand, nm, ignore_permissions=True)
-                            med = nm
-                            break
-                        except Exception:
-                            med = old_cand
-                            break
-                if med:
-                    break
-
-        if not med and item_code:
-            if has_item_fld:
-                med = frappe.db.get_value("Medication", {"item": item_code}, "name")
-            elif has_item_code_fld:
-                med = frappe.db.get_value("Medication", {"item_code": item_code}, "name")
-        if not med and has_generic_fld:
-            med = frappe.db.get_value("Medication", {"generic_name": nm}, "name")
+        med = frappe.db.get_value("Medication", nm, "name")
         if not med and has_med_name:
             med = frappe.db.get_value("Medication", {"medication_name": nm}, "name")
-        if not med and item_code and frappe.db.exists("DocType", "Medication Linked Item"):
-            try:
-                med = frappe.db.get_value("Medication Linked Item", {"item": item_code}, "parent")
-            except:
-                pass
 
-        if not med:
-            if not cls:
-                first_cls = frappe.get_all("Medication Class", fields=["name"], limit=1)
-                if first_cls:
-                    cls = first_cls[0].name
-                elif frappe.db.exists("DocType", "Medication Class"):
-                    try:
-                        frappe.get_doc({"doctype": "Medication Class", "medication_class": "General"}).insert(ignore_permissions=True)
-                        cls = "General"
-                    except:
-                        pass
+    if not med:
+        frappe.throw("Medication '" + nm + "' is not available in the Medication list. Please select an existing medication.")
 
-            st_val = 1.0
-            if strength:
-                try:
-                    st_val = float(strength)
-                except:
-                    st_val = 1.0
-
-            uom_val = unit or "Nos"
-            if not frappe.db.exists("UOM", uom_val):
-                try:
-                    frappe.get_doc({"doctype": "UOM", "uom_name": uom_val}).insert(ignore_permissions=True)
-                except:
-                    pass
-
-            try:
-                m = frappe.new_doc("Medication")
-                m.name = nm
-                m.flags.name_set = True
-                if has_med_name:
-                    m.medication_name = nm
-                if has_generic_fld:
-                    m.generic_name = nm
-                if has_item_fld:
-                    m.item = item_code
-                if has_item_code_fld:
-                    m.item_code = item_code
-                if form and meta_med.has_field("dosage_form"):
-                    m.dosage_form = form
-                if cls and meta_med.has_field("medication_class"):
-                    m.medication_class = cls
-                if meta_med.has_field("strength"):
-                    m.strength = st_val
-                if meta_med.has_field("strength_uom"):
-                    m.strength_uom = uom_val
-                m.flags.ignore_mandatory = True
-                m.insert(ignore_permissions=True, ignore_mandatory=True)
-                med = m.name or nm
-            except Exception:
-                med = None
+    # 2. Resolve linked Item without creating one
+    item_code = None
+    if has_item_fld:
+        item_code = frappe.db.get_value("Medication", med, "item")
+    elif has_item_code_fld:
+        item_code = frappe.db.get_value("Medication", med, "item_code")
+    if not item_code and frappe.db.exists("DocType", "Medication Linked Item"):
+        try:
+            item_code = frappe.db.get_value("Medication Linked Item", {"parent": med}, "item")
+        except Exception:
+            item_code = None
+    if not item_code and frappe.db.exists("Item", med):
+        item_code = frappe.db.get_value("Item", med, "name")
+    if not item_code and frappe.db.exists("Item", nm):
+        item_code = frappe.db.get_value("Item", nm, "name")
+    if not item_code:
+        try:
+            item_code = frappe.db.get_value("Item", {"item_name": med}, "name") or frappe.db.get_value("Item", {"item_code": nm}, "name")
+        except Exception:
+            item_code = None
 
     # 3. Dosage form
     if not form and med:
         try:
             form = frappe.db.get_value("Medication", med, "dosage_form") or ""
-        except:
+        except Exception:
             pass
     if not form:
         first_form = frappe.get_all("Dosage Form", fields=["name"], limit=1)
@@ -354,20 +236,15 @@ for dr in drugs:
         df = frappe.get_meta("Drug Prescription").get_field("drug_code")
         if df and df.options:
             target_dt = df.options
-    except:
+    except Exception:
         target_dt = "Item"
 
-    final_code = item_code
-    if target_dt == "Medication" and med and frappe.db.exists("Medication", med):
-        final_code = med
-    elif target_dt == "Item" and item_code and frappe.db.exists("Item", item_code):
-        final_code = item_code
-    elif frappe.db.exists(target_dt, item_code):
-        final_code = item_code
-    elif med and frappe.db.exists(target_dt, med):
+    if target_dt == "Medication":
         final_code = med
     else:
-        final_code = item_code or med
+        final_code = item_code
+        if not final_code or not frappe.db.exists(target_dt, final_code):
+            frappe.throw("Medication '" + med + "' does not have a linked " + target_dt + ".")
 
     row = {
         "drug_code": final_code,
@@ -381,7 +258,22 @@ for dr in drugs:
     enc.append("drug_prescription", row)
 enc.set("lab_test_prescription", [])
 for lt in labs:
-    enc.append("lab_test_prescription", {"lab_test_code": lt})
+    lt_val = (lt or "").strip()
+    if not lt_val:
+        continue
+    lt_name = None
+    if frappe.db.exists("DocType", "Lab Test Template"):
+        lt_name = frappe.db.get_value("Lab Test Template", lt_val, "name")
+        if not lt_name:
+            try:
+                lt_name = frappe.db.get_value("Lab Test Template", {"lab_test_name": lt_val}, "name") or frappe.db.get_value("Lab Test Template", {"lab_test_code": lt_val}, "name")
+            except Exception:
+                lt_name = None
+        if not lt_name:
+            frappe.throw("Lab test '" + lt_val + "' was not found in Lab Test Template. Please choose a test from the list.")
+    else:
+        lt_name = lt_val
+    enc.append("lab_test_prescription", {"lab_test_code": lt_name})
 
 if fresh:
     enc.insert(ignore_permissions=True)

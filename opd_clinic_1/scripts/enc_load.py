@@ -178,42 +178,7 @@ if frappe.db.exists("DocType", "Medication"):
     except Exception:
         pass
 
-# Pharmacy stock items that are not Medications yet (including ones with no batches or no stock).
-# Choosing one in the consultation creates the Medication and links it to that item.
 stock_items = []
-try:
-    meds = names("Medication")
-    linked = []
-    try:
-        for r in frappe.get_all("Medication", fields=["item"], limit=500):
-            if r.get("item"):
-                linked.append(r.get("item"))
-    except:
-        pass
-    try:
-        for r in frappe.get_all("Medication Linked Item", fields=["item"], limit=2000):
-            if r.get("item"):
-                linked.append(r.get("item"))
-    except:
-        pass
-    cands = frappe.get_all("Item", filters={"disabled": 0, "is_stock_item": 1, "item_group": "Drug"},
-        fields=["name", "item_name"], order_by="item_name", limit=500)
-    if len(cands) < 500:
-        for x in frappe.get_all("Item", filters={"disabled": 0, "is_stock_item": 1, "has_batch_no": 1},
-                fields=["name", "item_name"], order_by="item_name", limit=500):
-            dup = False
-            for y in cands:
-                if y.name == x.name:
-                    dup = True
-            if not dup:
-                cands.append(x)
-    for x in cands:
-        nm = x.item_name or x.name
-        if x.name in linked or nm in meds or x.name in meds or nm in stock_items:
-            continue
-        stock_items.append(nm)
-except:
-    pass
 
 igs = []
 try:
@@ -223,12 +188,49 @@ except:
     pass
 
 med_forms = {}
-try:
-    for m in frappe.get_all("Medication", fields=["name", "dosage_form"], limit=500):
-        if m.dosage_form:
-            med_forms[m.name] = m.dosage_form
-except:
-    pass
+med_meta = {}
+if frappe.db.exists("DocType", "Medication"):
+    try:
+        m_meta_doc = frappe.get_meta("Medication")
+        m_fields = ["name", "dosage_form"]
+        if m_meta_doc.has_field("generic_name"):
+            m_fields.append("generic_name")
+        if m_meta_doc.has_field("medication_name"):
+            m_fields.append("medication_name")
+        for m in frappe.get_all("Medication", fields=m_fields, limit=1000):
+            if m.dosage_form:
+                med_forms[m.name] = m.dosage_form
+            hint_parts = []
+            for kf in ("medication_name", "generic_name"):
+                val = (m.get(kf) or "").strip()
+                if val and val.lower() != m.name.lower() and val not in hint_parts:
+                    hint_parts.append(val)
+            if m.dosage_form:
+                hint_parts.append(m.dosage_form)
+            if hint_parts:
+                med_meta[m.name] = " | ".join(hint_parts)
+    except Exception:
+        pass
+
+lab_meta = {}
+if frappe.db.exists("DocType", "Lab Test Template"):
+    try:
+        lt_meta_doc = frappe.get_meta("Lab Test Template")
+        lt_fields = ["name"]
+        if lt_meta_doc.has_field("lab_test_name"):
+            lt_fields.append("lab_test_name")
+        if lt_meta_doc.has_field("lab_test_code"):
+            lt_fields.append("lab_test_code")
+        for lt in frappe.get_all("Lab Test Template", fields=lt_fields, limit=1000):
+            hint_parts = []
+            for kf in ("lab_test_name", "lab_test_code"):
+                val = (lt.get(kf) or "").strip()
+                if val and val.lower() != lt.name.lower() and val not in hint_parts:
+                    hint_parts.append(val)
+            if hint_parts:
+                lab_meta[lt.name] = " | ".join(hint_parts)
+    except Exception:
+        pass
 
 token = ""
 try:
@@ -308,6 +310,8 @@ frappe.response["message"] = {
         "uoms": names("UOM"),
     },
     "med_forms": med_forms,
+    "med_meta": med_meta,
+    "lab_meta": lab_meta,
     "is_admin": is_admin,
     "today": str(frappe.utils.today()),
     "csrf": token,

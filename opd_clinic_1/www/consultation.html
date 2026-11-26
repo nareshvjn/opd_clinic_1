@@ -131,12 +131,20 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 #en .meds{display:flex;flex-direction:column;gap:10px}
 #en #meds{display:flex;flex-direction:column;gap:8px}
 #en .med{background:#fafcfb;border:1.5px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
-#en .med-row{display:grid;grid-template-columns:minmax(180px,2.4fr) 125px 125px minmax(160px,2fr) auto;gap:8px;align-items:end}
-#en .med button.rm{height:36px;padding:0 14px;border:1.5px solid var(--err);background:#fff;color:var(--err);border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap}
+#en .med-row{display:grid;grid-template-columns:minmax(180px,2.4fr) 125px 125px minmax(160px,2fr) auto;gap:8px;align-items:start}
+#en .med-ac,#en .tag-ac{position:relative}
+#en .tag-ac{flex:1 1 180px;display:flex}
+#en .tag-ac input{width:100%}
+#en .ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:80;max-height:240px;overflow-y:auto;background:#fff;border:1.5px solid var(--brand);border-radius:10px;box-shadow:0 10px 28px rgba(13,61,39,0.18);padding:4px}
+#en .ac-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:.9rem;color:var(--ink);text-align:left}
+#en .ac-item:hover,#en .ac-item.on{background:#e7f4ed;color:var(--brand-dark)}
+#en .ac-item mark{background:#fff3b0;color:inherit;padding:0 1px;border-radius:2px;font-weight:800}
+#en .ac-sub{font-size:.75rem;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42%}
+#en .ac-empty{padding:9px 10px;font-size:.84rem;color:var(--err);font-weight:600}
+#en input.bad-med{border-color:var(--err)!important;background:#fff8f8!important}
+#en .med-err{margin-top:4px;font-size:.78rem;font-weight:600;color:var(--err)}
+#en .med button.rm{height:38px;padding:0 14px;border:1.5px solid var(--err);background:#fff;color:var(--err);border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap}
 #en .med button.rm:hover{background:var(--err);color:#fff}
-#en .nn{padding:8px 0 2px;margin-top:2px;border-top:1px dashed var(--line)}
-#en .nn .hint{margin:0 0 6px;font-size:.82rem;color:var(--mute);display:block}
-#en .nn-fields{display:grid;grid-template-columns:minmax(180px,1.5fr) 120px 120px;gap:8px;max-width:600px;align-items:end}
 #en .mf{display:flex;gap:10px;align-items:center;padding-top:4px}
 #en button.sm{padding:7px 14px;border:1.5px solid var(--brand);border-radius:8px;background:#fff;color:var(--brand);font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
 #en button.sm:hover{background:var(--bg)}
@@ -195,7 +203,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 }
 </style>
 
-<datalist id="dl-sym"></datalist><datalist id="dl-dx"></datalist><datalist id="dl-med"></datalist><datalist id="dl-lab"></datalist><datalist id="dl-uom"></datalist>
+<datalist id="dl-sym"></datalist><datalist id="dl-dx"></datalist>
 
 <header class="pt">
   <a class="back" href="/doctor-desk">&larr; Doctor desk</a>
@@ -278,7 +286,8 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 
   <section class="card" id="sec-lab">
     <h2>Lab tests</h2>
-    <div class="tags" id="tg-lab"><input id="in-lab" list="dl-lab" placeholder="Type and press Enter" aria-label="Add lab test"></div>
+    <div class="tags" id="tg-lab"><div class="tag-ac"><input id="in-lab" placeholder="Search lab test..." autocomplete="off" aria-label="Add lab test" aria-autocomplete="list"><div class="ac-list" id="lab-ac" hidden></div></div></div>
+    <div class="med-err" id="lab-err" hidden></div>
   </section>
 
   <section class="card" id="sec-notes">
@@ -299,7 +308,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
 (function(){
 var $=function(s){return document.querySelector('#en '+s)};
 var q=new URLSearchParams(location.search),A=q.get('appointment')||'',P=q.get('patient')||'',D=q.get('practitioner')||'',E=q.get('encounter')||'';
-var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},TPLS=[],NEW={sym:'complaints',dx:'diagnoses'};
+var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},MEDM={},LABM={},TPLS=[],NEW={sym:'complaints',dx:'diagnoses'};
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function fmt(t){var p=String(t).split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
@@ -333,12 +342,179 @@ function renderTags(k){
     box.insertBefore(c,inp)})
 }
 function addTag(k,v){v=(v||'').trim();if(!v||T[k].indexOf(v)>-1)return;T[k].push(v);renderTags(k)}
-['sym','dx','lab'].forEach(function(k){
+['sym','dx'].forEach(function(k){
   var inp=$('#in-'+k);
   inp.onkeydown=function(e){if(e.key==='Enter'||e.key===','){e.preventDefault();addTag(k,inp.value);inp.value=''}};
   inp.onchange=function(){addTag(k,inp.value);inp.value=''};
   inp.onblur=function(){if(inp.value.trim()){addTag(k,inp.value);inp.value=''}}
 });
+
+function normQ(s){return String(s||'').toLowerCase().replace(/\s+/g,' ').trim()}
+function editDist(a,b){
+  var m=a.length,n=b.length;
+  if(Math.abs(m-n)>3)return 99;
+  var prev=[],cur=[],i,j;
+  for(j=0;j<=n;j++)prev[j]=j;
+  for(i=1;i<=m;i++){
+    cur[0]=i;
+    for(j=1;j<=n;j++){
+      var cost=a[i-1]===b[j-1]?0:1;
+      var v=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost);
+      if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])v=Math.min(v,prev[j-2]+cost);
+      cur[j]=v;
+    }
+    var tmp=prev;prev=cur;cur=tmp;
+  }
+  return prev[n];
+}
+function subseqScore(ql,tl){
+  var qi=0,ti=0,consec=0,score=0,firstHit=-1;
+  while(qi<ql.length&&ti<tl.length){
+    if(ql[qi]===tl[ti]){
+      if(firstHit<0)firstHit=ti;
+      var wb=(ti===0||/[\s+\-\/()]/.test(tl[ti-1]));
+      score+=120+(consec*90)+(wb?180:0);
+      consec++;
+      qi++;
+    }else{
+      consec=0;
+      score-=6;
+    }
+    ti++;
+  }
+  if(qi<ql.length)return 0;
+  return Math.max(1500,2600+score-(firstHit*10)-(tl.length-ql.length)*4);
+}
+function scoreText(ql,tokens,raw){
+  var tl=normQ(raw);
+  if(!tl)return 0;
+  if(tl===ql)return 10000;
+  if(tl.indexOf(ql)===0)return 8000-tl.length;
+  var wbIdx=(' '+tl).indexOf(' '+ql);
+  if(wbIdx>-1)return 6800-wbIdx*3;
+  var subIdx=tl.indexOf(ql);
+  if(subIdx>-1)return 5600-subIdx*4;
+
+  var words=tl.split(/[\s+\-\/(),]+/).filter(Boolean);
+  if(tokens.length>1){
+    var total=0,ok=true;
+    for(var i=0;i<tokens.length;i++){
+      var tk=tokens[i];
+      if(tl.indexOf(tk)>-1){total+=1200;continue}
+      var wk=false;
+      for(var j=0;j<words.length;j++){
+        if(words[j].indexOf(tk)===0){total+=1000;wk=true;break}
+        if(tk.length>=3&&editDist(tk,words[j].slice(0,Math.min(words[j].length,tk.length+1)))<=1){total+=700;wk=true;break}
+      }
+      if(!wk&&subseqScore(tk,tl)>0){total+=600;wk=true}
+      if(!wk){ok=false;break}
+    }
+    if(ok)return 4200+total-tl.length;
+  }
+
+  var qCompact=ql.replace(/\s+/g,'');
+  var tCompact=tl.replace(/\s+/g,'');
+  var sq=subseqScore(qCompact,tCompact);
+  if(sq>0)return sq;
+
+  if(qCompact.length>=3){
+    var maxD=qCompact.length<=5?1:2;
+    var bestD=99;
+    for(var w=0;w<words.length;w++){
+      var wd=words[w];
+      var d=editDist(qCompact,wd);
+      if(d<bestD)bestD=d;
+      if(wd.length>qCompact.length){
+        var dp=editDist(qCompact,wd.slice(0,qCompact.length));
+        if(dp<bestD)bestD=dp;
+      }
+    }
+    var df=editDist(qCompact,tCompact.slice(0,Math.min(tCompact.length,qCompact.length+1)));
+    if(df<bestD)bestD=df;
+    if(bestD<=maxD)return 1600-(bestD*300)-tl.length;
+  }
+  return 0;
+}
+function fuzzyFilter(q,list,metaMap,limit){
+  var ql=normQ(q),arr=list||[];
+  if(!ql)return arr.slice(0,limit||20).map(function(name){return {name:name,sub:(metaMap&&metaMap[name])||''}});
+  var tokens=ql.split(' ').filter(Boolean);
+  var hits=[];
+  for(var i=0;i<arr.length;i++){
+    var nm=arr[i],sub=(metaMap&&metaMap[nm])||'';
+    var sc=scoreText(ql,tokens,nm);
+    if(sub){
+      var ssc=Math.round(scoreText(ql,tokens,sub)*0.85);
+      if(ssc>sc)sc=ssc;
+    }
+    if(sc>0)hits.push({name:nm,sub:sub,score:sc});
+  }
+  hits.sort(function(a,b){return b.score-a.score||a.name.localeCompare(b.name)});
+  return hits.slice(0,limit||20);
+}
+function highlightLabel(text,q){
+  var ql=normQ(q);
+  if(!ql)return esc(text);
+  var lower=String(text).toLowerCase(),idx=lower.indexOf(ql);
+  if(idx>-1)return esc(text.slice(0,idx))+'<mark>'+esc(text.slice(idx,idx+ql.length))+'</mark>'+esc(text.slice(idx+ql.length));
+  var tokens=ql.split(' ').filter(function(t){return t.length>=2});
+  if(!tokens.length)return esc(text);
+  var marks=new Array(text.length);
+  for(var i=0;i<tokens.length;i++){
+    var p=0,tk=tokens[i];
+    while((p=lower.indexOf(tk,p))>-1){
+      for(var k=0;k<tk.length;k++)marks[p+k]=1;
+      p+=tk.length;
+    }
+  }
+  var out='',inM=false;
+  for(var j=0;j<text.length;j++){
+    if(marks[j]&&!inM){out+='<mark>';inM=true}
+    else if(!marks[j]&&inM){out+='</mark>';inM=false}
+    out+=esc(text[j]);
+  }
+  if(inM)out+='</mark>';
+  return out;
+}
+function renderAcList(box,hits,q,emptyMsg,activeIdx){
+  if(!box)return;
+  if(!hits.length){
+    box.innerHTML='<div class="ac-empty">'+esc(emptyMsg)+'</div>';
+    box.hidden=false;
+    return;
+  }
+  box.innerHTML=hits.map(function(h,idx){
+    return '<div class="ac-item'+(idx===activeIdx?' on':'')+'" data-idx="'+idx+'" data-val="'+esc(h.name)+'">'+
+      '<span>'+highlightLabel(h.name,q)+'</span>'+
+      (h.sub?'<span class="ac-sub">'+esc(h.sub)+'</span>':'')+
+    '</div>';
+  }).join('');
+  box.hidden=false;
+}
+function closeAllAc(except){
+  document.querySelectorAll('#en .ac-list').forEach(function(el){
+    if(el!==except)el.hidden=true;
+  });
+}
+function findCanonical(val,list,metaMap){
+  var v=String(val||'').trim();
+  if(!v)return '';
+  var vl=v.toLowerCase(),arr=list||[];
+  for(var i=0;i<arr.length;i++){if(arr[i].toLowerCase()===vl)return arr[i]}
+  if(metaMap){
+    for(var j=0;j<arr.length;j++){
+      var nm=arr[j],sub=metaMap[nm]||'';
+      if(!sub)continue;
+      var parts=sub.split('|');
+      for(var k=0;k<parts.length;k++){
+        if(parts[k].trim().toLowerCase()===vl)return nm;
+      }
+    }
+  }
+  return '';
+}
+function findExactMed(val){return findCanonical(val,L.medications,MEDM)}
+function findExactLab(val){return findCanonical(val,L.labs,LABM)}
 $('#form').onclick=function(e){
   var b=e.target.closest('.chip button');
   if(b){T[b.dataset.k].splice(+b.dataset.i,1);renderTags(b.dataset.k);return}
@@ -351,48 +527,209 @@ function opts(list,cur,ph){
   if(cur&&arr.indexOf(cur)<0)arr.unshift(cur);
   return '<option value="">'+ph+'</option>'+arr.map(function(v){return '<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'}).join('')
 }
-function guess(v){
-  var m=v.match(/(\d+(?:\.\d+)?)\s*(mcg|mg|ml|iu|g|%)(?![a-z])/i);if(!m)return null;
-  var al={mg:['mg','Milligram'],mcg:['mcg','Microgram'],g:['g','Gram'],ml:['ml','Millilitre','Milliliter'],iu:['IU'],'%':['%','Percent']}[m[2].toLowerCase()],u=m[2].toLowerCase();
-  for(var i=0;i<al.length;i++){var f=L.uoms.filter(function(x){return x.toLowerCase()===al[i].toLowerCase()})[0];if(f){u=f;break}}
-  return {s:m[1],u:u}
+function blankMed(){return {drug:'',form:'',dosage:'',period:'',comment:''}}
+function syncMedValidity(row,idx){
+  if(!row)return true;
+  var mr=M[idx],inp=row.querySelector('input[data-f="drug"]'),err=row.querySelector('.med-err');
+  var raw=(mr&&mr.drug||'').trim();
+  if(!raw){
+    if(inp)inp.classList.remove('bad-med');
+    if(err){err.hidden=true;err.textContent=''}
+    return true;
+  }
+  var canon=findExactMed(raw);
+  if(canon){
+    mr.drug=canon;
+    if(!mr.form&&MF[canon])mr.form=MF[canon];
+    if(inp&&inp.value!==canon)inp.value=canon;
+    if(inp)inp.classList.remove('bad-med');
+    if(err){err.hidden=true;err.textContent=''}
+    return true;
+  }
+  if(inp)inp.classList.add('bad-med');
+  if(err){
+    err.textContent='Not in medication list — select an existing medication (new ones cannot be added).';
+    err.hidden=false;
+  }
+  return false;
 }
-function blankMed(){return {drug:'',form:'',mclass:'',strength:'',unit:'',dosage:'',period:'',comment:''}}
+function validateAllMeds(){
+  var rows=document.querySelectorAll('#en #meds .med');
+  var firstBad=null;
+  for(var i=0;i<M.length;i++){
+    var ok=syncMedValidity(rows[i],i);
+    if(!ok&&!firstBad)firstBad={row:rows[i],name:(M[i].drug||'').trim()};
+  }
+  return firstBad;
+}
 function renderMeds(){
   var box=$('#meds');
   if(!M.length)M.push(blankMed());
   box.innerHTML=M.map(function(m,i){
-    var isNew=m.drug.trim()&&L.medications.indexOf(m.drug.trim())<0;
     return '<div class="med">'+
       '<div class="med-row">'+
-        '<div><label>Medicine</label><input list="dl-med" data-i="'+i+'" data-f="drug" value="'+esc(m.drug)+'" placeholder="Search, or type a new medicine"></div>'+
+        '<div><label>Medicine</label>'+
+          '<div class="med-ac">'+
+            '<input type="search" data-i="'+i+'" data-f="drug" value="'+esc(m.drug)+'" placeholder="Search medicine..." autocomplete="off" aria-autocomplete="list">'+
+            '<div class="ac-list" hidden></div>'+
+          '</div>'+
+          '<div class="med-err" hidden></div>'+
+        '</div>'+
         '<div><label>Dosage</label><select data-i="'+i+'" data-f="dosage">'+opts(L.dosages,m.dosage,'Select')+'</select></div>'+
         '<div><label>Duration</label><select data-i="'+i+'" data-f="period">'+opts(L.periods,m.period,'Select')+'</select></div>'+
         '<div><label>Instructions</label><input data-i="'+i+'" data-f="comment" value="'+esc(m.comment)+'" placeholder="For example after food" aria-label="Instructions"></div>'+
         '<div><label>&nbsp;</label><button type="button" class="rm" data-rm="'+i+'">Remove</button></div>'+
-      '</div>'+
-      '<div class="nn"'+(isNew?'':' hidden')+'><span class="hint">'+(L.items.indexOf(m.drug.trim())>-1?'Pharmacy item with no Medication record yet. One will be created when you save.':'New medicine. It will be added to the item list and to Medication when you save.')+'</span>'+
-      '<div class="nn-fields">'+
-        '<div><label>Medication class</label><select data-i="'+i+'" data-f="mclass">'+opts(L.classes,m.mclass,'Choose automatically')+'</select></div>'+
-        '<div><label>Strength</label><input type="number" step="any" inputmode="decimal" data-i="'+i+'" data-f="strength" value="'+esc(m.strength)+'" placeholder="10"></div>'+
-        '<div><label>Unit</label><input list="dl-uom" data-i="'+i+'" data-f="unit" value="'+esc(m.unit)+'" placeholder="mg"></div>'+
-      '</div></div></div>'
-  }).join('')
+      '</div></div>'
+  }).join('');
+  var rows=box.querySelectorAll('.med');
+  for(var j=0;j<M.length;j++){
+    if((M[j].drug||'').trim())syncMedValidity(rows[j],j);
+  }
 }
+function openMedAc(inp){
+  var i=+inp.dataset.i,row=inp.closest('.med'),ac=row.querySelector('.ac-list');
+  var hits=fuzzyFilter(inp.value,L.medications,MEDM,20);
+  row._acIdx=hits.length?0:-1;
+  closeAllAc(ac);
+  renderAcList(ac,hits,inp.value,'No matching medication in list',row._acIdx);
+}
+function pickMedAc(inp,val){
+  var i=+inp.dataset.i,row=inp.closest('.med'),ac=row.querySelector('.ac-list');
+  var canon=findExactMed(val)||val;
+  M[i].drug=canon;
+  inp.value=canon;
+  if(MF[canon])M[i].form=MF[canon];
+  ac.hidden=true;
+  syncMedValidity(row,i);
+}
+$('#meds').onfocusin=function(e){
+  var t=e.target;
+  if(t.dataset&&t.dataset.f==='drug')openMedAc(t);
+};
+$('#meds').onmousedown=function(e){
+  if(e.target.closest('.ac-list'))e.preventDefault();
+};
+$('#meds').onclick=function(e){
+  var item=e.target.closest('.ac-item');
+  if(!item)return;
+  var ac=item.closest('.ac-list'),inp=ac.parentElement.querySelector('input[data-f="drug"]');
+  if(inp)pickMedAc(inp,item.dataset.val);
+};
+$('#meds').onkeydown=function(e){
+  var t=e.target;
+  if(!t.dataset||t.dataset.f!=='drug')return;
+  var row=t.closest('.med'),ac=row.querySelector('.ac-list');
+  var items=ac.hidden?[]:ac.querySelectorAll('.ac-item');
+  if(e.key==='ArrowDown'&&items.length){
+    e.preventDefault();
+    row._acIdx=((row._acIdx==null?-1:row._acIdx)+1)%items.length;
+  }else if(e.key==='ArrowUp'&&items.length){
+    e.preventDefault();
+    row._acIdx=((row._acIdx==null?0:row._acIdx)-1+items.length)%items.length;
+  }else if(e.key==='Enter'){
+    e.preventDefault();
+    var pick=items[row._acIdx>=0?row._acIdx:0];
+    if(pick){pickMedAc(t,pick.dataset.val)}
+    else{ac.hidden=true;syncMedValidity(row,+t.dataset.i)}
+    return;
+  }else if(e.key==='Escape'){
+    ac.hidden=true;return;
+  }else{return}
+  items.forEach(function(el,idx){el.classList.toggle('on',idx===row._acIdx)});
+  if(items[row._acIdx])items[row._acIdx].scrollIntoView({block:'nearest'});
+};
+$('#meds').onfocusout=function(e){
+  var t=e.target;
+  if(!t.dataset||t.dataset.f!=='drug')return;
+  var row=t.closest('.med'),ac=row.querySelector('.ac-list'),idx=+t.dataset.i;
+  setTimeout(function(){
+    if(ac)ac.hidden=true;
+    syncMedValidity(row,idx);
+  },160);
+};
 $('#meds').oninput=$('#meds').onchange=function(e){
   var t=e.target;if(!t.dataset.f)return;
-  M[+t.dataset.i][t.dataset.f]=t.value;
+  var idx=+t.dataset.i;
+  M[idx][t.dataset.f]=t.value;
   if(t.dataset.f==='drug'){
-    var row=t.closest('.med'),v=t.value.trim();
-    var known=!v||L.medications.indexOf(v)>-1;
-    row.querySelector('.nn').hidden=known;
-    row.querySelector('.nn .hint').textContent=L.items.indexOf(v)>-1?'Pharmacy item with no Medication record yet. One will be created when you save.':'New medicine. It will be added to the item list and to Medication when you save.';
-    if(!known){var gs=guess(v),st=row.querySelector('[data-f=strength]'),un=row.querySelector('[data-f=unit]'),mr=M[+t.dataset.i];
-      if(gs){if(!st.value){st.value=gs.s;mr.strength=gs.s}if(!un.value){un.value=gs.u;mr.unit=gs.u}}}
-    if(MF[v]&&!M[+t.dataset.i].form){M[+t.dataset.i].form=MF[v]}
+    var row=t.closest('.med'),inp=row.querySelector('input[data-f="drug"]'),err=row.querySelector('.med-err');
+    if(inp)inp.classList.remove('bad-med');
+    if(err)err.hidden=true;
+    var v=t.value.trim();
+    var canon=findExactMed(v);
+    if(canon){
+      M[idx].form=MF[canon]||'';
+    }
+    if(document.activeElement===t)openMedAc(t);
   }
 };
 $('#add-med').onclick=function(){M.push(blankMed());renderMeds()};
+
+(function wireLabAc(){
+  var inp=$('#in-lab'),ac=$('#lab-ac'),err=$('#lab-err'),actIdx=0;
+  if(!inp||!ac)return;
+  function showErr(txt){if(err){err.textContent=txt||'';err.hidden=!txt}}
+  function openLab(){
+    showErr('');
+    var hits=fuzzyFilter(inp.value,L.labs,LABM,20);
+    actIdx=hits.length?0:-1;
+    closeAllAc(ac);
+    renderAcList(ac,hits,inp.value,'No matching lab test in Lab Test Template',actIdx);
+  }
+  function addLabVal(raw){
+    var v=String(raw||'').trim();
+    if(!v)return;
+    if((L.labs||[]).length){
+      var canon=findExactLab(v);
+      if(!canon){showErr('Lab test "'+v+'" not found. Select one from the list.');return}
+      v=canon;
+    }
+    showErr('');
+    addTag('lab',v);
+    inp.value='';
+    ac.hidden=true;
+  }
+  inp.onfocus=openLab;
+  inp.oninput=openLab;
+  ac.onmousedown=function(e){e.preventDefault()};
+  ac.onclick=function(e){
+    var it=e.target.closest('.ac-item');
+    if(it)addLabVal(it.dataset.val);
+  };
+  inp.onkeydown=function(e){
+    var items=ac.hidden?[]:ac.querySelectorAll('.ac-item');
+    if(e.key==='ArrowDown'&&items.length){
+      e.preventDefault();actIdx=(actIdx+1)%items.length;
+    }else if(e.key==='ArrowUp'&&items.length){
+      e.preventDefault();actIdx=(actIdx-1+items.length)%items.length;
+    }else if(e.key==='Enter'||e.key===','){
+      e.preventDefault();
+      var chosen=findExactLab(inp.value);
+      if(chosen){addLabVal(chosen);return}
+      var pick=items[actIdx>=0?actIdx:0];
+      if(pick)addLabVal(pick.dataset.val);
+      else addLabVal(inp.value);
+      return;
+    }else if(e.key==='Escape'){ac.hidden=true;return}
+    else{return}
+    items.forEach(function(el,idx){el.classList.toggle('on',idx===actIdx)});
+    if(items[actIdx])items[actIdx].scrollIntoView({block:'nearest'});
+  };
+  inp.onblur=function(){
+    setTimeout(function(){
+      ac.hidden=true;
+      var v=inp.value.trim();
+      if(v){
+        var canon=findExactLab(v);
+        if(canon){addLabVal(canon)}
+        else if((L.labs||[]).length){showErr('Lab test "'+v+'" not found. Select one from the list.')}
+      }
+    },160);
+  };
+})();
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.med-ac')&&!e.target.closest('.tag-ac'))closeAllAc(null);
+});
 
 function tplMsg(txt,bad){
   var el=$('#tpl-status');
@@ -473,29 +810,22 @@ function applySelectedTemplate(){
   if(!t){tplMsg('Choose a treatment template first.',true);return}
   mergeUniqueTag('sym',t.complaints);
   mergeUniqueTag('dx',t.diagnosis);
-  mergeUniqueTag('lab',t.labs);
+  mergeUniqueTag('lab',(t.labs||[]).map(function(x){return findExactLab(x)||x}));
 
   M=M.filter(function(m){return (m.drug||'').trim()||m.form||m.dosage||m.period||(m.comment||'').trim()});
   (t.drugs||[]).forEach(function(dr){
     var nm=String(dr.drug||'').trim();
     if(!nm)return;
+    nm=findExactMed(nm)||nm;
     var dup=M.some(function(cur){return (cur.drug||'').trim().toLowerCase()===nm.toLowerCase()});
     if(dup)return;
-    var row={
+    M.push({
       drug:nm,
       form:dr.form||MF[nm]||'',
-      mclass:dr.mclass||'',
-      strength:dr.strength||'',
-      unit:dr.unit||'',
       dosage:dr.dosage||'',
       period:dr.period||'',
       comment:dr.comment||''
-    };
-    if(!row.strength||!row.unit){
-      var gs=guess(nm);
-      if(gs){if(!row.strength)row.strength=gs.s;if(!row.unit)row.unit=gs.u}
-    }
-    M.push(row);
+    });
   });
   renderMeds();
 
@@ -524,6 +854,13 @@ if($('#tpl-save-go'))$('#tpl-save-go').onclick=function(){
   tplMsg('');
   var rawName=($('#tpl-name').value||'').trim();
   if(!rawName){tplMsg('Enter a template name.',true);$('#tpl-name').focus();return}
+  var badMed=validateAllMeds();
+  if(badMed){
+    tplMsg('Medication "'+badMed.name+'" is not in the medication list. Please select an existing medication.',true);
+    var badInp=badMed.row&&badMed.row.querySelector('input[data-f="drug"]');
+    if(badInp)badInp.focus();
+    return;
+  }
   var cleanDrugs=M.filter(function(m){return (m.drug||'').trim()});
   var noteVal=($('#notes').value||'').trim();
   if(!T.sym.length&&!T.dx.length&&!cleanDrugs.length&&!T.lab.length&&!noteVal){
@@ -589,7 +926,7 @@ function payload(complete){
 function init(r){
   csrf=r.csrf||'';P=r.patient.id;D=r.practitioner||D;L=r.lists||{};
   var isAdmin=!!r.is_admin, serverToday=r.today||'';
-  ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};
+  ['complaints','diagnoses','medications','items','forms','classes','uoms','dosages','periods','labs'].forEach(function(k){L[k]=L[k]||[]});MF=r.med_forms||{};MEDM=r.med_meta||{};LABM=r.lab_meta||{};
   TPLS=r.templates||[];
   renderTplOptions('');
   var p=r.patient,words=(p.name||'').split(/\s+/);
@@ -598,8 +935,8 @@ function init(r){
   $('#pn').innerHTML = esc(p.name) + (uidStr ? ' <span style="font-size:0.92rem;font-weight:600;color:#8cc9b5;letter-spacing:0.3px">(' + esc(uidStr) + ')</span>' : '');
   $('#pm').textContent=['Age '+(p.age==null?'not recorded':p.age),p.sex,p.mobile?'Mobile '+p.mobile:''].filter(Boolean).join('   ');
   if(r.appointment){$('#ap').innerHTML='<b>'+(r.appointment.date?esc(r.appointment.date)+' &middot; ':'')+esc(fmt(r.appointment.time))+'</b>'+esc(r.appointment.type||'')}
-  fill('dl-sym',L.complaints);fill('dl-dx',L.diagnoses);fill('dl-med',L.medications.concat(L.items));fill('dl-lab',L.labs);fill('dl-uom',L.uoms);
-  if(!(L.medications.length+L.items.length))$('#med-hint').textContent='No medicines saved yet. Type a medicine name to add a new one.';
+  fill('dl-sym',L.complaints);fill('dl-dx',L.diagnoses);
+  if(!L.medications.length)$('#med-hint').textContent='No medications found in the Medication list.';
   var e=r.encounter;
   if(e){window.currentEncounter=e.name;T.sym=e.symptoms||[];T.dx=e.diagnosis||[];T.lab=e.labs||[];M=e.drugs||[];$('#notes').value=e.comment||''}
   var targetDate=(e&&e.date)||(r.appointment&&r.appointment.date)||serverToday;
@@ -683,11 +1020,23 @@ function init(r){
 function learn(){
   T.sym.forEach(function(v){if(L.complaints.indexOf(v)<0)L.complaints.push(v)});
   T.dx.forEach(function(v){if(L.diagnoses.indexOf(v)<0)L.diagnoses.push(v)});
-  M.forEach(function(m){var v=m.drug.trim();if(v&&L.medications.indexOf(v)<0)L.medications.push(v);var k=L.items.indexOf(v);if(k>-1)L.items.splice(k,1)});
-  fill('dl-sym',L.complaints);fill('dl-dx',L.diagnoses);fill('dl-med',L.medications.concat(L.items));
+  fill('dl-sym',L.complaints);fill('dl-dx',L.diagnoses);
   renderTags('sym');renderTags('dx');renderMeds()
 }
 function save(complete){
+  var badMed=validateAllMeds();
+  if(badMed){
+    msg('Medication "'+badMed.name+'" is not available in the medication list. Please select an existing medication.');
+    var badInp=badMed.row&&badMed.row.querySelector('input[data-f="drug"]');
+    if(badInp)badInp.focus();
+    return;
+  }
+  if((L.labs||[]).length){
+    var badLab='';
+    T.lab=T.lab.map(function(x){var c=findExactLab(x);if(!c&&!badLab)badLab=x;return c||x});
+    renderTags('lab');
+    if(badLab){msg('Lab test "'+badLab+'" is not available in Lab Test Template. Remove it and select a test from the list.');return}
+  }
   if(complete&&!window.confirm(amend?'Save these changes? The completed consultation is cancelled and replaced by the corrected one.':'Complete this consultation? It will be submitted and the appointment closed.'))return;
   var b1=$('#draft'),b2=$('#complete');b1.disabled=b2.disabled=true;msg('');
   var endpoint = amend ? 'enc_amend' : 'enc_save';
