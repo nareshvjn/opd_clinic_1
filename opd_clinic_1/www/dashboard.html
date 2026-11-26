@@ -356,13 +356,9 @@ login_required: 1
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
       Doctor Desk
     </a>
-    <a href="/fee-invoices" id="nav-fee-invoices" class="nav-btn">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
-      Open Invoices
-    </a>
     <a href="/pharmacy-home" class="nav-btn">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-      Pharmacy Home
+      Pharmacy
     </a>
   </div>
 </div>
@@ -665,7 +661,6 @@ function loadDashboard(){
   if(!f || !t) return;
   var fiUrl = '/fee-invoices' + ((f === t) ? ('?date=' + encodeURIComponent(f)) : (t ? ('?date=' + encodeURIComponent(t)) : ''));
   if($('#lnk-fee-invoices')) $('#lnk-fee-invoices').href = fiUrl;
-  if($('#nav-fee-invoices')) $('#nav-fee-invoices').href = fiUrl;
 
   $('#loading').hidden = false;
   $('#content').hidden = true;

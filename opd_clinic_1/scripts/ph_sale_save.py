@@ -108,10 +108,26 @@ si.ignore_pricing_rule = 1
 if patient and frappe.db.exists("Patient", patient):
     si.patient = patient
 
+batch_ids = [ln.get("batch") for ln in lines if ln.get("batch")]
+batch_map = {}
+if batch_ids:
+    b_fields = ["name", "item"]
+    try:
+        b_meta = frappe.get_meta("Batch")
+        for bf in ("units_per_pack", "custom_units_per_pack"):
+            if b_meta.has_field(bf):
+                b_fields.append(bf)
+    except Exception:
+        pass
+    for br in frappe.get_all("Batch", filters={"name": ["in", batch_ids]}, fields=b_fields, limit=500):
+        batch_map[br.name] = br
+
 line_pricing = []
 for ln in lines:
     batch_doc = ln.get("batch")
-    b = frappe.get_doc("Batch", batch_doc)
+    b = batch_map.get(batch_doc)
+    if not b:
+        frappe.throw("Batch not found: " + str(batch_doc or ""))
     upp = b.get("units_per_pack") or b.get("custom_units_per_pack")
     if not upp or int(upp) <= 1:
         clean = str(b.item).lower().replace("'", " ").replace("(", " ").replace(")", " ")

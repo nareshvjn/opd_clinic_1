@@ -169,6 +169,10 @@
   #ns .sbody{padding:10px 0 14px}
   #ns .rxd{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:.9rem}
   #ns .rx{border:1.5px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;background:#fff}
+  @keyframes ns-spin{to{transform:rotate(360deg)}}
+  #ns .btn.saving{opacity:.85;cursor:wait;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  #ns .btn.saving::before{content:"";width:15px;height:15px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:ns-spin .7s linear infinite}
+  #ns .saving-note{margin:8px 0 0;font-size:.86rem;font-weight:700;color:var(--pri);text-align:right}
   @media(max-width:560px){
     #ns .g4{grid-template-columns:1fr 1fr}
     #ns .rates{grid-template-columns:1fr 1fr}
@@ -305,6 +309,7 @@
     <div><span>Payable amount</span><b id="pay-amt" style="font-size:1.2rem">&#8377;0</b></div>
     <button type="button" class="btn go" id="sl-done">Complete sale</button>
   </div>
+  <p id="sl-saving-msg" class="saving-note" hidden>Saving invoice and updating stock, please wait…</p>
 </div>
 
 <div id="sl-receipt" class="card" hidden></div>
@@ -808,7 +813,15 @@ $('#sl-done').onclick=function(){
   if(!checkCart()){toast('Fix the lines marked in red before completing the sale.',1);return}
   var sDate=$('#sl-date').value, tDate=serverToday||localIso();
   if(sDate && sDate<tDate && !isAdmin){toast('Only admin accounts can create backdated sales entries.',1);return}
-  var b=this;b.disabled=true;
+  var b=this;
+  if(b.disabled)return;
+  var origLbl=b.textContent;
+  b.disabled=true;
+  b.classList.add('saving');
+  b.setAttribute('aria-busy','true');
+  b.textContent=editingInvoice?'Updating sale…':'Saving sale…';
+  if($('#sl-saving-msg')) $('#sl-saving-msg').hidden=false;
+  toast('');
   var lines=sale.cart.map(function(l){return {batch:l.batch,packs:n(l.packs),units:n(l.units),rate:n(l.rate),disc:n(l.disc)}});
   var payload={
     lines:JSON.stringify(lines),
@@ -827,7 +840,7 @@ $('#sl-done').onclick=function(){
   call('ph_sale_save',payload,true).then(function(r){
     editingInvoice=null;
     $('#edit-banner').style.display='none';
-    $('#sl-done').textContent='Complete sale';
+    origLbl='Complete sale';
     var rc=$('#sl-receipt');rc.hidden=false;
     rc.innerHTML='<h2>Sale complete</h2>'+
       '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">'+
@@ -845,7 +858,13 @@ $('#sl-done').onclick=function(){
     ['bd-pct','bd-amt','cc-amt','cc-name'].forEach(function(id){$('#'+id).value=''});
     rc.scrollIntoView({block:'nearest'});
     $('#sl-another').onclick=function(){rc.hidden=true;window.scrollTo({top:0,behavior:'smooth'})};
-  }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false})
+  }).catch(function(e){toast(e.message,1)}).then(function(){
+    b.disabled=false;
+    b.classList.remove('saving');
+    b.removeAttribute('aria-busy');
+    b.textContent=origLbl;
+    if($('#sl-saving-msg')) $('#sl-saving-msg').hidden=true;
+  })
 };
 
 })();
