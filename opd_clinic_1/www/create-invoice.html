@@ -559,9 +559,8 @@ $('#ci-pat-q').oninput=debounce(function(){
   }).catch(function(e){ toast(e.message, 1); });
 });
 
-$('#ci-pat-res').onclick=function(e){
-  var b=e.target.closest('button[data-pidx]'); if(!b) return;
-  var p=($('#ci-pat-res')._rows||[])[+b.dataset.pidx]; if(!p) return;
+function applySelectedPatient(p){
+  if(!p) return;
   state.patient=p;
   $('#ci-pat-res').innerHTML='';
   $('#ci-pat-q').value='';
@@ -573,6 +572,12 @@ $('#ci-pat-res').onclick=function(e){
   sel.hidden=false;
   sel.innerHTML='<span><b>'+esc(p.name)+'</b> <span class="hint">('+(p.mobile?esc(p.mobile):esc(p.id))+')</span></span>'+
     '<button type="button" class="link" id="ci-pat-clear">Clear</button>';
+}
+
+$('#ci-pat-res').onclick=function(e){
+  var b=e.target.closest('button[data-pidx]'); if(!b) return;
+  var p=($('#ci-pat-res')._rows||[])[+b.dataset.pidx];
+  applySelectedPatient(p);
 };
 
 $('#ci-pat-sel').onclick=function(e){
@@ -869,7 +874,13 @@ state.lines=[newLine({qty:1, rate:0, disc:0})];
 renderLines();
 renderQuickChips([]);
 
-call('inv_meta').then(function(m){
+var urlParams=new URLSearchParams(location.search);
+var editParam=(urlParams.get('edit')||'').trim();
+var patientParam=(urlParams.get('patient')||'').trim();
+var pracParam=(urlParams.get('practitioner')||'').trim();
+var dateParam=(urlParams.get('date')||'').trim();
+
+call('inv_meta', patientParam ? {patient: patientParam} : {}).then(function(m){
   csrf=m.csrf||'';
   isAdmin=!!m.is_admin;
   serverToday=m.today||localIso();
@@ -893,8 +904,17 @@ call('inv_meta').then(function(m){
 
   renderQuickChips(m.items||[]);
 
-  var editParam=new URLSearchParams(location.search).get('edit');
-  if(editParam && editParam.trim()) loadInvoiceForEdit(editParam.trim());
+  if(editParam){
+    loadInvoiceForEdit(editParam);
+  } else {
+    if(m.patient) applySelectedPatient(m.patient);
+    if(pracParam && Array.prototype.slice.call($('#ci-prac').options).some(function(o){return o.value===pracParam;})){
+      $('#ci-prac').value=pracParam;
+    }
+    if(dateParam && (isAdmin || dateParam>=serverToday)){
+      $('#ci-date').value=dateParam;
+    }
+  }
 }).catch(function(e){ toast(e.message, 1); });
 })();
 </script>

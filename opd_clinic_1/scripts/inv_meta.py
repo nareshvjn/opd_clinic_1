@@ -38,6 +38,23 @@ def default_service_rate(code, name, std_rate):
         return 50.0
     return 0.0
 
+def build_patient_obj(pv, today_d):
+    if not pv:
+        return None
+    age = None
+    if pv.get("dob"):
+        d = frappe.utils.getdate(pv.get("dob"))
+        age = today_d.year - d.year - (1 if (today_d.month, today_d.day) < (d.month, d.day) else 0)
+    return {
+        "id": pv.name,
+        "uid": pv.get("uid") or "",
+        "name": pv.get("patient_name") or pv.name,
+        "age": age,
+        "mobile": pv.get("mobile") or "",
+        "customer": pv.get("customer") or ""
+    }
+
+
 f = frappe.form_dict
 action = (f.get("action") or "").strip()
 q = (f.get("q") or "").strip()
@@ -56,21 +73,7 @@ if action == "search_patients":
             order_by="patient_name asc",
             limit=12)
         today_d = frappe.utils.getdate(frappe.utils.today())
-        out = []
-        for r in rows:
-            age = None
-            if r.dob:
-                d = frappe.utils.getdate(r.dob)
-                age = today_d.year - d.year - (1 if (today_d.month, today_d.day) < (d.month, d.day) else 0)
-            out.append({
-                "id": r.name,
-                "uid": r.uid or "",
-                "name": r.patient_name or r.name,
-                "age": age,
-                "mobile": r.mobile or "",
-                "customer": r.get("customer") or ""
-            })
-        frappe.response["message"] = {"patients": out}
+        frappe.response["message"] = {"patients": [build_patient_obj(r, today_d) for r in rows]}
 
 elif action == "search_items":
     filters = {"disabled": 0, "is_sales_item": 1}
@@ -275,6 +278,12 @@ else:
             "customer_name": c.customer_name or c.name
         })
 
+    pat_obj = None
+    patient_id = (f.get("patient") or "").strip()
+    if patient_id and frappe.db.exists("Patient", patient_id):
+        pv = frappe.db.get_value("Patient", patient_id, ["name", "patient_name", "mobile", "dob", "uid", "customer"], as_dict=True)
+        pat_obj = build_patient_obj(pv, frappe.utils.getdate(frappe.utils.today()))
+
     token = ""
     try:
         token = frappe.session.get("csrf_token") or ""
@@ -288,6 +297,7 @@ else:
         "items": service_items,
         "practitioners": practitioners,
         "customers": customers,
+        "patient": pat_obj,
         "is_admin": is_admin,
         "today": str(frappe.utils.today()),
         "csrf": token
