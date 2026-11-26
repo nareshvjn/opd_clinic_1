@@ -786,9 +786,18 @@ function resetFormFields(){
 
 function loadInvoiceForEdit(invName){
   toast('');
+  var bDraft=$('#btn-draft'), bSub=$('#btn-submit');
+  if(bDraft) bDraft.disabled=true;
+  if(bSub) bSub.disabled=true;
   call('inv_meta', {action:'load_invoice', name:invName}).then(function(r){
     if(r && r.invoice) setEditMode(r.invoice);
-  }).catch(function(e){ toast(e.message, 1); });
+    if(bDraft) bDraft.disabled=false;
+    if(bSub) bSub.disabled=false;
+  }).catch(function(e){
+    if(bDraft) bDraft.disabled=false;
+    if(bSub) bSub.disabled=false;
+    toast(e.message, 1);
+  });
 }
 
 function performCancelInvoice(invName, docstatus, btns, onDone){

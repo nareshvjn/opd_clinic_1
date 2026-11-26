@@ -268,10 +268,10 @@ elif action == "load_invoice":
             "disc": disc
         })
 
-    appt_id = (doc.get("appointment") or "").strip() if hasattr(doc, "appointment") else ""
+    appt_id = (doc.get("appointment") or "").strip() if doc.meta.has_field("appointment") else ""
     enc_id = ""
     for enc_fld in ("encounter", "patient_encounter"):
-        if hasattr(doc, enc_fld) and doc.get(enc_fld):
+        if doc.meta.has_field(enc_fld) and doc.get(enc_fld):
             enc_id = (doc.get(enc_fld) or "").strip()
             break
     for it in (doc.items or []):

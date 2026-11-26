@@ -87,8 +87,29 @@ if action == "cancel":
         for p in pes:
             pe_doc = frappe.get_doc("Payment Entry", p.parent)
             if pe_doc.docstatus == 1:
+                pe_doc.flags.ignore_permissions = True
                 pe_doc.cancel()
+        doc.flags.ignore_permissions = True
         doc.cancel()
+        cancel_appt = (doc.get("appointment") or "").strip() if doc.meta.has_field("appointment") else ""
+        if not cancel_appt:
+            for cit in (doc.items or []):
+                if cit.get("reference_dt") == "Patient Appointment" and cit.get("reference_dn"):
+                    cancel_appt = (cit.get("reference_dn") or "").strip()
+                    break
+        if cancel_appt and frappe.db.exists("Patient Appointment", cancel_appt):
+            try:
+                other_ref = frappe.db.sql("""
+                    select sii.parent from `tabSales Invoice Item` sii
+                    join `tabSales Invoice` si on si.name = sii.parent
+                    where sii.reference_dt = 'Patient Appointment' and sii.reference_dn = %s
+                      and si.docstatus < 2 and ifnull(si.is_return, 0) = 0 and si.name != %s
+                    limit 1
+                """, (cancel_appt, inv_name))
+                if not other_ref:
+                    frappe.db.set_value("Patient Appointment", cancel_appt, "invoiced", 0, update_modified=False)
+            except Exception:
+                pass
         frappe.response["message"] = {"status": "cancelled", "invoice": inv_name}
 
 else:
@@ -170,8 +191,23 @@ else:
             for p in pes:
                 pe_doc = frappe.get_doc("Payment Entry", p.parent)
                 if pe_doc.docstatus == 1:
+                    pe_doc.flags.ignore_permissions = True
                     pe_doc.cancel()
+            old_si.flags.ignore_permissions = True
             old_si.cancel()
+            if appointment and frappe.db.exists("Patient Appointment", appointment):
+                try:
+                    other_ref = frappe.db.sql("""
+                        select sii.parent from `tabSales Invoice Item` sii
+                        join `tabSales Invoice` si on si.name = sii.parent
+                        where sii.reference_dt = 'Patient Appointment' and sii.reference_dn = %s
+                          and si.docstatus < 2 and ifnull(si.is_return, 0) = 0 and si.name != %s
+                        limit 1
+                    """, (appointment, amend_invoice))
+                    if not other_ref:
+                        frappe.db.set_value("Patient Appointment", appointment, "invoiced", 0, update_modified=False)
+                except Exception:
+                    pass
             amend_from = amend_invoice
 
     company = frappe.db.get_single_value("Global Defaults", "default_company")
