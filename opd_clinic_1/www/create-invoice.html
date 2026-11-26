@@ -33,9 +33,10 @@ login_required: 1
   }
   #ci .back-link:hover{text-decoration:underline}
   #ci .top{
+    position:relative;
     display:flex;
     justify-content:space-between;
-    align-items:center;
+    align-items:flex-start;
     flex-wrap:wrap;
     gap:10px;
     padding:16px 20px;
@@ -45,6 +46,24 @@ login_required: 1
     color:#fff;
     box-shadow:var(--shadow-sm);
   }
+  #ci .top-home{
+    position:absolute;
+    top:14px;
+    right:16px;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    background:rgba(255,255,255,0.18);
+    border:1.5px solid rgba(255,255,255,0.45);
+    padding:5px 12px;
+    border-radius:8px;
+    color:#fff;
+    text-decoration:none;
+    font-size:.82rem;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  #ci .top-home:hover{background:rgba(255,255,255,0.3);color:#fff}
   #ci .top h1{font-size:1.4rem;font-weight:900;margin:0;color:#fff}
   #ci .top-sub{font-size:.82rem;color:rgba(255,255,255,.85);margin:2px 0 0}
   #ci .badge-tag{
@@ -204,14 +223,13 @@ login_required: 1
   }
 </style>
 
-<a href="/clinic" class="back-link">&#8592; Back to Home</a>
-
 <div class="top">
-  <div>
+  <div style="padding-right:92px">
     <h1>🧾 Create Invoice</h1>
     <p class="top-sub">Services, procedures, lab tests, and miscellaneous billing</p>
+    <span class="badge-tag" style="display:inline-block;margin-top:8px">General Sales Invoice</span>
   </div>
-  <span class="badge-tag">General Sales Invoice</span>
+  <a href="/clinic" class="top-home">🏠 Home</a>
 </div>
 
 <div id="toast" role="status" hidden></div>

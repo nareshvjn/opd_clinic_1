@@ -44,9 +44,10 @@
 #dh *{box-sizing:border-box}
 
 #dh .hd{
+  position:relative;
   display:flex;
   justify-content:space-between;
-  align-items:center;
+  align-items:flex-start;
   gap:12px;
   padding:18px 20px;
   background:linear-gradient(135deg,#0d3d27 0%,#125c3a 100%);
@@ -55,6 +56,21 @@
   box-shadow:var(--shadow-sm);
   margin-bottom:16px;
 }
+#dh .hd-home{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  background:rgba(255,255,255,0.18);
+  border:1.5px solid rgba(255,255,255,0.45);
+  padding:5px 12px;
+  border-radius:8px;
+  color:#fff;
+  text-decoration:none;
+  font-size:.82rem;
+  font-weight:700;
+  white-space:nowrap;
+}
+#dh .hd-home:hover{background:rgba(255,255,255,0.3);color:#fff}
 #dh h1{font-size:1.4rem;font-weight:900;margin:0;color:#fff}
 #dh h2{font-size:1.1rem;font-weight:800;color:var(--pri);margin:24px 0 10px}
 #dh .sub{margin:2px 0 0;color:#d8efe4;font-size:.84rem}
@@ -243,7 +259,7 @@
   #dh .grid{grid-template-columns:1fr}
 }
 </style>
-<div class="hd"><div><h1 id="co">💊 Pharmacy</h1><p class="sub" id="upd">Loading...</p></div><div style="display:flex;align-items:center;gap:8px"><button type="button" class="rf" id="rf">&#x21bb; Refresh</button></div></div>
+<div class="hd"><div style="flex:1;min-width:0"><h1 id="co">💊 Pharmacy</h1><p class="sub" id="upd">Loading...</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0"><a href="/clinic" class="hd-home">🏠 Home</a><button type="button" class="rf" id="rf">&#x21bb; Refresh</button></div></div>
 <div id="err" class="note" hidden></div>
 <div class="chips" id="chips">
 <button type="button" class="chip" data-p="today" aria-pressed="true">Today</button>
