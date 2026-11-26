@@ -319,6 +319,7 @@ def find_invoice_info(appt, patient_id=None, encounter_id=None, appt_date=None, 
             all_drug = bool(inv_items)
             all_lab = bool(inv_items)
             has_consult = False
+            has_fee_service = False
             for it in inv_items:
                 ic = str(it.get("item_code") or "").strip()
                 im = item_cache.get(ic) or {}
@@ -362,6 +363,8 @@ def find_invoice_info(appt, patient_id=None, encounter_id=None, appt_date=None, 
                     has_drug = True
                 else:
                     all_drug = False
+                    if not is_lab_row:
+                        has_fee_service = True
                 if not is_lab_row:
                     all_lab = False
                 if is_consult_row:
@@ -385,7 +388,7 @@ def find_invoice_info(appt, patient_id=None, encounter_id=None, appt_date=None, 
                 continue
             if all_lab and not has_consult:
                 continue
-            if not (has_consult or rem_consult) and not is_direct_appt:
+            if not (has_fee_service or has_consult or rem_consult) and not is_direct_appt:
                 continue
 
             is_sub = 1 if int(vals.get("docstatus") or 0) == 1 else 0

@@ -28,8 +28,12 @@ def is_ref_free(ref_dt, ref_dn, exclude_inv=""):
     if not ref_dt or not ref_dn or not frappe.db.exists(ref_dt, ref_dn):
         return False
     try:
-        ref_meta = frappe.get_meta(ref_dt)
-        if ref_meta.has_field("invoiced") and int(frappe.db.get_value(ref_dt, ref_dn, "invoiced") or 0) == 1:
+        if int(frappe.db.get_value(ref_dt, ref_dn, "invoiced") or 0) == 1:
+            return False
+    except Exception:
+        pass
+    try:
+        if ref_dt == "Patient Appointment" and int(frappe.db.get_value(ref_dt, ref_dn, "fee_valid") or 0) == 1:
             return False
     except Exception:
         pass
@@ -481,23 +485,16 @@ else:
 
     if si.items and not is_drug_only_inv:
         exclude_name = amend_invoice if updating_draft else ""
+        # Never set reference_dt="Patient Encounter" on Sales Invoice Item: Marley Healthcare's
+        # Sales Invoice validation locks double/insert+submit encounter references even when only drugs
+        # or Fee Validity touched the encounter. Keep Encounter linked via header fields & remarks.
         can_ref_appt = is_ref_free("Patient Appointment", appointment, exclude_name) if appointment else False
-        can_ref_enc = is_ref_free("Patient Encounter", encounter, exclude_name) if encounter else False
-        if can_ref_enc or can_ref_appt:
+        if can_ref_appt:
             try:
                 si_item_meta = frappe.get_meta("Sales Invoice Item")
                 if si_item_meta.has_field("reference_dt") and si_item_meta.has_field("reference_dn"):
-                    if can_ref_appt and can_ref_enc and len(si.items) >= 2:
-                        si.items[0].reference_dt = "Patient Appointment"
-                        si.items[0].reference_dn = appointment
-                        si.items[1].reference_dt = "Patient Encounter"
-                        si.items[1].reference_dn = encounter
-                    elif can_ref_enc:
-                        si.items[0].reference_dt = "Patient Encounter"
-                        si.items[0].reference_dn = encounter
-                    elif can_ref_appt:
-                        si.items[0].reference_dt = "Patient Appointment"
-                        si.items[0].reference_dn = appointment
+                    si.items[0].reference_dt = "Patient Appointment"
+                    si.items[0].reference_dn = appointment
             except Exception:
                 pass
 
