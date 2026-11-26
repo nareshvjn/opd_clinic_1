@@ -58,61 +58,84 @@ if rows:
             fields=["name", "dob", "sex", "mobile", "uid"]):
         info[p.name] = p
 
-has_si_patient = False
-try:
-    has_si_patient = frappe.get_meta("Sales Invoice").has_field("patient")
-except Exception:
-    has_si_patient = False
-
-def is_valid_appt_invoice(vals, patient_id):
-    if not vals or vals.docstatus >= 2 or int(vals.get("is_return") or 0):
-        return False
-    if has_si_patient and patient_id and vals.get("patient") and vals.get("patient") != patient_id:
-        return False
-    if vals.docstatus == 1 and frappe.db.exists("Sales Invoice", {"return_against": vals.name, "docstatus": 1}):
-        return False
-    return True
-
 def find_invoice_info(appt, patient_id=None):
-    si_fields = ["name", "docstatus", "grand_total", "is_return"]
-    if has_si_patient:
-        si_fields.append("patient")
-    active_draft = None
+    if not appt:
+        return None
+    parent_names = []
     try:
         for r in frappe.get_all("Sales Invoice Item",
                 filters={"reference_dt": "Patient Appointment", "reference_dn": appt},
-                fields=["parent"], order_by="modified desc", limit=20):
-            vals = frappe.db.get_value("Sales Invoice", r.parent, si_fields, as_dict=True)
-            if not is_valid_appt_invoice(vals, patient_id):
-                continue
-            if vals.docstatus == 1:
-                return vals
-            if active_draft is None:
-                active_draft = vals
-    except:
+                fields=["parent"], limit=50):
+            if r.parent and r.parent not in parent_names:
+                parent_names.append(r.parent)
+    except Exception:
         pass
+
+    try:
+        if frappe.get_meta("Sales Invoice").has_field("appointment"):
+            for r in frappe.get_all("Sales Invoice",
+                    filters={"appointment": appt, "docstatus": ["<", 2]},
+                    fields=["name"], limit=20):
+                if r.name and r.name not in parent_names:
+                    parent_names.append(r.name)
+    except Exception:
+        pass
+
     marker = "Consultation: " + appt
     try:
-        rem_rows = frappe.get_all("Sales Invoice",
-            filters={"remarks": ["like", "%" + marker + "%"], "docstatus": ["<", 2]},
-            fields=si_fields + ["remarks"], order_by="docstatus desc, modified desc", limit=20)
-        for vals in rem_rows:
-            rem = vals.get("remarks") or ""
+        for r in frappe.get_all("Sales Invoice",
+                filters={"remarks": ["like", "%" + marker + "%"], "docstatus": ["<", 2]},
+                fields=["name", "remarks"], limit=20):
+            rem = r.get("remarks") or ""
             idx = rem.find(marker)
             if idx < 0:
                 continue
             after = rem[idx + len(marker):idx + len(marker) + 1]
             if after and after not in " \t\r\n|,;":
                 continue
-            if not is_valid_appt_invoice(vals, patient_id):
+            if r.name and r.name not in parent_names:
+                parent_names.append(r.name)
+    except Exception:
+        pass
+
+    if not parent_names:
+        return None
+
+    best_sub = None
+    best_draft = None
+    for inv_name in parent_names:
+        try:
+            vals = frappe.db.get_value(
+                "Sales Invoice",
+                inv_name,
+                ["name", "docstatus", "grand_total", "is_return", "modified"],
+                as_dict=True,
+            )
+            if not vals or vals.docstatus >= 2 or int(vals.get("is_return") or 0):
+                continue
+            inv_pat = None
+            try:
+                inv_pat = frappe.db.get_value("Sales Invoice", inv_name, "patient")
+            except Exception:
+                inv_pat = None
+            if patient_id and inv_pat and inv_pat != patient_id:
                 continue
             if vals.docstatus == 1:
-                return vals
-            if active_draft is None:
-                active_draft = vals
-    except:
-        pass
-    return active_draft
+                has_ret = False
+                try:
+                    has_ret = bool(frappe.db.exists("Sales Invoice", {"return_against": vals.name, "docstatus": 1}))
+                except Exception:
+                    has_ret = False
+                if has_ret:
+                    continue
+                if best_sub is None or str(vals.get("modified") or "") > str(best_sub.get("modified") or ""):
+                    best_sub = vals
+            elif best_draft is None or str(vals.get("modified") or "") > str(best_draft.get("modified") or ""):
+                best_draft = vals
+        except Exception:
+            continue
+
+    return best_sub or best_draft
 
 today = frappe.utils.getdate(frappe.utils.today())
 out = []
