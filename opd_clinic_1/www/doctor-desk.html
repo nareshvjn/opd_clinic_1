@@ -314,7 +314,7 @@ function render(){
     var cls='a'+(isToday&&nowM>=st&&nowM<st+dur?' now':'')+(/closed|checked out/i.test(a.status)?' done':'');
     var opts=data.statuses.map(function(s){return '<option'+(s===a.status?' selected':'')+'>'+esc(s)+'</option>'}).join('');
     var q='patient='+encodeURIComponent(a.patient)+'&appointment='+encodeURIComponent(a.id)+'&practitioner='+encodeURIComponent(a.practitioner);
-    var ciQ='patient='+encodeURIComponent(a.patient)+'&appointment='+encodeURIComponent(a.id)+(a.practitioner?'&practitioner='+encodeURIComponent(a.practitioner):'')+(selDate?'&date='+encodeURIComponent(selDate):'');
+    var ciQ='patient='+encodeURIComponent(a.patient)+'&appointment='+encodeURIComponent(a.id)+(a.encounter?'&encounter='+encodeURIComponent(a.encounter):'')+(a.practitioner?'&practitioner='+encodeURIComponent(a.practitioner):'')+(selDate?'&date='+encodeURIComponent(selDate):'');
     var closed=/closed|checked out/i.test(a.status),invBtn='';
     if(a.invoice){
       if(readOnlyPast){

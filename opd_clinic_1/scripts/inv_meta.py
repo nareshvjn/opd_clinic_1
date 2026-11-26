@@ -55,6 +55,40 @@ def build_patient_obj(pv, today_d):
     }
 
 
+def get_patient_encounters(patient_id):
+    out = []
+    if not patient_id or not frappe.db.exists("DocType", "Patient Encounter"):
+        return out
+    try:
+        rows = frappe.get_all(
+            "Patient Encounter",
+            filters={"patient": patient_id, "docstatus": ["<", 2]},
+            fields=["name", "encounter_date", "practitioner", "practitioner_name", "appointment", "docstatus"],
+            order_by="encounter_date desc, modified desc",
+            limit=20,
+        )
+        for r in rows:
+            status_lbl = "Draft" if int(r.docstatus or 0) == 0 else "Completed"
+            doc_lbl = r.get("practitioner_name") or r.get("practitioner") or ""
+            label_parts = [r.name]
+            if r.get("encounter_date"):
+                label_parts.append(str(r.get("encounter_date")))
+            if doc_lbl:
+                label_parts.append(doc_lbl)
+            label_parts.append(status_lbl)
+            out.append({
+                "id": r.name,
+                "date": str(r.get("encounter_date") or ""),
+                "practitioner": r.get("practitioner") or "",
+                "appointment": r.get("appointment") or "",
+                "docstatus": int(r.docstatus or 0),
+                "label": " | ".join(label_parts),
+            })
+    except Exception:
+        pass
+    return out
+
+
 f = frappe.form_dict
 action = (f.get("action") or "").strip()
 q = (f.get("q") or "").strip()
@@ -126,6 +160,10 @@ elif action == "search_customers":
             "mobile": c.mobile_no or ""
         })
     frappe.response["message"] = {"customers": out}
+
+elif action == "patient_encounters":
+    patient_id = (f.get("patient") or "").strip()
+    frappe.response["message"] = {"encounters": get_patient_encounters(patient_id)}
 
 elif action == "load_invoice":
     inv_name = (f.get("name") or "").strip()
@@ -212,11 +250,18 @@ elif action == "load_invoice":
         })
 
     appt_id = (doc.get("appointment") or "").strip() if hasattr(doc, "appointment") else ""
-    if not appt_id:
-        for it in (doc.items or []):
-            if it.get("reference_dt") == "Patient Appointment" and it.get("reference_dn"):
-                appt_id = it.get("reference_dn")
-                break
+    enc_id = ""
+    for enc_fld in ("encounter", "patient_encounter"):
+        if hasattr(doc, enc_fld) and doc.get(enc_fld):
+            enc_id = (doc.get(enc_fld) or "").strip()
+            break
+    for it in (doc.items or []):
+        if not appt_id and it.get("reference_dt") == "Patient Appointment" and it.get("reference_dn"):
+            appt_id = it.get("reference_dn")
+        if not enc_id and it.get("reference_dt") == "Patient Encounter" and it.get("reference_dn"):
+            enc_id = it.get("reference_dn")
+
+    encounters_list = get_patient_encounters(doc.get("patient") or "")
 
     frappe.response["message"] = {
         "invoice": {
@@ -225,6 +270,8 @@ elif action == "load_invoice":
             "customer": doc.customer or "",
             "patient": pat_obj,
             "appointment": appt_id,
+            "encounter": enc_id,
+            "encounters": encounters_list,
             "practitioner": prac_id,
             "posting_date": str(doc.posting_date or today_d),
             "mode": mode,
@@ -291,9 +338,27 @@ else:
 
     pat_obj = None
     patient_id = (f.get("patient") or "").strip()
+    enc_id = (f.get("encounter") or "").strip()
+    appt_id = (f.get("appointment") or "").strip()
+    if enc_id and frappe.db.exists("Patient Encounter", enc_id):
+        ev = frappe.db.get_value("Patient Encounter", enc_id, ["patient", "appointment"], as_dict=True) or {}
+        if not patient_id and ev.get("patient"):
+            patient_id = ev.get("patient")
+        if not appt_id and ev.get("appointment"):
+            appt_id = ev.get("appointment")
+    if appt_id and not patient_id and frappe.db.exists("Patient Appointment", appt_id):
+        patient_id = frappe.db.get_value("Patient Appointment", appt_id, "patient") or ""
+
     if patient_id and frappe.db.exists("Patient", patient_id):
         pv = frappe.db.get_value("Patient", patient_id, ["name", "patient_name", "mobile", "dob", "uid", "customer"], as_dict=True)
         pat_obj = build_patient_obj(pv, frappe.utils.getdate(frappe.utils.today()))
+
+    encounters_list = get_patient_encounters(patient_id)
+    if not enc_id and appt_id:
+        for eo in encounters_list:
+            if eo.get("appointment") == appt_id:
+                enc_id = eo.get("id") or ""
+                break
 
     token = ""
     try:
@@ -309,6 +374,9 @@ else:
         "practitioners": practitioners,
         "customers": customers,
         "patient": pat_obj,
+        "appointment": appt_id,
+        "encounter": enc_id,
+        "encounters": encounters_list,
         "is_admin": is_admin,
         "today": str(frappe.utils.today()),
         "csrf": token

@@ -65,6 +65,7 @@ else:
     customer_input = (f.get("customer") or "").strip()
     patient = (f.get("patient") or "").strip()
     appointment = (f.get("appointment") or "").strip()
+    encounter = (f.get("encounter") or "").strip()
     practitioner = (f.get("practitioner") or "").strip()
     mode = (f.get("mode") or "").strip()
     remarks = (f.get("remarks") or "").strip()
@@ -106,11 +107,17 @@ else:
         if not appointment:
             if old_si.meta.has_field("appointment") and old_si.get("appointment"):
                 appointment = (old_si.get("appointment") or "").strip()
-            if not appointment:
-                for oit in (old_si.items or []):
-                    if oit.get("reference_dt") == "Patient Appointment" and oit.get("reference_dn"):
-                        appointment = (oit.get("reference_dn") or "").strip()
-                        break
+        if not encounter:
+            for enc_fld in ("encounter", "patient_encounter"):
+                if old_si.meta.has_field(enc_fld) and old_si.get(enc_fld):
+                    encounter = (old_si.get(enc_fld) or "").strip()
+                    break
+        if not appointment or not encounter:
+            for oit in (old_si.items or []):
+                if not appointment and oit.get("reference_dt") == "Patient Appointment" and oit.get("reference_dn"):
+                    appointment = (oit.get("reference_dn") or "").strip()
+                if not encounter and oit.get("reference_dt") == "Patient Encounter" and oit.get("reference_dn"):
+                    encounter = (oit.get("reference_dn") or "").strip()
         if old_si.docstatus == 0:
             updating_draft = True
         else:
@@ -129,11 +136,42 @@ else:
     co = frappe.db.get_value("Company", company,
         ["default_receivable_account", "default_income_account", "cost_center", "default_currency"], as_dict=True)
 
+    # Derive missing links across Patient <-> Appointment <-> Patient Encounter
+    if encounter and frappe.db.exists("Patient Encounter", encounter):
+        ev = frappe.db.get_value("Patient Encounter", encounter, ["patient", "appointment", "practitioner"], as_dict=True) or {}
+        if not patient and ev.get("patient"):
+            patient = ev.get("patient")
+        if not appointment and ev.get("appointment"):
+            appointment = ev.get("appointment")
+        if not practitioner and ev.get("practitioner"):
+            practitioner = ev.get("practitioner")
+
+    if appointment and frappe.db.exists("Patient Appointment", appointment):
+        av = frappe.db.get_value("Patient Appointment", appointment, ["patient", "practitioner"], as_dict=True) or {}
+        if not patient and av.get("patient"):
+            patient = av.get("patient")
+        if not practitioner and av.get("practitioner"):
+            practitioner = av.get("practitioner")
+        if not encounter and frappe.db.exists("DocType", "Patient Encounter"):
+            enc_hits = frappe.get_all(
+                "Patient Encounter",
+                filters={"appointment": appointment, "docstatus": ["<", 2]},
+                fields=["name"],
+                order_by="docstatus desc, modified desc",
+                limit=1,
+            )
+            if enc_hits:
+                encounter = enc_hits[0].name
+
     # Resolve Customer (prefer Patient's linked Customer if Patient was chosen cleanly)
     customer = ""
+    pat_name_resolved = ""
+    pat_had_cust = False
     if patient and frappe.db.exists("Patient", patient):
         pat_vals = frappe.db.get_value("Patient", patient, ["patient_name", "customer"], as_dict=True)
+        pat_name_resolved = (pat_vals.get("patient_name") or "") if pat_vals else ""
         if pat_vals and pat_vals.get("customer") and frappe.db.exists("Customer", pat_vals.get("customer")):
+            pat_had_cust = True
             if not customer_input or customer_input == pat_vals.get("patient_name") or customer_input == pat_vals.get("customer"):
                 customer = pat_vals.get("customer")
 
@@ -152,6 +190,26 @@ else:
                 c.customer_type = "Individual"
                 c.insert(ignore_permissions=True)
                 customer = c.name
+
+    if not customer and pat_name_resolved:
+        matched_p = frappe.db.get_value("Customer", {"customer_name": pat_name_resolved, "disabled": 0}, "name")
+        if matched_p:
+            customer = matched_p
+        else:
+            c = frappe.new_doc("Customer")
+            c.customer_name = pat_name_resolved
+            c.customer_group = frappe.db.get_value("Customer Group", {"is_group": 0}, "name")
+            c.territory = frappe.db.get_value("Territory", {"is_group": 0}, "name")
+            c.customer_type = "Individual"
+            c.insert(ignore_permissions=True)
+            customer = c.name
+
+    if patient and customer and not pat_had_cust and customer not in ["Walk-in Customer", "Walk-in"]:
+        if not customer_input or customer_input == pat_name_resolved:
+            try:
+                frappe.db.set_value("Patient", patient, "customer", customer, update_modified=False)
+            except Exception:
+                pass
 
     if not customer:
         for fallback_name in ["Walk-in Customer", "Walk-in"]:
@@ -213,11 +271,22 @@ else:
     if si.meta.has_field("patient"):
         si.patient = patient if (patient and frappe.db.exists("Patient", patient)) else None
 
+    if si.meta.has_field("patient_name") and pat_name_resolved:
+        si.patient_name = pat_name_resolved
+
+    if si.meta.has_field("ref_practitioner"):
+        si.ref_practitioner = practitioner or None
+
     if si.meta.has_field("practitioner"):
         si.practitioner = practitioner or None
 
     if appointment and si.meta.has_field("appointment") and frappe.db.exists("Patient Appointment", appointment):
         si.appointment = appointment
+
+    if encounter and frappe.db.exists("Patient Encounter", encounter):
+        for enc_fld in ("encounter", "patient_encounter"):
+            if si.meta.has_field(enc_fld):
+                si.set(enc_fld, encounter)
 
     remark_parts = []
     if practitioner:
@@ -313,14 +382,26 @@ else:
     if not si.debit_to and co:
         si.debit_to = co.default_receivable_account
 
-    if appointment and si.items and frappe.db.exists("Patient Appointment", appointment):
-        try:
-            si_item_meta = frappe.get_meta("Sales Invoice Item")
-            if si_item_meta.has_field("reference_dt") and si_item_meta.has_field("reference_dn"):
-                si.items[0].reference_dt = "Patient Appointment"
-                si.items[0].reference_dn = appointment
-        except Exception:
-            pass
+    if si.items:
+        has_enc = bool(encounter and frappe.db.exists("Patient Encounter", encounter))
+        has_appt = bool(appointment and frappe.db.exists("Patient Appointment", appointment))
+        if has_enc or has_appt:
+            try:
+                si_item_meta = frappe.get_meta("Sales Invoice Item")
+                if si_item_meta.has_field("reference_dt") and si_item_meta.has_field("reference_dn"):
+                    if has_enc and has_appt and len(si.items) >= 2:
+                        si.items[0].reference_dt = "Patient Appointment"
+                        si.items[0].reference_dn = appointment
+                        si.items[1].reference_dt = "Patient Encounter"
+                        si.items[1].reference_dn = encounter
+                    elif has_enc:
+                        si.items[0].reference_dt = "Patient Encounter"
+                        si.items[0].reference_dn = encounter
+                    elif has_appt:
+                        si.items[0].reference_dt = "Patient Appointment"
+                        si.items[0].reference_dn = appointment
+            except Exception:
+                pass
 
     if charge_amt > 0:
         charge_acc = co.default_income_account if co else None
@@ -360,6 +441,11 @@ else:
 
     if not save_draft:
         si.submit()
+        if appointment and frappe.db.exists("Patient Appointment", appointment):
+            try:
+                frappe.db.set_value("Patient Appointment", appointment, "invoiced", 1, update_modified=False)
+            except Exception:
+                pass
         if not paid and mode and mode != "Credit" and (pay_amt or 0) > 0:
             try:
                 pe = frappe.call("erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry",
@@ -377,6 +463,9 @@ else:
     frappe.response["message"] = {
         "invoice": si.name,
         "customer": si.customer,
+        "patient": si.get("patient") if si.meta.has_field("patient") else patient,
+        "appointment": appointment,
+        "encounter": encounter,
         "total": pay_amt,
         "docstatus": si.docstatus,
         "paid": paid,

@@ -58,45 +58,66 @@ if rows:
             fields=["name", "dob", "sex", "mobile", "uid"]):
         info[p.name] = p
 
-def find_invoice_info(appt, patient_id=None):
-    if not appt:
+def find_invoice_info(appt, patient_id=None, encounter_id=None):
+    if not appt and not encounter_id:
         return None
     parent_names = []
-    try:
-        for r in frappe.get_all("Sales Invoice Item",
-                filters={"reference_dt": "Patient Appointment", "reference_dn": appt},
-                fields=["parent"], limit=50):
-            if r.parent and r.parent not in parent_names:
-                parent_names.append(r.parent)
-    except Exception:
-        pass
+    if appt:
+        try:
+            for r in frappe.get_all("Sales Invoice Item",
+                    filters={"reference_dt": "Patient Appointment", "reference_dn": appt},
+                    fields=["parent"], limit=50):
+                if r.parent and r.parent not in parent_names:
+                    parent_names.append(r.parent)
+        except Exception:
+            pass
+
+    if encounter_id:
+        try:
+            for r in frappe.get_all("Sales Invoice Item",
+                    filters={"reference_dt": "Patient Encounter", "reference_dn": encounter_id},
+                    fields=["parent"], limit=50):
+                if r.parent and r.parent not in parent_names:
+                    parent_names.append(r.parent)
+        except Exception:
+            pass
 
     try:
-        if frappe.get_meta("Sales Invoice").has_field("appointment"):
+        si_meta = frappe.get_meta("Sales Invoice")
+        if appt and si_meta.has_field("appointment"):
             for r in frappe.get_all("Sales Invoice",
                     filters={"appointment": appt, "docstatus": ["<", 2]},
                     fields=["name"], limit=20):
                 if r.name and r.name not in parent_names:
                     parent_names.append(r.name)
+        if encounter_id:
+            for enc_fld in ("encounter", "patient_encounter"):
+                if si_meta.has_field(enc_fld):
+                    for r in frappe.get_all("Sales Invoice",
+                            filters={enc_fld: encounter_id, "docstatus": ["<", 2]},
+                            fields=["name"], limit=20):
+                        if r.name and r.name not in parent_names:
+                            parent_names.append(r.name)
     except Exception:
         pass
 
-    marker = "Consultation: " + appt
-    try:
-        for r in frappe.get_all("Sales Invoice",
-                filters={"remarks": ["like", "%" + marker + "%"], "docstatus": ["<", 2]},
-                fields=["name", "remarks"], limit=20):
-            rem = r.get("remarks") or ""
-            idx = rem.find(marker)
-            if idx < 0:
-                continue
-            after = rem[idx + len(marker):idx + len(marker) + 1]
-            if after and after not in " \t\r\n|,;":
-                continue
-            if r.name and r.name not in parent_names:
-                parent_names.append(r.name)
-    except Exception:
-        pass
+    marker = ("Consultation: " + appt) if appt else ""
+    if marker:
+        try:
+            for r in frappe.get_all("Sales Invoice",
+                    filters={"remarks": ["like", "%" + marker + "%"], "docstatus": ["<", 2]},
+                    fields=["name", "remarks"], limit=20):
+                rem = r.get("remarks") or ""
+                idx = rem.find(marker)
+                if idx < 0:
+                    continue
+                after = rem[idx + len(marker):idx + len(marker) + 1]
+                if after and after not in " \t\r\n|,;":
+                    continue
+                if r.name and r.name not in parent_names:
+                    parent_names.append(r.name)
+        except Exception:
+            pass
 
     if not parent_names:
         return None
@@ -150,12 +171,14 @@ for r in rows:
         if p.dob:
             d = frappe.utils.getdate(p.dob)
             age = today.year - d.year - (1 if (today.month, today.day) < (d.month, d.day) else 0)
-    inv_info = find_invoice_info(r.name, r.patient)
+    enc_found = frappe.get_all("Patient Encounter",
+        filters={"appointment": r.name, "docstatus": ["!=", 2]}, fields=["name"],
+        order_by="docstatus desc, modified desc", limit=1)
+    enc_id = enc_found[0].name if enc_found else ""
+    inv_info = find_invoice_info(r.name, r.patient, enc_id)
     inv = inv_info.name if inv_info else ""
     inv_docstatus = inv_info.docstatus if inv_info else None
     inv_total = float(inv_info.grand_total or 0) if inv_info else 0.0
-    enc_found = frappe.get_all("Patient Encounter",
-        filters={"appointment": r.name, "docstatus": ["!=", 2]}, fields=["name"], limit=1)
     has_encounter = bool(enc_found or r.status in ["Closed", "Checked Out"])
     vs_found = frappe.get_all("Vital Signs",
         filters={"appointment": r.name, "docstatus": ["<", 2]}, fields=["name"], limit=1)
@@ -173,6 +196,7 @@ for r in rows:
         "type": r.appointment_type, "status": r.status, "notes": r.notes or "", "invoice": inv,
         "invoice_docstatus": inv_docstatus,
         "invoice_total": inv_total,
+        "encounter": enc_id,
         "has_encounter": has_encounter,
         "has_vitals": has_vitals,
     })

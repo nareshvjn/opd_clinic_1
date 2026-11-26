@@ -299,6 +299,7 @@ html,body{height:auto!important;min-height:100%!important;overflow-y:auto!import
     <button type="button" id="draft">Save draft</button>
     <button type="button" class="go" id="complete">Complete consultation</button>
     <a class="pb" id="print-btn" href="#" target="_blank" rel="noopener" hidden>Print encounter</a>
+    <a class="pb" id="ci-btn" href="#" hidden style="background:#fff;color:var(--brand);border:1.5px solid var(--brand);box-shadow:none">Create invoice</a>
   </div>
 </div>
 
@@ -312,6 +313,10 @@ var amend=false,csrf='',T={sym:[],dx:[],lab:[]},M=[],L={},MF={},MEDM={},LABM={},
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function fmt(t){var p=String(t).split(':'),h=+p[0],ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+p[1]+' '+ap}
+function ciUrl(encName){
+  var dt=($('#c-date')&&!$('#sec-cdate').hidden&&$('#c-date').value)?$('#c-date').value:'';
+  return '/create-invoice?patient='+encodeURIComponent(P)+(A?'&appointment='+encodeURIComponent(A):'')+(encName?'&encounter='+encodeURIComponent(encName):'')+(D?'&practitioner='+encodeURIComponent(D):'')+(dt?'&date='+encodeURIComponent(dt):'');
+}
 function pu(n){return '/printview?doctype=Patient%20Encounter&name='+encodeURIComponent(n)+'&trigger_print=1'}
 function msg(t,ok){var e=$('#msg');e.textContent=t||'';e.className='note'+(ok?'':' bad');e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
 
@@ -1005,6 +1010,8 @@ function init(r){
     var pb=$('#print-btn');
     pb.href=pu(e.name);
     pb.hidden=false;
+    var cb=$('#ci-btn');
+    if(cb){cb.href=ciUrl(e.name);cb.hidden=false}
     msg('This consultation is completed. Change anything below and press Save changes: the original is cancelled and the corrected one is saved. Vitals stay as recorded.',true)}
   var isPastReadOnly = !isAdmin && serverToday && targetDate && targetDate < serverToday;
   if(isPastReadOnly){
@@ -1045,7 +1052,7 @@ function save(complete){
   call(endpoint, data, true).then(function(r){
     if(r.completed){
       $('#form').hidden=true;var d=$('#done');d.hidden=false;
-      d.innerHTML='<b>Consultation completed.</b><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px"><a class="pb" href="'+pu(r.encounter)+'" target="_blank" rel="noopener">Print encounter</a><a href="/doctor-desk">Back to doctor desk</a><a href="/app/patient-encounter/'+encodeURIComponent(r.encounter)+'" target="_blank" rel="noopener">View in Desk</a></div>'
+      d.innerHTML='<b>Consultation completed.</b><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px"><a class="pb" href="'+pu(r.encounter)+'" target="_blank" rel="noopener">Print encounter</a><a class="pb" style="background:#fff;color:var(--brand);border:1.5px solid var(--brand);box-shadow:none" href="'+ciUrl(r.encounter)+'">Create invoice</a><a href="/doctor-desk">Back to doctor desk</a><a href="/app/patient-encounter/'+encodeURIComponent(r.encounter)+'" target="_blank" rel="noopener">View in Desk</a></div>'
     }else{learn();msg(amend ? 'Changes saved.' : 'Draft saved.',true)}
   }).catch(function(e){msg(e.message)}).then(function(){b1.disabled=b2.disabled=false})
 }

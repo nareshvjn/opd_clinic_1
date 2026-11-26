@@ -266,6 +266,16 @@ login_required: 1
   </div>
   <div class="g2">
     <div>
+      <label for="ci-enc">Link Encounter (optional)</label>
+      <select id="ci-enc"><option value="">-- Optional --</option></select>
+    </div>
+    <div>
+      <label for="ci-prac">Doctor / Practitioner (optional)</label>
+      <select id="ci-prac"><option value="">-- Optional --</option></select>
+    </div>
+  </div>
+  <div class="g2">
+    <div>
       <label for="ci-date">Invoice Date</label>
       <input id="ci-date" type="date">
     </div>
@@ -274,15 +284,9 @@ login_required: 1
       <select id="ci-mode"></select>
     </div>
   </div>
-  <div class="g2">
-    <div>
-      <label for="ci-prac">Doctor / Practitioner (optional)</label>
-      <select id="ci-prac"><option value="">-- Optional --</option></select>
-    </div>
-    <div>
-      <label for="ci-remarks">Invoice Note / Remarks (optional)</label>
-      <input id="ci-remarks" autocomplete="off" placeholder="e.g. Lab & procedure charges">
-    </div>
+  <div>
+    <label for="ci-remarks">Invoice Note / Remarks (optional)</label>
+    <input id="ci-remarks" autocomplete="off" placeholder="e.g. Lab & procedure charges">
   </div>
 </div>
 
@@ -562,8 +566,23 @@ $('#ci-pat-q').oninput=debounce(function(){
   }).catch(function(e){ toast(e.message, 1); });
 });
 
-function applySelectedPatient(p){
+function renderEncounterOptions(list, selectedId){
+  var sel=$('#ci-enc');
+  if(!sel) return;
+  var opts='<option value="">-- Optional --</option>';
+  (list||[]).forEach(function(e){
+    var isSel=(selectedId && e.id===selectedId)?' selected':'';
+    opts+='<option value="'+esc(e.id)+'" data-appt="'+esc(e.appointment||'')+'" data-prac="'+esc(e.practitioner||'')+'"'+isSel+'>'+esc(e.label||e.id)+'</option>';
+  });
+  if(selectedId && !(list||[]).some(function(e){return e.id===selectedId;})){
+    opts+='<option value="'+esc(selectedId)+'" selected>'+esc(selectedId)+'</option>';
+  }
+  sel.innerHTML=opts;
+}
+
+function applySelectedPatient(p, opts){
   if(!p) return;
+  opts=opts||{};
   state.patient=p;
   $('#ci-pat-res').innerHTML='';
   $('#ci-pat-q').value='';
@@ -575,20 +594,50 @@ function applySelectedPatient(p){
   sel.hidden=false;
   sel.innerHTML='<span><b>'+esc(p.name)+'</b> <span class="hint">('+(p.mobile?esc(p.mobile):esc(p.id))+')</span></span>'+
     '<button type="button" class="link" id="ci-pat-clear">Clear</button>';
+  if(opts.encounters){
+    renderEncounterOptions(opts.encounters, opts.encounterId||'');
+  } else {
+    call('inv_meta', {action:'patient_encounters', patient:p.id}).then(function(r){
+      if(state.patient && state.patient.id===p.id){
+        var list=(r&&r.encounters)||[];
+        var pickId=opts.encounterId||'';
+        if(!pickId && linkedAppointment){
+          for(var i=0;i<list.length;i++){
+            if(list[i].appointment===linkedAppointment){ pickId=list[i].id; break; }
+          }
+        }
+        renderEncounterOptions(list, pickId);
+      }
+    }).catch(function(){});
+  }
 }
 
 $('#ci-pat-res').onclick=function(e){
   var b=e.target.closest('button[data-pidx]'); if(!b) return;
   var p=($('#ci-pat-res')._rows||[])[+b.dataset.pidx];
+  linkedAppointment='';
   applySelectedPatient(p);
 };
 
 $('#ci-pat-sel').onclick=function(e){
   if(e.target.id!=='ci-pat-clear') return;
   state.patient=null;
+  linkedAppointment='';
+  renderEncounterOptions([], '');
   $('#ci-pat-sel').hidden=true;
   $('#ci-pat-sel').innerHTML='';
   if(state._autoCust){ $('#ci-cust').value=''; state._autoCust=false; }
+};
+$('#ci-enc').onchange=function(){
+  var opt=this.options[this.selectedIndex];
+  if(!opt) return;
+  var appt=opt.dataset.appt||'';
+  var prac=opt.dataset.prac||'';
+  if(appt) linkedAppointment=appt;
+  else if(!this.value) linkedAppointment='';
+  if(prac && Array.prototype.slice.call($('#ci-prac').options).some(function(o){return o.value===prac;})){
+    $('#ci-prac').value=prac;
+  }
 };
 $('#ci-cust').oninput=function(){ state._autoCust=false; };
 
@@ -683,6 +732,7 @@ function setEditMode(inv){
 
   state.patient=inv.patient||null;
   state._autoCust=false;
+  renderEncounterOptions(inv.encounters||[], inv.encounter||'');
   if(inv.patient){
     var sel=$('#ci-pat-sel');
     sel.hidden=false;
@@ -724,6 +774,7 @@ function clearEditMode(){
 
 function resetFormFields(){
   state.patient=null; state._autoCust=false; linkedAppointment='';
+  renderEncounterOptions([], '');
   state.lines=[newLine({qty:1, rate:0, disc:0})];
   $('#ci-pat-sel').hidden=true; $('#ci-pat-sel').innerHTML='';
   $('#ci-cust').value=''; $('#ci-remarks').value=''; $('#ci-prac').value='';
@@ -835,6 +886,7 @@ function submitInvoice(asDraft){
     customer: $('#ci-cust').value.trim(),
     patient: state.patient ? state.patient.id : '',
     appointment: linkedAppointment || '',
+    encounter: $('#ci-enc').value || '',
     practitioner: $('#ci-prac').value,
     mode: $('#ci-mode').value,
     posting_date: invDate,
@@ -926,10 +978,16 @@ var urlParams=new URLSearchParams(location.search);
 var editParam=(urlParams.get('edit')||'').trim();
 var patientParam=(urlParams.get('patient')||'').trim();
 var linkedAppointment=(urlParams.get('appointment')||'').trim();
+var encParam=(urlParams.get('encounter')||'').trim();
 var pracParam=(urlParams.get('practitioner')||'').trim();
 var dateParam=(urlParams.get('date')||'').trim();
 
-call('inv_meta', patientParam ? {patient: patientParam} : {}).then(function(m){
+var metaInitParams={};
+if(patientParam) metaInitParams.patient=patientParam;
+if(encParam) metaInitParams.encounter=encParam;
+if(linkedAppointment) metaInitParams.appointment=linkedAppointment;
+
+call('inv_meta', metaInitParams).then(function(m){
   csrf=m.csrf||'';
   isAdmin=!!m.is_admin;
   serverToday=m.today||localIso();
@@ -960,7 +1018,12 @@ call('inv_meta', patientParam ? {patient: patientParam} : {}).then(function(m){
   if(editParam){
     loadInvoiceForEdit(editParam);
   } else {
-    if(m.patient) applySelectedPatient(m.patient);
+    if(!linkedAppointment && m.appointment) linkedAppointment=m.appointment;
+    if(m.patient){
+      applySelectedPatient(m.patient, {encounters: m.encounters||[], encounterId: encParam||m.encounter||''});
+    } else if(m.encounters && m.encounters.length){
+      renderEncounterOptions(m.encounters, encParam||m.encounter||'');
+    }
     if(pracParam && Array.prototype.slice.call($('#ci-prac').options).some(function(o){return o.value===pracParam;})){
       $('#ci-prac').value=pracParam;
     }
