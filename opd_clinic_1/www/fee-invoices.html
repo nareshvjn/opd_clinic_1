@@ -1,0 +1,347 @@
+---
+title: Fee Invoices
+login_required: 1
+---
+<div id="fi">
+<script>
+(function(){
+  var _f = window.fetch;
+  window.fetch = function(url, opts){
+    return _f(url, opts).then(function(r){
+      if(!r.ok && String(url).indexOf('/api/method/')!==-1){
+        r.clone().json().then(function(j){
+          var t='';
+          try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message;}catch(e){}
+          if(/invalid request|not logged in/i.test(t)||r.status===403)
+            window.location.replace('/login?redirect-to='+encodeURIComponent(location.pathname+location.search));
+        }).catch(function(){});
+      }
+      return r;
+    });
+  };
+})();
+</script>
+<style>
+  #fi *{box-sizing:border-box;margin:0;padding:0}
+  #fi{
+    --ink:#11281e;
+    --mute:#546a5f;
+    --line:#cfe0d7;
+    --pri:#125c3a;
+    --pri-dark:#0d3d27;
+    --bg:#f4f9f6;
+    --ok:#125c3a;
+    --err:#c0392b;
+    --warn:#d97706;
+    --gold:#f1c40f;
+    --shadow-sm:0 2px 10px rgba(18,92,58,0.06);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink);
+    max-width:880px;
+    margin:0 auto;
+    padding:14px 12px 80px;
+  }
+  #fi .top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:16px;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:16px 20px;
+    background:linear-gradient(135deg,#0d3d27 0%,#125c3a 100%);
+    border-radius:14px;
+    color:#fff;
+    box-shadow:var(--shadow-sm);
+    position:relative;
+  }
+  #fi h1{font-size:1.45rem;font-weight:900;color:#fff}
+  #fi .top p{color:rgba(255,255,255,.85);font-size:.88rem;margin-top:2px}
+  #fi h2{font-size:1.1rem;font-weight:800;color:var(--pri);margin-bottom:10px}
+  #fi .card{
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:14px;
+    box-shadow:var(--shadow-sm);
+  }
+  #fi label{display:block;font-size:.82rem;font-weight:700;color:var(--mute);margin-top:10px;margin-bottom:3px}
+  #fi label:first-child{margin-top:0}
+  #fi input,#fi select{
+    width:100%;
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    font:15px inherit;
+    background:#fff;
+    color:var(--ink);
+  }
+  #fi input:focus,#fi select:focus{outline:3px solid #8cc9b5;border-color:var(--pri)}
+  #fi .btn{
+    background:var(--pri);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:10px 20px;
+    font:700 15px inherit;
+    cursor:pointer;
+    white-space:nowrap;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:all .15s ease;
+  }
+  #fi .btn:hover{filter:brightness(1.1)}
+  #fi .btn:disabled{opacity:.5;cursor:default}
+  #fi .btn.go{background:linear-gradient(135deg,#125c3a,#0d3d27);box-shadow:0 3px 10px rgba(18,92,58,0.25)}
+  #fi .btn.subtle{background:var(--bg);color:var(--ink);border:1.5px solid var(--line)}
+  #fi .btn.subtle:hover{border-color:var(--pri)}
+  #fi .btn.sm{padding:5px 12px;font-size:.82rem;border-radius:6px;font-weight:700}
+  #fi .hint{font-size:.84rem;color:var(--mute);margin-top:4px}
+  #fi #toast{padding:12px 16px;border-radius:8px;font-size:.92rem;margin:10px 0;background:#ebf7f1;color:var(--ok);border-left:4px solid var(--ok)}
+  #fi #toast.bad{background:#fdf2f2;color:var(--err);border-color:var(--err)}
+  #fi [hidden]{display:none!important}
+  #fi .action-bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  #fi .action-bar .btn{flex:1}
+  #fi .inv-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 14px;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    margin-bottom:8px;
+    background:#fff;
+    gap:10px;
+    color:inherit;
+    transition:all .15s ease;
+  }
+  #fi .inv-row:hover{background:var(--bg);border-color:var(--pri)}
+  #fi .inv-row b{display:block;font-size:1rem;color:var(--pri)}
+  #fi .inv-row span{font-size:.82rem;color:var(--mute);display:block}
+  #fi .inv-row .inv-total{font-weight:800;color:var(--ok);white-space:nowrap;font-size:1.05rem}
+  #fi .badge-return{background:#fdf2f2;color:var(--err);font-size:0.75rem;padding:2px 8px;border-radius:4px;margin-left:6px;font-weight:700;display:inline-block}
+  #fi .badge-draft{background:#fff8e1;color:#9a6700;font-size:0.75rem;padding:2px 8px;border-radius:4px;margin-left:6px;font-weight:700;display:inline-block}
+  #fi .sum{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:.95rem;gap:8px;flex-wrap:wrap}
+  #fi .top-home-btn:hover{background:rgba(255,255,255,0.3);color:#fff}
+  #fi .pills{display:inline-flex;background:#eef6f2;border:1.5px solid var(--line);border-radius:9px;padding:3px;gap:3px;margin-top:10px}
+  #fi .pill{border:0;background:none;padding:6px 12px;border-radius:7px;font:700 .82rem inherit;color:var(--mute);cursor:pointer}
+  #fi .pill[aria-pressed="true"]{background:var(--pri);color:#fff}
+  @media(max-width:540px){
+    #fi .top{flex-direction:column;align-items:stretch}
+    #fi .action-bar{flex-direction:column}
+    #fi .inv-row{flex-direction:column;align-items:stretch}
+    #fi .inv-row .r{align-items:flex-start!important}
+  }
+</style>
+
+<div class="top">
+  <div style="width:100%;padding-right:92px">
+    <h1 style="margin:0">🧾 Fee Invoices</h1>
+    <p>Consultation, injection, lab &amp; OPD fee invoices (excludes pharmacy drug bills)</p>
+  </div>
+  <a href="/clinic" class="top-home-btn" style="position:absolute;top:14px;right:16px;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);padding:5px 12px;border-radius:8px;color:#fff;text-decoration:none;font-size:.82rem;font-weight:700;white-space:nowrap">
+    🏠 Home
+  </a>
+  <div style="width:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <a href="/dashboard" class="top-home-btn" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);padding:6px 12px;border-radius:8px;color:#fff;text-decoration:none;font-size:.85rem;font-weight:700">
+      📊 Dashboard
+    </a>
+    <a href="/doctor-desk" class="top-home-btn" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);padding:6px 12px;border-radius:8px;color:#fff;text-decoration:none;font-size:.85rem;font-weight:700">
+      🩺 Doctor Desk
+    </a>
+  </div>
+</div>
+
+<div id="toast" role="status" hidden></div>
+
+<div class="action-bar">
+  <a href="/create-invoice" class="btn go">+ Create invoice</a>
+  <a href="/dashboard" class="btn subtle">Back to Dashboard</a>
+</div>
+
+<div class="card">
+  <h2>Invoices by date</h2>
+  <label for="fi-date">Invoice date</label>
+  <div style="display:flex;gap:6px;margin-top:4px;align-items:center">
+    <button type="button" id="fi-date-prev" class="btn subtle" style="padding:9px 14px;font-size:18px;line-height:1">&#8249;</button>
+    <input id="fi-date" type="date" style="flex:1;min-width:0">
+    <button type="button" id="fi-date-next" class="btn subtle" style="padding:9px 14px;font-size:18px;line-height:1">&#8250;</button>
+  </div>
+  <p class="hint" id="fi-date-fmt" style="font-size:.9rem;color:#1a73e8;font-weight:600;margin-top:5px"></p>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px">
+    <div class="pills" role="group" aria-label="Invoice status">
+      <button type="button" class="pill" data-st="all" aria-pressed="true">All</button>
+      <button type="button" class="pill" data-st="submitted" aria-pressed="false">Submitted</button>
+      <button type="button" class="pill" data-st="draft" aria-pressed="false">Draft</button>
+    </div>
+    <input id="fi-q" type="search" placeholder="Filter by patient, mobile, fee, or ID..." style="flex:1;min-width:200px">
+  </div>
+
+  <p style="margin-top:10px"><button type="button" class="btn" id="fi-date-search" style="width:100%">Show fee invoices</button></p>
+
+  <div id="fi-list" style="margin-top:14px"></div>
+</div>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector('#fi '+s)};
+var $$=function(s){return document.querySelectorAll('#fi '+s)};
+var curUser = (window.frappe && (frappe.session_user || (frappe.session && frappe.session.user))) || (function(){
+  var m = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
+  return m ? decodeURIComponent(m[1]) : '';
+})();
+if(curUser === 'Guest'){
+  window.location.replace('/login?redirect-to=' + encodeURIComponent(window.location.pathname + window.location.search));
+  return;
+}
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function n(v){v=parseFloat(v);return isNaN(v)?0:v}
+function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtDate(d){if(!d)return '-';var p=(d||'').slice(0,10).split('-');return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):d}
+function localIso(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function toast(t,bad){var e=$('#toast');e.textContent=t||'';e.className=bad?'bad':'';e.hidden=!t;if(t)e.scrollIntoView({block:'nearest'})}
+
+function call(method,params){
+  var p=new URLSearchParams(params||{});
+  return fetch('/api/method/'+method+'?'+p,{headers:{Accept:'application/json'},credentials:'same-origin'}).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(j){
+      if(!r.ok){
+        var t='Something went wrong. Please try again.';
+        try{var msgs=JSON.parse(j._server_messages);var last=JSON.parse(msgs[msgs.length-1]);t=(last.message||last).replace(/<[^>]+>/g,'')}catch(e){}
+        if(t==='Something went wrong. Please try again.'){
+          if(j.exception) t=String(j.exception);
+          else if(j.message) t=typeof j.message==='string'?j.message:JSON.stringify(j.message);
+        }
+        if(/invalid request|not logged in/i.test(t)||r.status===401||r.status===403){
+          window.location.replace('/login?redirect-to='+encodeURIComponent(location.pathname+location.search));
+          return;
+        }
+        throw new Error(t);
+      }
+      return j.message;
+    });
+  });
+}
+
+var isAdmin=false, serverToday=localIso(), curStatus='all', cachedRows=[];
+
+function updateDateFmt(){
+  var v=$('#fi-date').value;
+  $('#fi-date-fmt').textContent=v ? 'Selected: '+fmtDate(v) : '';
+}
+
+function shiftDate(days){
+  var v=$('#fi-date').value;
+  var cur=v ? new Date(v+'T12:00:00') : new Date();
+  if(isNaN(cur.getTime())) cur=new Date();
+  cur.setDate(cur.getDate()+days);
+  $('#fi-date').value=localIso(cur);
+  updateDateFmt();
+  loadInvoices();
+}
+
+function renderList(){
+  var d=$('#fi-date').value;
+  var q=($('#fi-q').value||'').trim().toLowerCase();
+  var filtered=cachedRows.filter(function(iv){
+    if(curStatus==='submitted' && iv.docstatus!==1) return false;
+    if(curStatus==='draft' && iv.docstatus!==0) return false;
+    if(!q) return true;
+    var hay=[iv.name, iv.customer, iv.mobile, iv.practitioner_name, iv.items_summary].join(' ').toLowerCase();
+    return hay.indexOf(q)!==-1;
+  });
+  if(!filtered.length){
+    $('#fi-list').innerHTML='<p class="hint">No fee invoices on '+fmtDate(d)+(q?' matching "'+esc(q)+'"':'')+'.</p>';
+    return;
+  }
+  var subTotal=0, subCount=0, draftCount=0;
+  filtered.forEach(function(x){
+    if(x.docstatus===1){
+      subCount+=1;
+      subTotal += x.is_return ? -n(x.total) : n(x.total);
+    } else if(x.docstatus===0){
+      draftCount+=1;
+    }
+  });
+  var canEditDate=isAdmin || !serverToday || d>=serverToday;
+  var countLbl=filtered.length+' fee invoice(s)'+(draftCount?' ('+subCount+' submitted, '+draftCount+' draft)':'');
+  var summary='<div class="sum" style="font-weight:700;margin-bottom:10px"><span>'+countLbl+'</span><b>Total: '+inr(subTotal)+'</b></div>';
+  var html=filtered.map(function(iv){
+    var badges='';
+    if(iv.docstatus===0) badges+='<span class="badge-draft">Draft</span>';
+    if(iv.is_return) badges+='<span class="badge-return">Return Note</span>';
+    var metaParts=[];
+    if(iv.customer) metaParts.push(esc(iv.customer));
+    if(iv.mobile) metaParts.push(esc(iv.mobile));
+    if(iv.time) metaParts.push(esc(iv.time));
+    var subParts=[];
+    if(iv.items_summary) subParts.push(esc(iv.items_summary));
+    if(iv.practitioner_name) subParts.push((/^dr\.?\s/i.test(iv.practitioner_name)?'':'Dr. ')+esc(iv.practitioner_name));
+    var editBtn=(canEditDate && !iv.is_return)
+      ? '<a class="btn sm" href="/create-invoice?edit='+encodeURIComponent(iv.name)+'">Edit</a>'
+      : '';
+    var printBtn=(iv.docstatus===1)
+      ? '<a class="btn sm subtle" href="/printview?doctype=Sales%20Invoice&name='+encodeURIComponent(iv.name)+'&trigger_print=1" target="_blank" rel="noopener">Print</a>'
+      : '';
+    return '<div class="inv-row">'+
+      '<div>'+
+        '<b>'+esc(iv.name)+badges+'</b>'+
+        '<span>'+metaParts.join(' &nbsp;&middot;&nbsp; ')+'</span>'+
+        (subParts.length?'<span style="margin-top:2px">'+subParts.join(' &nbsp;&middot;&nbsp; ')+'</span>':'')+
+      '</div>'+
+      '<div class="r" style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'+
+        '<div class="inv-total">'+(iv.is_return?'-':'')+inr(iv.total)+'</div>'+
+        '<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">'+
+          printBtn+
+          editBtn+
+          '<a class="btn sm subtle" href="/app/sales-invoice/'+encodeURIComponent(iv.name)+'" target="_blank" rel="noopener">Open</a>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  $('#fi-list').innerHTML=summary+html;
+}
+
+function loadInvoices(){
+  var d=$('#fi-date').value;
+  if(!d){toast('Pick a date first.',1);return}
+  toast('');
+  var b=$('#fi-date-search');b.disabled=true;
+  $('#fi-list').innerHTML='<p class="hint">Loading fee invoices...</p>';
+  call('fee_list',{date:d, status:'all'}).then(function(r){
+    if(!r) return;
+    isAdmin=!!r.is_admin;
+    serverToday=r.today||serverToday;
+    cachedRows=r.invoices||[];
+    renderList();
+  }).catch(function(e){toast(e.message,1);$('#fi-list').innerHTML=''}).then(function(){b.disabled=false});
+}
+
+var urlParams=new URLSearchParams(location.search);
+var initDate=(urlParams.get('date')||'').trim();
+$('#fi-date').value=/^\d{4}-\d{2}-\d{2}$/.test(initDate) ? initDate : localIso();
+updateDateFmt();
+$('#fi-date').onchange=function(){updateDateFmt();loadInvoices()};
+$('#fi-date-prev').onclick=function(){shiftDate(-1)};
+$('#fi-date-next').onclick=function(){shiftDate(1)};
+$('#fi-date-search').onclick=loadInvoices;
+$('#fi-q').oninput=renderList;
+
+$$('.pill').forEach(function(b){
+  b.onclick=function(){
+    curStatus=this.dataset.st;
+    $$('.pill').forEach(function(x){x.setAttribute('aria-pressed', String(x===b))});
+    renderList();
+  };
+});
+
+loadInvoices();
+window.addEventListener('pageshow',function(ev){if(ev&&ev.persisted)loadInvoices()});
+})();
+</script>
+</div>

@@ -170,6 +170,8 @@ def sync():
                 "title": title,
                 "website_sidebar": None,
             }
+            for k, v in meta.items():
+                new_page[k] = v
             pages.append(new_page)
             pages_by_name[target_name] = new_page
             added_count += 1

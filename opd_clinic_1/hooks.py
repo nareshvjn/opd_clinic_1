@@ -303,6 +303,7 @@ fixtures = [
                     "distributor-bills",
                     "doctor-desk",
                     "doctors",
+                    "fee-invoices",
                     "new-purchase",
                     "new-sale",
                     "pharmacy-home",
