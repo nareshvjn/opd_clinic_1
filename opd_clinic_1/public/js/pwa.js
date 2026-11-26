@@ -427,34 +427,38 @@
     if (!/^\/login\/?$/.test(window.location.pathname)) return;
     if (document.body) document.body.classList.add('clinic-login-page');
 
-    if (!document.getElementById('clinic-login-theme')) {
-      var st = document.createElement('style');
+    var st = document.getElementById('clinic-login-theme');
+    if (!st) {
+      st = document.createElement('style');
       st.id = 'clinic-login-theme';
       st.textContent = '' +
-        'body.clinic-login-page, body[data-path="login"] {' +
+        'html body.clinic-login-page, html body[data-path="login"] {' +
         '  background: linear-gradient(180deg, #e7f4ed 0%, #f4f9f6 100%) !important;' +
         '  min-height: 100vh !important;' +
         '  color: #11281e !important;' +
+        '  --primary: #125c3a;' +
+        '  --btn-primary: #125c3a;' +
+        '  --primary-color: #125c3a;' +
         '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;' +
         '}' +
-        'body.clinic-login-page .navbar, body[data-path="login"] .navbar {' +
+        'html body.clinic-login-page .navbar, html body[data-path="login"] .navbar {' +
         '  background: linear-gradient(135deg, #0d3d27 0%, #125c3a 100%) !important;' +
         '  border-bottom: 2px solid #f1c40f !important;' +
         '  box-shadow: 0 4px 16px rgba(13, 61, 39, 0.16) !important;' +
         '}' +
-        'body.clinic-login-page .navbar .navbar-brand, body[data-path="login"] .navbar .navbar-brand,' +
-        'body.clinic-login-page .navbar .nav-link, body[data-path="login"] .navbar .nav-link {' +
+        'html body.clinic-login-page .navbar .navbar-brand, html body[data-path="login"] .navbar .navbar-brand,' +
+        'html body.clinic-login-page .navbar .nav-link, html body[data-path="login"] .navbar .nav-link {' +
         '  color: #fff !important;' +
         '  font-weight: 700 !important;' +
         '}' +
-        'body.clinic-login-page .for-login, body[data-path="login"] .for-login,' +
-        'body.clinic-login-page .for-forgot, body[data-path="login"] .for-forgot,' +
-        'body.clinic-login-page .for-login-with-email-link, body[data-path="login"] .for-login-with-email-link,' +
-        'body.clinic-login-page .for-signup, body[data-path="login"] .for-signup {' +
+        'html body.clinic-login-page .for-login, html body[data-path="login"] .for-login,' +
+        'html body.clinic-login-page .for-forgot, html body[data-path="login"] .for-forgot,' +
+        'html body.clinic-login-page .for-login-with-email-link, html body[data-path="login"] .for-login-with-email-link,' +
+        'html body.clinic-login-page .for-signup, html body[data-path="login"] .for-signup {' +
         '  padding-top: 28px !important;' +
         '  padding-bottom: 36px !important;' +
         '}' +
-        'body.clinic-login-page .page-card, body[data-path="login"] .page-card {' +
+        'html body.clinic-login-page .page-card, html body[data-path="login"] .page-card {' +
         '  background: #ffffff !important;' +
         '  border: 1.5px solid #cfe0d7 !important;' +
         '  border-radius: 16px !important;' +
@@ -464,52 +468,118 @@
         '  margin: 0 auto !important;' +
         '  padding: 0 !important;' +
         '}' +
-        'body.clinic-login-page .page-card-head, body[data-path="login"] .page-card-head {' +
-        '  background: linear-gradient(135deg, #0d3d27 0%, #125c3a 100%) !important;' +
-        '  padding: 24px 20px 20px !important;' +
+        'html body.clinic-login-page .page-card .page-card-head, html body[data-path="login"] .page-card .page-card-head,' +
+        'html body.clinic-login-page .page-card-head, html body[data-path="login"] .page-card-head {' +
+        '  background: transparent !important;' +
+        '  background-color: transparent !important;' +
+        '  background-image: none !important;' +
+        '  border: none !important;' +
+        '  border-bottom: none !important;' +
+        '  box-shadow: none !important;' +
+        '  padding: 28px 22px 10px !important;' +
         '  margin: 0 !important;' +
         '  text-align: center !important;' +
-        '  border-bottom: 2px solid #f1c40f !important;' +
+        '  color: #2f5241 !important;' +
         '}' +
-        'body.clinic-login-page .page-card-head .app-logo, body[data-path="login"] .page-card-head .app-logo {' +
-        '  width: 60px !important;' +
-        '  height: 60px !important;' +
-        '  object-fit: contain !important;' +
-        '  background: #ffffff !important;' +
-        '  border-radius: 14px !important;' +
-        '  padding: 5px !important;' +
-        '  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22) !important;' +
-        '  margin: 0 auto 10px !important;' +
-        '  display: block !important;' +
-        '}' +
-        'body.clinic-login-page .page-card-head h4, body[data-path="login"] .page-card-head h4 {' +
-        '  color: #ffffff !important;' +
-        '  font-weight: 800 !important;' +
-        '  font-size: 1.2rem !important;' +
-        '  margin: 4px 0 0 !important;' +
-        '}' +
-        'body.clinic-login-page .clinic-login-brand-pill {' +
-        '  display: inline-block !important;' +
-        '  background: linear-gradient(135deg, #f1c40f, #d4ac0d) !important;' +
-        '  color: #2b1d00 !important;' +
-        '  font-size: 0.72rem !important;' +
-        '  font-weight: 800 !important;' +
-        '  letter-spacing: 0.05em !important;' +
-        '  text-transform: uppercase !important;' +
-        '  padding: 3px 11px !important;' +
-        '  border-radius: 20px !important;' +
-        '  margin-bottom: 6px !important;' +
-        '}' +
-        'body.clinic-login-page .login-content, body[data-path="login"] .login-content,' +
-        'body.clinic-login-page .page-card-body, body[data-path="login"] .page-card-body,' +
-        'body.clinic-login-page .form-signin, body[data-path="login"] .form-signin {' +
-        '  padding: 20px 22px 24px !important;' +
-        '}' +
-        'body.clinic-login-page .page-card .page-card-body .form-signin,' +
-        'body[data-path="login"] .page-card .page-card-body .form-signin {' +
+        'html body.clinic-login-page .page-card .page-card-head > div,' +
+        'html body.clinic-login-page .page-card .page-card-head > span,' +
+        'html body.clinic-login-page .page-card .page-card-head > a,' +
+        'html body.clinic-login-page .page-card .page-card-head [class*="logo"],' +
+        'html body[data-path="login"] .page-card .page-card-head > div,' +
+        'html body[data-path="login"] .page-card .page-card-head > span,' +
+        'html body[data-path="login"] .page-card .page-card-head > a,' +
+        'html body[data-path="login"] .page-card .page-card-head [class*="logo"] {' +
+        '  background: transparent !important;' +
+        '  background-color: transparent !important;' +
+        '  background-image: none !important;' +
+        '  border: none !important;' +
+        '  border-radius: 0 !important;' +
+        '  box-shadow: none !important;' +
         '  padding: 0 !important;' +
         '}' +
-        'body.clinic-login-page .form-control, body[data-path="login"] .form-control {' +
+        'html body.clinic-login-page .page-card .page-card-head img,' +
+        'html body.clinic-login-page .page-card .page-card-head .app-logo,' +
+        'html body[data-path="login"] .page-card .page-card-head img,' +
+        'html body[data-path="login"] .page-card .page-card-head .app-logo {' +
+        '  width: auto !important;' +
+        '  min-width: 0 !important;' +
+        '  height: 86px !important;' +
+        '  max-height: 86px !important;' +
+        '  max-width: 200px !important;' +
+        '  object-fit: contain !important;' +
+        '  background: transparent !important;' +
+        '  background-color: transparent !important;' +
+        '  border: none !important;' +
+        '  border-radius: 0 !important;' +
+        '  padding: 0 !important;' +
+        '  box-shadow: none !important;' +
+        '  margin: 0 auto 14px !important;' +
+        '  display: block !important;' +
+        '}' +
+        'html body.clinic-login-page .page-card .page-card-head div,' +
+        'html body.clinic-login-page .page-card .page-card-head p,' +
+        'html body.clinic-login-page .page-card .page-card-head span,' +
+        'html body.clinic-login-page .page-card .page-card-head small,' +
+        'html body.clinic-login-page .page-card .page-card-head .text-muted,' +
+        'html body.clinic-login-page .page-card .page-card-head .text-secondary,' +
+        'html body.clinic-login-page .page-card .page-card-head .subtitle,' +
+        'html body.clinic-login-page .page-card .page-card-head .welcome-text,' +
+        'html body.clinic-login-page .page-card .page-card-head .login-subtitle,' +
+        'html body[data-path="login"] .page-card .page-card-head div,' +
+        'html body[data-path="login"] .page-card .page-card-head p,' +
+        'html body[data-path="login"] .page-card .page-card-head span,' +
+        'html body[data-path="login"] .page-card .page-card-head small,' +
+        'html body[data-path="login"] .page-card .page-card-head .text-muted,' +
+        'html body[data-path="login"] .page-card .page-card-head .text-secondary,' +
+        'html body[data-path="login"] .page-card .page-card-head .subtitle,' +
+        'html body[data-path="login"] .page-card .page-card-head .welcome-text,' +
+        'html body[data-path="login"] .page-card .page-card-head .login-subtitle {' +
+        '  color: #2f5241 !important;' +
+        '  font-size: 14px !important;' +
+        '  font-weight: 500 !important;' +
+        '  line-height: 1.45 !important;' +
+        '  margin: 0 !important;' +
+        '  opacity: 1 !important;' +
+        '  visibility: visible !important;' +
+        '}' +
+        'html body.clinic-login-page .page-card .page-card-head h1,' +
+        'html body.clinic-login-page .page-card .page-card-head h2,' +
+        'html body.clinic-login-page .page-card .page-card-head h3,' +
+        'html body.clinic-login-page .page-card .page-card-head h4,' +
+        'html body[data-path="login"] .page-card .page-card-head h1,' +
+        'html body[data-path="login"] .page-card .page-card-head h2,' +
+        'html body[data-path="login"] .page-card .page-card-head h3,' +
+        'html body[data-path="login"] .page-card .page-card-head h4 {' +
+        '  color: #0d3d27 !important;' +
+        '  font-weight: 800 !important;' +
+        '  font-size: 1.35rem !important;' +
+        '  line-height: 1.25 !important;' +
+        '  margin: 0 0 6px !important;' +
+        '  opacity: 1 !important;' +
+        '  visibility: visible !important;' +
+        '}' +
+        'html body.clinic-login-page .page-card .page-card-head h1 *,' +
+        'html body.clinic-login-page .page-card .page-card-head h2 *,' +
+        'html body.clinic-login-page .page-card .page-card-head h3 *,' +
+        'html body.clinic-login-page .page-card .page-card-head h4 *,' +
+        'html body[data-path="login"] .page-card .page-card-head h1 *,' +
+        'html body[data-path="login"] .page-card .page-card-head h2 *,' +
+        'html body[data-path="login"] .page-card .page-card-head h3 *,' +
+        'html body[data-path="login"] .page-card .page-card-head h4 * {' +
+        '  color: #0d3d27 !important;' +
+        '  font-weight: 800 !important;' +
+        '  font-size: inherit !important;' +
+        '}' +
+        'html body.clinic-login-page .login-content, html body[data-path="login"] .login-content,' +
+        'html body.clinic-login-page .page-card-body, html body[data-path="login"] .page-card-body,' +
+        'html body.clinic-login-page .form-signin, html body[data-path="login"] .form-signin {' +
+        '  padding: 14px 22px 26px !important;' +
+        '}' +
+        'html body.clinic-login-page .page-card .page-card-body .form-signin,' +
+        'html body[data-path="login"] .page-card .page-card-body .form-signin {' +
+        '  padding: 0 !important;' +
+        '}' +
+        'html body.clinic-login-page .form-control, html body[data-path="login"] .form-control {' +
         '  border: 1.5px solid #cfe0d7 !important;' +
         '  border-radius: 9px !important;' +
         '  padding: 10px 12px !important;' +
@@ -518,58 +588,112 @@
         '  color: #11281e !important;' +
         '  font-size: 14.5px !important;' +
         '}' +
-        'body.clinic-login-page .form-control:focus, body[data-path="login"] .form-control:focus {' +
+        'html body.clinic-login-page .form-control:focus, html body[data-path="login"] .form-control:focus {' +
         '  border-color: #125c3a !important;' +
         '  box-shadow: 0 0 0 3px rgba(140, 201, 181, 0.45) !important;' +
         '  outline: none !important;' +
         '}' +
-        'body.clinic-login-page .btn-login, body[data-path="login"] .btn-login,' +
-        'body.clinic-login-page .btn-primary, body[data-path="login"] .btn-primary {' +
+        'html body.clinic-login-page .page-card button[type="submit"]:not(.toggle-password):not(.btn-login-with-email-link):not(.btn-default),' +
+        'html body.clinic-login-page .page-card .btn-login,' +
+        'html body.clinic-login-page .page-card .btn-primary,' +
+        'html body.clinic-login-page .page-card button[data-clinic-login-submit="1"],' +
+        'html body[data-path="login"] .page-card button[type="submit"]:not(.toggle-password):not(.btn-login-with-email-link):not(.btn-default),' +
+        'html body[data-path="login"] .page-card .btn-login,' +
+        'html body[data-path="login"] .page-card .btn-primary,' +
+        'html body[data-path="login"] .page-card button[data-clinic-login-submit="1"] {' +
         '  background: linear-gradient(135deg, #125c3a 0%, #0d3d27 100%) !important;' +
-        '  border: none !important;' +
+        '  background-color: #125c3a !important;' +
+        '  border: 1.5px solid #0d3d27 !important;' +
         '  border-radius: 9px !important;' +
-        '  color: #ffffff !important;' +
+        '  color: #f1c40f !important;' +
         '  font-weight: 800 !important;' +
         '  font-size: 15px !important;' +
         '  padding: 10px 16px !important;' +
         '  box-shadow: 0 4px 12px rgba(18, 92, 58, 0.24) !important;' +
         '}' +
-        'body.clinic-login-page .btn-login:hover, body[data-path="login"] .btn-login:hover,' +
-        'body.clinic-login-page .btn-primary:hover, body[data-path="login"] .btn-primary:hover {' +
-        '  filter: brightness(1.08) !important;' +
+        'html body.clinic-login-page .page-card button[data-clinic-login-submit="1"] *,' +
+        'html body.clinic-login-page .page-card .btn-login *,' +
+        'html body.clinic-login-page .page-card .btn-primary *,' +
+        'html body[data-path="login"] .page-card button[data-clinic-login-submit="1"] *,' +
+        'html body[data-path="login"] .page-card .btn-login *,' +
+        'html body[data-path="login"] .page-card .btn-primary * {' +
+        '  color: #f1c40f !important;' +
         '}' +
-        'body.clinic-login-page .forgot-password-message a, body[data-path="login"] .forgot-password-message a,' +
-        'body.clinic-login-page .page-card a, body[data-path="login"] .page-card a {' +
+        'html body.clinic-login-page .page-card button[type="submit"]:not(.toggle-password):not(.btn-login-with-email-link):not(.btn-default):hover,' +
+        'html body.clinic-login-page .page-card .btn-login:hover,' +
+        'html body.clinic-login-page .page-card .btn-primary:hover,' +
+        'html body.clinic-login-page .page-card button[data-clinic-login-submit="1"]:hover,' +
+        'html body[data-path="login"] .page-card button[type="submit"]:not(.toggle-password):not(.btn-login-with-email-link):not(.btn-default):hover,' +
+        'html body[data-path="login"] .page-card .btn-login:hover,' +
+        'html body[data-path="login"] .page-card .btn-primary:hover,' +
+        'html body[data-path="login"] .page-card button[data-clinic-login-submit="1"]:hover {' +
+        '  background: linear-gradient(135deg, #167047 0%, #125c3a 100%) !important;' +
+        '  background-color: #167047 !important;' +
+        '  color: #ffd83b !important;' +
+        '}' +
+        'html body.clinic-login-page .page-card .btn-login-with-email-link,' +
+        'html body.clinic-login-page .page-card .btn-default,' +
+        'html body[data-path="login"] .page-card .btn-login-with-email-link,' +
+        'html body[data-path="login"] .page-card .btn-default {' +
+        '  background: #f2f8f4 !important;' +
+        '  background-color: #f2f8f4 !important;' +
+        '  border: 1.5px solid #cfe0d7 !important;' +
+        '  border-radius: 9px !important;' +
         '  color: #125c3a !important;' +
         '  font-weight: 700 !important;' +
         '}' +
-        'body.clinic-login-page .password-field .toggle-password, body[data-path="login"] .password-field .toggle-password {' +
+        'html body.clinic-login-page .forgot-password-message a, html body[data-path="login"] .forgot-password-message a,' +
+        'html body.clinic-login-page .page-card a, html body[data-path="login"] .page-card a {' +
+        '  color: #125c3a !important;' +
+        '  font-weight: 700 !important;' +
+        '}' +
+        'html body.clinic-login-page .password-field .toggle-password, html body[data-path="login"] .password-field .toggle-password {' +
         '  top: 50% !important;' +
         '  transform: translateY(-50%) !important;' +
         '  color: #125c3a !important;' +
         '}' +
-        'body.clinic-login-page .web-footer, body[data-path="login"] .web-footer {' +
+        'html body.clinic-login-page .web-footer, html body[data-path="login"] .web-footer {' +
         '  background: transparent !important;' +
         '  border-top: 1px solid #cfe0d7 !important;' +
         '}';
-      document.head.appendChild(st);
+      (document.body || document.head).appendChild(st);
+    } else if (document.body && st.parentNode !== document.body) {
+      document.body.appendChild(st);
     }
 
     var heads = document.querySelectorAll('.page-card-head');
     for (var i = 0; i < heads.length; i++) {
       var head = heads[i];
-      var logo = head.querySelector('img.app-logo');
+      head.style.background = 'transparent';
+      head.style.borderBottom = 'none';
+      var oldPill = head.querySelector('.clinic-login-brand-pill');
+      if (oldPill) oldPill.remove();
+
+      var logo = head.querySelector('img.app-logo, img');
       if (logo) {
-        logo.src = '/files/logo.png';
+        if (!logo.getAttribute('src')) logo.src = '/files/logo.png';
         logo.alt = 'Jeevan Healthcare';
+        var node = logo.parentElement;
+        while (node && node !== head) {
+          node.style.background = 'transparent';
+          node.style.border = 'none';
+          node.style.borderRadius = '0';
+          node.style.boxShadow = 'none';
+          node.style.padding = '0';
+          node = node.parentElement;
+        }
       }
-      if (!head.querySelector('.clinic-login-brand-pill')) {
-        var badge = document.createElement('div');
-        badge.className = 'clinic-login-brand-pill';
-        badge.textContent = 'Jeevan Healthcare & Medicals';
-        var h4 = head.querySelector('h4');
-        if (h4) head.insertBefore(badge, h4);
-        else head.appendChild(badge);
+    }
+
+    var btns = document.querySelectorAll('.page-card button, .page-card input[type="submit"]');
+    for (var j = 0; j < btns.length; j++) {
+      var btn = btns[j];
+      if (btn.classList.contains('toggle-password') || btn.classList.contains('btn-login-with-email-link') || btn.classList.contains('btn-default')) {
+        continue;
+      }
+      var label = (btn.textContent || btn.value || '').trim().toLowerCase();
+      if (btn.type === 'submit' || btn.classList.contains('btn-login') || btn.classList.contains('btn-primary') || label === 'continue' || label === 'login' || label === 'sign in') {
+        btn.setAttribute('data-clinic-login-submit', '1');
       }
     }
   }
