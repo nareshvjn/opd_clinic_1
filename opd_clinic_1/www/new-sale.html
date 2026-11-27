@@ -173,6 +173,21 @@
   #ns .btn.saving{opacity:.85;cursor:wait;display:inline-flex;align-items:center;justify-content:center;gap:8px}
   #ns .btn.saving::before{content:"";width:15px;height:15px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:ns-spin .7s linear infinite}
   #ns .saving-note{margin:8px 0 0;font-size:.86rem;font-weight:700;color:var(--pri);text-align:right}
+  #ns .top-actions{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+  #ns .top-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    background:rgba(255,255,255,0.18);
+    border:1.5px solid rgba(255,255,255,0.45);
+    padding:5px 12px;
+    border-radius:8px;
+    color:#fff;
+    text-decoration:none;
+    font-size:.82rem;
+    font-weight:700;
+    white-space:nowrap;
+  }
   @media(max-width:560px){
     #ns .g4{grid-template-columns:1fr 1fr}
     #ns .rates{grid-template-columns:1fr 1fr}
@@ -185,12 +200,14 @@
 <a href="/pharmacy" class="back-link">&#8592; Back to Pharmacy</a>
 
 <div class="top">
-  <div style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+  <div style="width:100%">
     <h1 style="margin:0">💊 Point of Sale (New Sale)</h1>
-    <a href="/clinic" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);padding:5px 12px;border-radius:8px;color:#fff;text-decoration:none;font-size:.82rem;font-weight:700;white-space:nowrap">🏠 Home</a>
   </div>
   <div style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-    <a href="/pharmacy-home" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);padding:5px 12px;border-radius:8px;color:#fff;text-decoration:none;font-size:.82rem;font-weight:700;white-space:nowrap">💊 Pharmacy</a>
+    <div class="top-actions">
+      <a href="/clinic" class="top-btn">🏠 Home</a>
+      <a href="/pharmacy-home" class="top-btn">💊 Pharmacy</a>
+    </div>
     <label style="margin:0;font-size:.84rem;color:#fff;display:flex;align-items:center;gap:6px">Store: <select id="wh" style="width:auto;display:inline-block;padding:6px 10px;background:#fff;border-radius:6px"></select></label>
   </div>
 </div>
