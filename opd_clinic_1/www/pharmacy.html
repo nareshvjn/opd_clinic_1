@@ -189,12 +189,119 @@
   #ph .bt.out{background:var(--err)}
   #ph .bt.warn{background:var(--warn)}
   #ph .sum{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:.95rem}
+  #ph .batch-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    background:#ebf7f1;
+    color:var(--pri);
+    border:1px solid #b6dec9;
+    border-radius:6px;
+    padding:3px 9px;
+    font:800 .92rem inherit;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  #ph .batch-btn:hover{background:var(--pri);color:#fff;border-color:var(--pri)}
+  #ph .bd-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    margin-bottom:12px;
+    box-shadow:var(--shadow-sm);
+  }
+  #ph .bd-card{
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:12px;
+    box-shadow:var(--shadow-sm);
+  }
+  #ph .bd-pill{
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:6px;
+    font-size:.76rem;
+    font-weight:800;
+    letter-spacing:.2px;
+  }
+  #ph .bd-pill.ok{background:#15803d;color:#fff}
+  #ph .bd-pill.out{background:var(--err);color:#fff}
+  #ph .bd-pill.warn{background:var(--warn);color:#fff}
+  #ph .bd-pill.paid{background:#dcfce7;color:#15803d}
+  #ph .bd-pill.unpaid{background:#fee2e2;color:#b91c1c}
+  #ph .bd-pill.part{background:#fef3c7;color:#b45309}
+  #ph .bd-pill.ret{background:#f3f4f6;color:#4b5563}
+  #ph .bd-av{
+    width:38px;
+    height:38px;
+    border-radius:10px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    font-size:.88rem;
+    flex:none;
+  }
+  #ph .bd-av.pur{background:#fde8ec;color:#be123c}
+  #ph .bd-av.sal{background:#efe8fd;color:#6d28d9}
+  #ph .bd-div{border-top:1px solid var(--line);margin:12px 0}
+  #ph .bd-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  #ph .bd-g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  #ph .bd-m-lbl{font-size:.76rem;color:var(--mute);font-weight:600;margin-bottom:2px}
+  #ph .bd-m-val{font-size:.98rem;font-weight:800;color:var(--ink)}
+  #ph .bd-hi{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 14px;
+    border-radius:10px;
+    background:#e8f6ee;
+    color:#0d5c37;
+    font-weight:800;
+    margin-top:12px;
+    font-size:.94rem;
+  }
+  #ph .bd-hi.neg{background:#fdf2f2;color:var(--err)}
+  #ph .bd-datebar{
+    display:flex;
+    gap:8px;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+    padding:10px 12px;
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+  }
+  #ph .bd-datebar > div{flex:1;min-width:130px}
+  #ph .bd-datebar label{margin-top:0;font-size:.76rem}
+  #ph .bd-datebar input{padding:7px 10px;font-size:.88rem}
+  #ph .bd-sum{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+    padding:10px 14px;
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:10px;
+    margin-bottom:12px;
+    font-size:.88rem;
+  }
 
   #ph .top-home-btn:hover{background:rgba(255,255,255,0.3);color:#fff}
   @media(max-width:540px){
     #ph .g2{grid-template-columns:1fr}
     #ph .top{flex-direction:column;align-items:stretch}
     #ph .action-bar{flex-direction:column}
+    #ph .bd-g4{grid-template-columns:1fr 1fr}
   }
 </style>
 
@@ -287,11 +394,6 @@
 
 <!-- TAB 3: STOCK LIST -->
 <section id="t-list" hidden>
-  <div class="action-bar">
-    <a href="/add-stock" class="btn go">+ Add stock</a>
-    <a href="/stock-import" class="btn subtle">Import stock</a>
-  </div>
-
   <div class="card" id="ls-edit" hidden>
     <div class="split" style="align-items:center"><h2 id="ls-title" style="margin:0"></h2><button type="button" class="link" id="ls-cancel">Cancel</button></div>
     <div id="f-ed"></div>
@@ -299,16 +401,41 @@
     <p style="margin:14px 0 0"><button type="button" class="btn go" id="ls-save" style="width:100%">Save changes</button></p>
   </div>
 
-  <div class="card">
-    <h2>Stock list</h2>
-    <label for="ls-q" style="margin-top:0">Search product or batch</label>
-    <input id="ls-q" autocomplete="off" placeholder="Leave empty to see everything">
-    <div class="g2">
-      <div><label for="ls-f">Show</label><select id="ls-f"><option value="all" selected>All medicines</option><option value="stock">In stock</option><option value="zero">Out of stock</option><option value="soon">Expiring in 90 days</option><option value="expired">Expired</option></select></div>
-      <div><label for="ls-s">Sort by</label><select id="ls-s"><option value="name">Product name</option><option value="exp">Expiry (earliest first)</option><option value="qty">Quantity (lowest first)</option></select></div>
+  <div id="ls-main">
+    <div class="action-bar">
+      <a href="/add-stock" class="btn go">+ Add stock</a>
+      <a href="/stock-import" class="btn subtle">Import stock</a>
     </div>
-    <p class="hint" id="ls-sum" style="margin-top:10px"></p>
-    <div id="ls-rows" style="margin-top:10px"></div>
+
+    <div class="card">
+      <h2>Stock list</h2>
+      <label for="ls-q" style="margin-top:0">Search product or batch</label>
+      <input id="ls-q" autocomplete="off" placeholder="Leave empty to see everything">
+      <div class="g2">
+        <div><label for="ls-f">Show</label><select id="ls-f"><option value="all" selected>All medicines</option><option value="stock">In stock</option><option value="zero">Out of stock</option><option value="soon">Expiring in 90 days</option><option value="expired">Expired</option></select></div>
+        <div><label for="ls-s">Sort by</label><select id="ls-s"><option value="name">Product name</option><option value="exp">Expiry (earliest first)</option><option value="qty">Quantity (lowest first)</option></select></div>
+      </div>
+      <p class="hint" id="ls-sum" style="margin-top:10px"></p>
+      <div id="ls-rows" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div id="ls-detail" hidden>
+    <div class="bd-head">
+      <button type="button" class="btn subtle sm" id="bd-back">&#8592; Back</button>
+      <div style="min-width:0;flex:1">
+        <div id="bd-title" style="font-size:1.06rem;font-weight:900;color:var(--ink);word-break:break-word"></div>
+        <div id="bd-sub" class="hint" style="margin-top:1px"></div>
+      </div>
+    </div>
+
+    <div class="tabs bd-tabs" id="bd-tabs" role="tablist" style="margin-bottom:14px">
+      <button type="button" data-bt="batch" aria-selected="true">Batch</button>
+      <button type="button" data-bt="purchase" aria-selected="false">Purchase <span id="bd-cnt-p"></span></button>
+      <button type="button" data-bt="sales" aria-selected="false">Sales <span id="bd-cnt-s"></span></button>
+    </div>
+
+    <div id="bd-body"></div>
   </div>
 </section>
 
@@ -316,13 +443,24 @@
 (function(){
 var $=function(s){return document.querySelector('#ph '+s)};
 var csrf='',wh='';
-var ls={rows:[],cur:null,open:null,total:0};
+var ls={rows:[],cur:null,open:null,total:0,detailBatch:null,detailTab:'batch',detailData:null,fromDate:'',toDate:''};
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function n(v){v=parseFloat(v);return isNaN(v)?0:v}
 function inr(v){return '\u20B9'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function mmyy(d){if(!d)return '-';var p=d.split('-');return p[1]+'/'+p[0].slice(2)}
 function fmtDate(d){if(!d)return '-';var p=(d||'').slice(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function shortDate(d){
+  if(!d)return '-';
+  var p=(d||'').slice(0,10).split('-');
+  if(p.length<3)return d;
+  var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(p[1],10)-1]||p[1];
+  return p[2]+'-'+mo+'-'+p[0].slice(2);
+}
+function initials(s){
+  var w=(s||'').trim().replace(/[^A-Za-z0-9]/g,'');
+  return (w.slice(0,2)||'--').toUpperCase();
+}
 function qtyText(q,u){
   u=Math.max(1,n(u));
   var pk=Math.floor(q/u+1e-9),ls=Math.round(q-pk*u);
@@ -351,9 +489,9 @@ function call(method,params,post){
 }
 
 // Tab switcher
-document.querySelectorAll('#ph .tabs button').forEach(function(b){
+document.querySelectorAll('#ph > .tabs button').forEach(function(b){
   b.onclick=function(){
-    document.querySelectorAll('#ph .tabs button').forEach(function(x){x.setAttribute('aria-selected',String(x===b))});
+    document.querySelectorAll('#ph > .tabs button').forEach(function(x){x.setAttribute('aria-selected',String(x===b))});
     ['sale','purchase','list'].forEach(function(t){$('#t-'+t).hidden=(t!==b.dataset.t)});
     toast('');
     if(b.dataset.t==='list'&&!ls.rows.length) loadList();
@@ -368,12 +506,25 @@ document.querySelectorAll('#ph .tabs button').forEach(function(b){
 // Hash anchor handler (#sale, #purchase, #list)
 var h=(location.hash||'').replace('#','');
 if(h==='sale'||h==='purchase'||h==='list'){
-  var btn=document.querySelector('#ph .tabs button[data-t="'+h+'"]');
+  var btn=document.querySelector('#ph > .tabs button[data-t="'+h+'"]');
   if(btn) btn.click();
 }
 
 function localIso(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 var isAdmin=false, serverToday=localIso();
+
+function amendInvoice(doctype, invName){
+  var isSale=(doctype==='Sales Invoice');
+  var msg=isSale
+    ? 'Edit sale invoice '+invName+'? This will load the bill so you can make adjustments. The original invoice stays active until you complete the sale.'
+    : 'Edit purchase invoice '+invName+'? This will load the purchase so you can make adjustments. The original invoice stays active until you save.';
+  if(!confirm(msg)) return;
+  toast(isSale?'Loading sale...':'Loading purchase...');
+  call('ph_amend',{doctype:doctype,name:invName},true).then(function(r){
+    sessionStorage.setItem(isSale?'edit_sale':'edit_purchase',JSON.stringify(r));
+    window.location.href=isSale?'/new-sale':'/new-purchase';
+  }).catch(function(err){toast(err.message,1)});
+}
 
 call('ph_meta').then(function(m){
   csrf=m.csrf||'';wh=m.warehouse||'';
@@ -384,7 +535,11 @@ call('ph_meta').then(function(m){
   $('#sl-date-search').click();
 }).catch(function(e){toast(e.message,1)});
 
-$('#wh').onchange=function(){wh=this.value;loadList()};
+$('#wh').onchange=function(){
+  wh=this.value;
+  loadList();
+  if(ls.detailBatch) loadBatchDetail(ls.detailBatch);
+};
 
 // ==========================
 // SALES SECTION (BY DATE)
@@ -449,15 +604,7 @@ $('#sl-date-search').onclick=function(){
 
 $('#sl-list').onclick=function(e){
   var ed=e.target.closest('[data-edit-sale]');
-  if(ed){
-    var invName=ed.dataset.editSale;
-    if(!confirm('Edit sale invoice '+invName+'? This will load the bill so you can make adjustments. The original invoice stays active until you complete the sale.')) return;
-    toast('Loading sale...');
-    call('ph_amend',{doctype:'Sales Invoice',name:invName},true).then(function(r){
-      sessionStorage.setItem('edit_sale',JSON.stringify(r));
-      window.location.href='/new-sale';
-    }).catch(function(err){toast(err.message,1)});
-  }
+  if(ed) amendInvoice('Sales Invoice', ed.dataset.editSale);
 };
 
 // ==========================
@@ -523,15 +670,7 @@ $('#pu-date-search').onclick=function(){
 
 $('#pu-list').onclick=function(e){
   var ed=e.target.closest('[data-edit-purchase]');
-  if(ed){
-    var invName=ed.dataset.editPurchase;
-    if(!confirm('Edit purchase invoice '+invName+'? This will load the purchase so you can make adjustments. The original invoice stays active until you save.')) return;
-    toast('Loading purchase...');
-    call('ph_amend',{doctype:'Purchase Invoice',name:invName},true).then(function(r){
-      sessionStorage.setItem('edit_purchase',JSON.stringify(r));
-      window.location.href='/new-purchase';
-    }).catch(function(err){toast(err.message,1)});
-  }
+  if(ed) amendInvoice('Purchase Invoice', ed.dataset.editPurchase);
 };
 
 // ==========================
@@ -688,7 +827,7 @@ function renderList(){
         if(!b.batch && b.qty<=0) return '<div class="sr"><span class="mute">Out of stock. No batches yet.</span><a class="btn sm go" style="text-decoration:none" href="/add-stock">Add stock</a></div>';
         if(!b.batch && b.qty>0) return '<div class="sr"><div><b>Stock without batch</b><br><span class="mute">'+qtyText(b.qty,b.upp)+'</span></div><div class="acts"><a class="btn sm go" style="text-decoration:none" href="/add-stock">Add batch</a></div></div>';
         var bs=expState(b.expiry);
-        return '<div class="sr"><div><b>'+esc(b.batch)+'</b>'+(bs.k?'<span class="bt '+(bs.k==='expired'?'out':'warn')+'">'+bs.t+'</span>':'')+
+        return '<div class="sr"><div><button type="button" class="batch-btn" data-batch-detail="'+esc(b.batch)+'">'+esc(b.batch)+' &#8250;</button>'+(bs.k?'<span class="bt '+(bs.k==='expired'?'out':'warn')+'">'+bs.t+'</span>':'')+
           '<br><span class="mute">Exp '+mmyy(b.expiry)+', '+qtyText(b.qty,b.upp)+'</span><br><span class="mute">MRP '+inr(b.mrp)+', '+b.upp+' per pack</span></div>'+
           '<div class="acts"><button type="button" class="btn" data-b="'+esc(b.batch)+'">Edit</button><button type="button" class="link dg" data-del="'+esc(b.batch)+'">Delete</button></div></div>'
       }).join('')+'</div>'
@@ -700,24 +839,19 @@ function renderList(){
 $('#ls-q').oninput=debounce(loadList);
 $('#ls-f').onchange=$('#ls-s').onchange=renderList;
 
-function doDelete(payload,confirmMsg){
+function doDelete(payload,confirmMsg,onDone){
   if(!confirm(confirmMsg)) return;
   payload.warehouse=wh;
   call('ph_stock_delete',payload,true).then(function(r){
-    toast('Removed '+r.deleted+'. Stock adjustment: '+r.document+'.');
+    var what=r.deleted||(r.batches!=null?r.batches+' batch(es)':'stock');
+    toast('Removed '+what+'.'+(r.document?' Stock adjustment: '+r.document+'.':''));
+    if(onDone) onDone();
     loadList();
   }).catch(function(e){toast(e.message,1)})
 }
 
-$('#ls-rows').onclick=function(e){
-  var tg=e.target.closest('button[data-p]');
-  if(tg){ls.open=ls.open===tg.dataset.p?null:tg.dataset.p;renderList();return}
-  var di=e.target.closest('button[data-delitem]');
-  if(di){doDelete({item:di.dataset.delitem,remove_item:'1'},'Delete the product '+di.dataset.nm+'?');return}
-  var dl=e.target.closest('button[data-del]');
-  if(dl){doDelete({batch:dl.dataset.del},'Delete batch '+dl.dataset.del+'? Stock will be cleared to zero.');return}
-  var bt=e.target.closest('button[data-b]');if(!bt)return;
-  var b=null;ls.rows.forEach(function(x){if(x.batch===bt.dataset.b)b=x});if(!b)return;
+function openEditBatch(b){
+  if(!b)return;
   ls.cur=b;toast('');
   $('#ls-title').textContent='Edit '+b.name;g('ed','bno').value=b.batch;
   g('ed','exp').value=(b.expiry||'').slice(0,7);
@@ -731,7 +865,324 @@ $('#ls-rows').onclick=function(e){
   var un=Math.round(b.qty-pk*upp);
   g('ed','packs').value=pk;g('ed','units').value=un;
   ls.total=b.qty;calc('ed');
-  $('#ls-edit').hidden=false;$('#ls-edit').scrollIntoView({block:'start',behavior:'smooth'})
+  if(ls.detailBatch) $('#ls-detail').hidden=true;
+  $('#ls-edit').hidden=false;$('#ls-edit').scrollIntoView({block:'start',behavior:'smooth'});
+}
+
+function openBatchDetail(bname,pushHist){
+  if(!bname)return;
+  var isNew=(ls.detailBatch!==bname);
+  ls.detailBatch=bname;
+  if(isNew){
+    ls.detailTab='batch';
+    ls.fromDate='';
+    ls.toDate='';
+    ls.detailData=null;
+  }
+  var cached=null;
+  ls.rows.forEach(function(x){if(x.batch===bname)cached=x});
+  $('#bd-title').textContent=cached?cached.name:bname;
+  $('#bd-sub').textContent='Batch: '+bname+(wh?' \u00B7 Store: '+wh:'');
+  $('#bd-cnt-p').textContent='';
+  $('#bd-cnt-s').textContent='';
+  $('#ls-edit').hidden=true;
+  $('#ls-main').hidden=true;
+  $('#ls-detail').hidden=false;
+  $('#ls-detail').scrollIntoView({block:'start',behavior:'smooth'});
+  if(pushHist && window.history && window.history.pushState){
+    try{window.history.pushState({batchDetail:bname},'')}catch(e){}
+  }
+  loadBatchDetail(bname);
+}
+
+function closeBatchDetail(fromPop){
+  ls.detailBatch=null;
+  ls.detailData=null;
+  ls.fromDate='';
+  ls.toDate='';
+  $('#ls-edit').hidden=true;
+  $('#ls-detail').hidden=true;
+  $('#ls-main').hidden=false;
+  if(!fromPop && window.history && window.history.state && window.history.state.batchDetail){
+    try{window.history.back()}catch(e){}
+  }
+}
+
+function loadBatchDetail(bname){
+  bname=bname||ls.detailBatch;
+  if(!bname)return;
+  $('#bd-body').innerHTML='<div class="bd-card"><p class="hint">Loading batch details...</p></div>';
+  var params={batch:bname,warehouse:wh};
+  if(ls.fromDate) params.from_date=ls.fromDate;
+  if(ls.toDate) params.to_date=ls.toDate;
+  call('ph_batch_detail',params).then(function(r){
+    if(ls.detailBatch!==bname) return;
+    ls.detailData=r;
+    if(r.is_admin!==undefined) isAdmin=!!r.is_admin;
+    if(r.today) serverToday=r.today;
+    var b=r.batch||{};
+    $('#bd-title').textContent=b.name||bname;
+    $('#bd-sub').textContent='Batch: '+(b.batch||bname)+(wh?' \u00B7 Store: '+wh:'');
+    var pCnt=(r.purchases||[]).length,sCnt=(r.sales||[]).length;
+    $('#bd-cnt-p').textContent=pCnt?'('+pCnt+')':'';
+    $('#bd-cnt-s').textContent=sCnt?'('+sCnt+')':'';
+    renderBatchDetail();
+  }).catch(function(e){
+    $('#bd-body').innerHTML='<div class="bd-card"><p class="hint" style="color:var(--err)">'+esc(e.message)+'</p></div>';
+  });
+}
+
+function renderBatchTab(b){
+  var inStock=n(b.qty)>0;
+  var bs=expState(b.expiry);
+  var whRows='';
+  if(b.warehouses && b.warehouses.length>1){
+    whRows='<div class="bd-card"><div class="bd-m-lbl" style="text-transform:uppercase;margin-bottom:8px">Stock Across Stores</div>'+
+      b.warehouses.map(function(w){
+        return '<div class="sr" style="padding:7px 0"><span>'+esc(w.warehouse)+(w.warehouse===wh?' <span class="hint">(Current)</span>':'')+'</span><b>'+qtyText(w.qty,b.upp)+'</b></div>';
+      }).join('')+
+      '<div class="sum" style="font-weight:800;margin-top:4px"><span>Total across stores</span><span>'+qtyText(b.total_qty,b.upp)+'</span></div></div>';
+  }
+  var batchMeta=[];
+  if(b.batch_id && b.batch_id!==b.batch) batchMeta.push('Batch ID: '+esc(b.batch_id));
+  if(b.hsn) batchMeta.push('HSN: '+esc(b.hsn));
+  batchMeta.push('GST: '+n(b.gst)+'%');
+  return '<div class="bd-card">'+
+    '<div class="split" style="align-items:center;margin-bottom:14px">'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+
+        '<span class="bd-pill '+(inStock?'ok':'out')+'">'+(inStock?'In Stock':'Out of Stock')+'</span>'+
+        (bs.k?'<span class="bd-pill '+(bs.k==='expired'?'out':'warn')+'">'+bs.t+'</span>':'')+
+      '</div>'+
+      '<button type="button" class="btn subtle sm" id="bd-edit-btn">&#9998; Edit Batch</button>'+
+    '</div>'+
+    '<div class="split" style="align-items:flex-start;gap:12px">'+
+      '<div>'+
+        '<div style="font-size:1.12rem;font-weight:900;color:var(--ink)">'+esc(b.batch)+'</div>'+
+        '<div class="hint" style="margin-top:3px">Expiry Date: <b>'+mmyy(b.expiry)+'</b>'+(b.expiry?' ('+fmtDate(b.expiry)+')':'')+'</div>'+
+        '<div class="hint" style="margin-top:2px;font-size:.78rem">'+batchMeta.join(' &middot; ')+'</div>'+
+      '</div>'+
+      '<div class="r">'+
+        '<div style="font-size:1.05rem;font-weight:900;color:var(--ink)">'+qtyText(b.qty,b.upp)+'</div>'+
+        '<div class="hint" style="margin-top:3px">'+n(b.upp)+' unit(s) per pack</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="bd-div"></div>'+
+    '<div class="bd-g3">'+
+      '<div><div class="bd-m-lbl">MRP Rate</div><div class="bd-m-val">'+inr(b.mrp)+'</div></div>'+
+      '<div><div class="bd-m-lbl">Purc Rate</div><div class="bd-m-val">'+inr(b.purchase_rate)+'</div></div>'+
+      '<div><div class="bd-m-lbl">Net Rate</div><div class="bd-m-val">'+inr(b.net_rate)+'</div></div>'+
+    '</div>'+
+    '<div class="bd-hi"><span>Margin</span><span>'+n(b.margin_pct).toFixed(2)+'%</span></div>'+
+    '<div class="split" style="align-items:center;margin-top:10px;font-size:.86rem;color:var(--mute)">'+
+      '<span>Remaining stock value at cost</span><b style="color:var(--ink)">'+inr(b.stock_value)+'</b>'+
+    '</div>'+
+  '</div>'+whRows+
+  '<div class="action-bar" style="margin-top:4px">'+
+    '<a href="/new-sale" class="btn go">+ New Sale</a>'+
+    '<button type="button" class="btn red" id="bd-del-btn">Delete Batch</button>'+
+  '</div>';
+}
+
+function renderDateFilterBar(summaryHtml){
+  return '<div class="bd-datebar">'+
+    '<div><label for="bd-from">From date</label><input id="bd-from" type="date" value="'+esc(ls.fromDate)+'"></div>'+
+    '<div><label for="bd-to">To date</label><input id="bd-to" type="date" value="'+esc(ls.toDate)+'"></div>'+
+    '<button type="button" class="btn sm" id="bd-filter-go">Apply</button>'+
+    ((ls.fromDate||ls.toDate)?'<button type="button" class="btn subtle sm" id="bd-filter-clr">Reset</button>':'')+
+  '</div>'+summaryHtml;
+}
+
+function renderPurchaseTab(r){
+  var b=r.batch||{}, list=r.purchases||[], adj=r.stock_entries||[];
+  var totUnits=0;
+  list.forEach(function(p){totUnits+=n(p.qty_units)});
+  var sumHtml=list.length
+    ? '<div class="bd-sum"><span><b>'+list.length+'</b> purchase record(s)</span><span>Net qty: <b>'+qtyText(Math.max(0,totUnits),b.upp)+'</b></span></div>'
+    : '';
+  var html=renderDateFilterBar(sumHtml);
+
+  if(list.length){
+    html+=list.map(function(p){
+      var isRet=Boolean(p.is_return);
+      var stCls=isRet?'ret':(p.status==='Paid'?'paid':(p.status==='Partially Paid'?'part':'unpaid'));
+      var qtyLbl=p.billed_packs+' pack'+(p.billed_packs===1?'':'s');
+      if(p.loose_units>0) qtyLbl+=', '+p.loose_units+'u';
+      if(p.free_packs>0) qtyLbl+=' (+'+p.free_packs+' free)';
+      var invPostDate=(p.posting_date||p.bill_date||'').slice(0,10);
+      var canEdit=isAdmin || !serverToday || !invPostDate || invPostDate>=serverToday;
+      var editBtn=canEdit
+        ? (isRet?'<a class="btn sm" href="/purchase-return?edit='+encodeURIComponent(p.invoice)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-purchase="'+esc(p.invoice)+'">Edit</button>')
+        : '';
+      var docTitle=p.bill_no?esc(p.bill_no):esc(p.invoice);
+      var docSub=p.bill_no?' <span class="hint">('+esc(p.invoice)+')</span>':'';
+      return '<div class="bd-card">'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">'+
+          '<span class="bd-av pur">'+esc(initials(p.supplier_name||p.supplier))+'</span>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-weight:800;font-size:.98rem;color:var(--ink);word-break:break-word">'+esc(p.supplier_name||p.supplier)+'</div>'+
+            (p.gstin?'<div class="hint" style="margin-top:1px;font-size:.8rem">GSTIN: '+esc(p.gstin)+'</div>':'')+
+          '</div>'+
+          '<span class="bd-pill '+stCls+'">'+esc(p.status)+'</span>'+
+        '</div>'+
+        '<div class="split" style="align-items:center;margin-bottom:8px;flex-wrap:wrap">'+
+          '<div class="hint" style="margin:0">Date: <b style="color:var(--ink)">'+shortDate(p.bill_date||p.posting_date)+'</b></div>'+
+          '<div class="acts" style="flex-wrap:wrap">'+
+            '<a class="btn sm subtle" href="/printview?doctype=Purchase%20Invoice&name='+encodeURIComponent(p.invoice)+'&trigger_print=1" target="_blank" rel="noopener">View Now</a>'+
+            editBtn+
+            '<a class="btn sm subtle" href="/app/purchase-invoice/'+encodeURIComponent(p.invoice)+'" target="_blank" rel="noopener">Open</a>'+
+          '</div>'+
+        '</div>'+
+        '<div class="split" style="align-items:flex-start;gap:8px">'+
+          '<div><div style="font-weight:800;color:var(--ink)">'+docTitle+docSub+'</div><div class="hint" style="margin-top:2px">'+(isRet?'Debit / Return Note':'Tax Invoice')+'</div></div>'+
+          '<div class="r"><div style="font-weight:800;color:var(--ink)">'+esc(b.batch)+'</div><div class="hint" style="margin-top:2px">Expiry Date: '+mmyy(p.expiry||b.expiry)+'</div></div>'+
+        '</div>'+
+        '<div class="bd-div"></div>'+
+        '<div class="bd-g4">'+
+          '<div><div class="bd-m-lbl">MRP Rate</div><div class="bd-m-val">'+inr(p.mrp)+'</div></div>'+
+          '<div><div class="bd-m-lbl">Purc Rate</div><div class="bd-m-val">'+inr(p.purchase_rate)+'</div></div>'+
+          '<div><div class="bd-m-lbl">Net Rate</div><div class="bd-m-val">'+inr(p.net_rate)+'</div></div>'+
+          '<div><div class="bd-m-lbl">Quantity</div><div class="bd-m-val">'+(isRet?'-':'')+qtyLbl+'</div></div>'+
+        '</div>'+
+        '<div class="bd-hi"><span>Margin</span><span>'+n(p.margin_pct).toFixed(2)+'%</span></div>'+
+      '</div>';
+    }).join('');
+  } else {
+    html+='<div class="bd-card"><p class="hint">No purchase invoices found for this batch'+(ls.fromDate||ls.toDate?' in the selected date range':'')+'.</p></div>';
+  }
+
+  if(adj.length){
+    html+='<div class="bd-card"><div class="bd-m-lbl" style="text-transform:uppercase;margin-bottom:6px">Opening / Manual Stock Entries</div>'+
+      adj.map(function(se){
+        var dtSlug=se.doctype==='Stock Reconciliation'?'stock-reconciliation':'stock-entry';
+        return '<div class="sr"><div><b>'+esc(se.name)+'</b> <span class="hint">('+esc(se.type)+')</span><br><span class="mute">'+shortDate(se.date)+' &middot; '+qtyText(se.qty,b.upp)+' &middot; Rate '+inr(se.rate)+'</span></div>'+
+          '<a class="btn sm subtle" href="/app/'+dtSlug+'/'+encodeURIComponent(se.name)+'" target="_blank" rel="noopener">Open</a></div>';
+      }).join('')+'</div>';
+  }
+  return html;
+}
+
+function renderSalesTab(r){
+  var b=r.batch||{}, list=r.sales||[];
+  var totUnits=0, totAmt=0, totProfit=0;
+  list.forEach(function(s){
+    totUnits+=n(s.qty_units);
+    totAmt+=n(s.amount);
+    totProfit+=n(s.profit);
+  });
+  var sumHtml=list.length
+    ? '<div class="bd-sum"><span><b>'+list.length+'</b> sale(s) &middot; Qty: <b>'+qtyText(Math.max(0,totUnits),b.upp)+'</b></span><span>Total: <b>'+inr(totAmt)+'</b> &middot; Profit: <b style="color:'+(totProfit>=0?'var(--ok)':'var(--err)')+'">'+inr(totProfit)+'</b></span></div>'
+    : '';
+  var html=renderDateFilterBar(sumHtml);
+
+  if(!list.length){
+    return html+'<div class="bd-card"><p class="hint">No sales invoices found for this batch'+(ls.fromDate||ls.toDate?' in the selected date range':'')+'.</p></div>';
+  }
+
+  return html+list.map(function(s){
+    var isRet=Boolean(s.is_return);
+    var custTitle=s.customer_name||s.customer||'Walk-in';
+    var ptSub=(s.patient_name && s.patient_name!==custTitle)?' <span class="hint">('+esc(s.patient_name)+')</span>':'';
+    var canEdit=isAdmin || !serverToday || !s.posting_date || s.posting_date>=serverToday;
+    var editBtn=canEdit
+      ? (isRet?'<a class="btn sm" href="/sale-return?edit='+encodeURIComponent(s.invoice)+'">Edit</a>':'<button type="button" class="btn sm" data-edit-sale="'+esc(s.invoice)+'">Edit</button>')
+      : '';
+    var qtyCode=(isRet?'-':'')+s.packs+' :: '+s.loose_units;
+    var profNeg=(n(s.profit)<0);
+    return '<div class="bd-card">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'+
+        '<span class="bd-av sal">'+esc(initials(s.sale_type||custTitle))+'</span>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-weight:800;font-size:.98rem;color:var(--ink);word-break:break-word">'+esc(custTitle)+ptSub+'</div>'+
+          '<div class="hint" style="margin-top:1px;font-size:.8rem">'+esc(s.sale_type)+'</div>'+
+        '</div>'+
+        (isRet?'<span class="bd-pill ret">Return Note</span>':'')+
+      '</div>'+
+      '<div class="split" style="align-items:center;margin-bottom:8px;flex-wrap:wrap">'+
+        '<div class="hint" style="margin:0">Date: <b style="color:var(--ink)">'+shortDate(s.posting_date)+'</b>'+(s.time?' &middot; '+esc(s.time):'')+'</div>'+
+        '<div class="acts" style="flex-wrap:wrap">'+
+          '<a class="btn sm subtle" href="/printview?doctype=Sales%20Invoice&name='+encodeURIComponent(s.invoice)+'&trigger_print=1" target="_blank" rel="noopener">View Now</a>'+
+          editBtn+
+          '<a class="btn sm subtle" href="/app/sales-invoice/'+encodeURIComponent(s.invoice)+'" target="_blank" rel="noopener">Open</a>'+
+        '</div>'+
+      '</div>'+
+      '<div class="split" style="align-items:flex-start;gap:8px">'+
+        '<div><div style="font-weight:800;color:var(--ink)">'+esc(s.invoice)+'</div><div class="hint" style="margin-top:2px">'+(isRet?'Credit / Return Note':esc(s.payment_mode)+' Bill')+'</div></div>'+
+        '<div class="r"><div style="font-weight:800;color:var(--ink)">'+esc(b.batch)+'</div><div class="hint" style="margin-top:2px">Expiry Date: '+mmyy(s.expiry||b.expiry)+'</div></div>'+
+      '</div>'+
+      '<div class="bd-div"></div>'+
+      '<div class="bd-g4">'+
+        '<div><div class="bd-m-lbl">MRP Rate</div><div class="bd-m-val">'+inr(s.mrp)+'</div></div>'+
+        '<div><div class="bd-m-lbl">Sale Rate</div><div class="bd-m-val">'+inr(s.sale_rate)+'</div></div>'+
+        '<div><div class="bd-m-lbl">Discount</div><div class="bd-m-val">'+n(s.discount_percentage).toFixed(2)+'%</div></div>'+
+        '<div><div class="bd-m-lbl">Quantity</div><div class="bd-m-val">'+qtyCode+'</div><div class="hint" style="font-size:.7rem;margin-top:1px">'+qtyText(Math.abs(s.qty_units),s.upp)+'</div></div>'+
+      '</div>'+
+      '<div class="bd-hi'+(profNeg?' neg':'')+'"><span>'+(isRet?'Return Adjustment':'Profit')+'</span><span>'+inr(s.profit)+' ('+n(s.profit_pct).toFixed(2)+'%)</span></div>'+
+    '</div>';
+  }).join('');
+}
+
+function renderBatchDetail(){
+  document.querySelectorAll('#bd-tabs button').forEach(function(x){
+    x.setAttribute('aria-selected',String(x.dataset.bt===ls.detailTab));
+  });
+  var r=ls.detailData;
+  if(!r)return;
+  if(ls.detailTab==='batch') $('#bd-body').innerHTML=renderBatchTab(r.batch||{});
+  else if(ls.detailTab==='purchase') $('#bd-body').innerHTML=renderPurchaseTab(r);
+  else $('#bd-body').innerHTML=renderSalesTab(r);
+}
+
+$('#bd-back').onclick=function(){closeBatchDetail(false)};
+
+document.querySelectorAll('#bd-tabs button').forEach(function(b){
+  b.onclick=function(){
+    ls.detailTab=b.dataset.bt;
+    renderBatchDetail();
+  };
+});
+
+$('#bd-body').onclick=function(e){
+  if(e.target.closest('#bd-edit-btn')){
+    if(ls.detailData&&ls.detailData.batch) openEditBatch(ls.detailData.batch);
+    return;
+  }
+  if(e.target.closest('#bd-del-btn')){
+    if(ls.detailBatch) doDelete({batch:ls.detailBatch},'Delete batch '+ls.detailBatch+'? Stock will be cleared to zero.',function(){closeBatchDetail(false)});
+    return;
+  }
+  if(e.target.closest('#bd-filter-go')){
+    ls.fromDate=($('#bd-from')&&$('#bd-from').value)||'';
+    ls.toDate=($('#bd-to')&&$('#bd-to').value)||'';
+    loadBatchDetail(ls.detailBatch);
+    return;
+  }
+  if(e.target.closest('#bd-filter-clr')){
+    ls.fromDate='';ls.toDate='';
+    loadBatchDetail(ls.detailBatch);
+    return;
+  }
+  var edP=e.target.closest('[data-edit-purchase]');
+  if(edP){amendInvoice('Purchase Invoice',edP.dataset.editPurchase);return}
+  var edS=e.target.closest('[data-edit-sale]');
+  if(edS){amendInvoice('Sales Invoice',edS.dataset.editSale);return}
+};
+
+window.addEventListener('popstate',function(){
+  if(ls.detailBatch) closeBatchDetail(true);
+});
+
+$('#ls-rows').onclick=function(e){
+  var bd=e.target.closest('button[data-batch-detail]');
+  if(bd){openBatchDetail(bd.dataset.batchDetail,true);return}
+  var tg=e.target.closest('button[data-p]');
+  if(tg){ls.open=ls.open===tg.dataset.p?null:tg.dataset.p;renderList();return}
+  var di=e.target.closest('button[data-delitem]');
+  if(di){doDelete({item:di.dataset.delitem,remove_item:'1'},'Delete the product '+di.dataset.nm+'?');return}
+  var dl=e.target.closest('button[data-del]');
+  if(dl){doDelete({batch:dl.dataset.del},'Delete batch '+dl.dataset.del+'? Stock will be cleared to zero.');return}
+  var bt=e.target.closest('button[data-b]');if(!bt)return;
+  var b=null;ls.rows.forEach(function(x){if(x.batch===bt.dataset.b)b=x});
+  openEditBatch(b);
 };
 
 g('ed','upp').onchange=function(){
@@ -745,7 +1196,10 @@ g('ed','upp').onchange=function(){
   var u=Math.max(1,n(g('ed','upp').value));ls.total=n(g('ed','packs').value)*u+n(g('ed','units').value)}
 });
 
-$('#ls-cancel').onclick=function(){$('#ls-edit').hidden=true;ls.cur=null};
+$('#ls-cancel').onclick=function(){
+  $('#ls-edit').hidden=true;ls.cur=null;
+  if(ls.detailBatch) $('#ls-detail').hidden=false;
+};
 
 $('#ls-save').onclick=function(){
   var d=read('ed'),b=this;
@@ -754,8 +1208,12 @@ $('#ls-save').onclick=function(){
   if(n(d.packs)<0||n(d.units)<0){toast('Quantity cannot be negative.',1);return}
   d.batch=ls.cur.batch;d.warehouse=wh;b.disabled=true;
   call('ph_stock_edit',d,true).then(function(r){
-    toast('Saved batch '+r.batch+'. Stock is now '+qtyText(r.units,r.upp)+'. Adjustment: '+r.document+'.');
-    $('#ls-edit').hidden=true;ls.cur=null;loadList()
+    toast('Saved batch '+r.batch+'. Stock is now '+qtyText(r.units,r.upp)+(r.document?'. Adjustment: '+r.document+'.':'.'));
+    $('#ls-edit').hidden=true;ls.cur=null;loadList();
+    if(ls.detailBatch){
+      $('#ls-detail').hidden=false;
+      loadBatchDetail(ls.detailBatch);
+    }
   }).catch(function(e){toast(e.message,1)}).then(function(){b.disabled=false})
 };
 
