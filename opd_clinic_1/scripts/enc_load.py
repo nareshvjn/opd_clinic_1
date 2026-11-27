@@ -467,14 +467,14 @@ if frappe.db.exists("DocType", "Medication"):
             try:
                 mli_meta = frappe.get_meta("Medication Linked Item")
                 if mli_meta.has_field("item") and mli_meta.has_field("parent"):
-                    for mli in frappe.get_all("Medication Linked Item", fields=["parent", "item"], limit=2000):
+                    for mli in frappe.get_all("Medication Linked Item", fields=["parent", "item"], limit=5000):
                         par = (mli.get("parent") or "").strip()
                         itm = (mli.get("item") or "").strip()
                         if par and itm and par not in med_linked:
                             med_linked[par] = itm
             except Exception:
                 pass
-        for m in frappe.get_all("Medication", fields=m_fields, limit=1000):
+        for m in frappe.get_all("Medication", fields=m_fields, limit=5000):
             med_by_alias[m.name.lower()] = m.name
             if m.get("dosage_form"):
                 med_forms[m.name] = m.get("dosage_form")
@@ -511,7 +511,7 @@ if frappe.db.exists("DocType", "Lab Test Template"):
         for kf in ("lab_test_name", "item", "item_code", "lab_test_code"):
             if lt_meta_doc.has_field(kf):
                 lt_fields.append(kf)
-        for lt in frappe.get_all("Lab Test Template", fields=lt_fields, limit=1000):
+        for lt in frappe.get_all("Lab Test Template", fields=lt_fields, limit=5000):
             lab_by_alias[lt.name.lower()] = lt.name
             lt_item = (lt.get("item") or lt.get("item_code") or lt.get("lab_test_code") or "").strip()
             if lt_item:
@@ -639,14 +639,14 @@ else:
         "history": history,
         "templates": templates,
         "lists": {
-            "complaints": names("Complaint"),
-            "diagnoses": names("Diagnosis"),
-            "medications": names("Medication"),
+            "complaints": names("Complaint", limit=None),
+            "diagnoses": names("Diagnosis", limit=None),
+            "medications": names("Medication", limit=None),
             "items": stock_items,
             "item_groups": igs,
             "dosages": names("Prescription Dosage"),
             "periods": names("Prescription Duration"),
-            "labs": names("Lab Test Template"),
+            "labs": names("Lab Test Template", limit=None),
             "forms": names("Dosage Form"),
             "classes": names("Medication Class", limit=None),
             "uoms": names("UOM"),

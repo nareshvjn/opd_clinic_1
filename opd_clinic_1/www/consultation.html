@@ -379,11 +379,14 @@ function fill(id,arr){$('#'+id).innerHTML=(arr||[]).map(function(v){return '<opt
 
 function renderTags(k){
   var box=$('#tg-'+k),inp=$('#in-'+k);
+  if(!box)return;
+  var anchor=(inp&&inp.parentNode===box)?inp:(inp&&inp.closest('.tag-ac'));
   box.querySelectorAll('.chip').forEach(function(c){c.remove()});
-  T[k].forEach(function(v,i){var c=document.createElement('span');c.className='chip'+(NEW[k]&&(L[NEW[k]]||[]).indexOf(v)<0?' new':'');
+  (T[k]||[]).forEach(function(v,i){var c=document.createElement('span');c.className='chip'+(NEW[k]&&(L[NEW[k]]||[]).indexOf(v)<0?' new':'');
     var codeHtml=(k==='lab'&&LABI[v])?'<span class="chip-code" title="Item code from Lab Test Template">'+esc(LABI[v])+'</span>':'';
     c.innerHTML=esc(v)+codeHtml+'<button type="button" aria-label="Remove '+esc(v)+'" data-k="'+k+'" data-i="'+i+'">&times;</button>';
-    box.insertBefore(c,inp)})
+    if(anchor&&anchor.parentNode===box)box.insertBefore(c,anchor);
+    else box.appendChild(c);})
 }
 function addTag(k,v){v=(v||'').trim();if(!v||T[k].indexOf(v)>-1)return;T[k].push(v);renderTags(k)}
 ['sym','dx'].forEach(function(k){
@@ -543,15 +546,20 @@ function closeAllAc(except){
 function findCanonical(val,list,metaMap){
   var v=String(val||'').trim();
   if(!v)return '';
-  var vl=v.toLowerCase(),arr=list||[];
-  for(var i=0;i<arr.length;i++){if(arr[i].toLowerCase()===vl)return arr[i]}
+  var vl=v.toLowerCase(),arr=Array.isArray(list)?list:[];
+  for(var i=0;i<arr.length;i++){
+    var item=arr[i];
+    if(item!=null&&String(item).toLowerCase()===vl)return String(item);
+  }
   if(metaMap){
     for(var j=0;j<arr.length;j++){
-      var nm=arr[j],sub=metaMap[nm]||'';
+      var nm=arr[j];
+      if(nm==null)continue;
+      var key=String(nm),sub=metaMap[key]||'';
       if(!sub)continue;
-      var parts=sub.split('|');
+      var parts=String(sub).split('|');
       for(var k=0;k<parts.length;k++){
-        if(parts[k].trim().toLowerCase()===vl)return nm;
+        if(parts[k].trim().toLowerCase()===vl)return key;
       }
     }
   }
@@ -620,6 +628,7 @@ function renderMeds(){
   var box=$('#meds');
   if(!M.length)M.push(blankMed());
   box.innerHTML=M.map(function(m,i){
+    m=m||blankMed();
     return '<div class="med">'+
       '<div class="med-row">'+
         '<div><label>Medicine</label>'+
@@ -637,7 +646,7 @@ function renderMeds(){
   }).join('');
   var rows=box.querySelectorAll('.med');
   for(var j=0;j<M.length;j++){
-    if((M[j].drug||'').trim())syncMedValidity(rows[j],j);
+    if(rows[j]&&M[j]&&String(M[j].drug||'').trim())syncMedValidity(rows[j],j);
   }
 }
 function openMedAc(inp){
@@ -880,36 +889,41 @@ function mergeUniqueTag(key,vals){
 }
 function applySelectedTemplate(){
   tplMsg('');
-  var t=findTpl($('#tpl-sel').value);
-  if(!t){tplMsg('Choose a treatment template first.',true);return}
-  mergeUniqueTag('sym',t.complaints);
-  mergeUniqueTag('dx',t.diagnosis);
-  mergeUniqueTag('lab',(t.labs||[]).map(function(x){return findExactLab(x)||x}));
+  try{
+    var t=findTpl($('#tpl-sel').value);
+    if(!t){tplMsg('Choose a treatment template first.',true);return}
+    mergeUniqueTag('sym',t.complaints);
+    mergeUniqueTag('dx',t.diagnosis);
+    mergeUniqueTag('lab',(t.labs||[]).map(function(x){return findExactLab(x)||x}));
 
-  M=M.filter(function(m){return (m.drug||'').trim()||m.form||m.dosage||m.period||(m.comment||'').trim()});
-  (t.drugs||[]).forEach(function(dr){
-    var nm=tplDrugName(dr);
-    if(!nm)return;
-    nm=findExactMed(nm)||nm;
-    var dup=M.some(function(cur){return (cur.drug||'').trim().toLowerCase()===nm.toLowerCase()});
-    if(dup)return;
-    var obj=(dr&&typeof dr==='object')?dr:{};
-    M.push({
-      drug:nm,
-      form:String(obj.form||obj.dosage_form||MF[nm]||'').trim(),
-      dosage:matchOpt(L.dosages,obj.dosage),
-      period:matchOpt(L.periods,obj.period),
-      comment:String(obj.comment||'').trim()
+    M=M.filter(function(m){return m&&(String(m.drug||'').trim()||m.form||m.dosage||m.period||String(m.comment||'').trim())});
+    var tplDrugs=t.drugs||t.medications||[];
+    tplDrugs.forEach(function(dr){
+      var nm=tplDrugName(dr);
+      if(!nm)return;
+      nm=findExactMed(nm)||nm;
+      var dup=M.some(function(cur){return String((cur&&cur.drug)||'').trim().toLowerCase()===nm.toLowerCase()});
+      if(dup)return;
+      var obj=(dr&&typeof dr==='object')?dr:{};
+      M.push({
+        drug:nm,
+        form:String(obj.form||obj.dosage_form||(MF&&MF[nm])||'').trim(),
+        dosage:matchOpt(L.dosages,obj.dosage),
+        period:matchOpt(L.periods,obj.period),
+        comment:String(obj.comment||'').trim()
+      });
     });
-  });
-  renderMeds();
+    renderMeds();
 
-  var tn=(t.notes||'').trim(),cn=($('#notes').value||'').trim();
-  if(tn){
-    if(!cn)$('#notes').value=tn;
-    else if(cn.indexOf(tn)<0)$('#notes').value=cn+'\n'+tn;
+    var tn=(t.notes||'').trim(),cn=($('#notes').value||'').trim();
+    if(tn){
+      if(!cn)$('#notes').value=tn;
+      else if(cn.indexOf(tn)<0)$('#notes').value=cn+'\n'+tn;
+    }
+    tplMsg('Applied template "'+(t.template_name||t.name)+'". Review and adjust before saving.');
+  }catch(err){
+    tplMsg('Could not apply template: '+(err&&err.message?err.message:String(err)),true);
   }
-  tplMsg('Applied template "'+(t.template_name||t.name)+'". Review and adjust before saving.');
 }
 
 if($('#tpl-sel'))$('#tpl-sel').onchange=function(){tplMsg('');updateTplPreview();if(this.value)applySelectedTemplate()};
