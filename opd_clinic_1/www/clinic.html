@@ -5,6 +5,24 @@ login_required: 1
 <div id="cl" style="display:none">
 <script>
 (function(){
+  var _f = window.fetch;
+  window.fetch = function(url, opts){
+    return _f(url, opts).then(function(r){
+      if(!r.ok && String(url).indexOf('/api/method/')!==-1){
+        r.clone().json().then(function(j){
+          var t='';
+          try{t=JSON.parse(JSON.parse(j._server_messages)[0]).message;}catch(e){}
+          if(/invalid request|not logged in/i.test(t)||r.status===403)
+            window.location.replace('/login?redirect-to='+encodeURIComponent(location.pathname+location.search));
+        }).catch(function(){});
+      }
+      return r;
+    });
+  };
+})();
+</script>
+<script>
+(function(){
   var u = (window.frappe && (frappe.session_user || (frappe.session && frappe.session.user))) || (function(){
     var m = document.cookie.match(/(?:^|;\s*)user_id=([^;]*)/);
     return m ? decodeURIComponent(m[1]) : '';

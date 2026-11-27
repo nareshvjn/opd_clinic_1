@@ -211,7 +211,7 @@ after_install = "opd_clinic_1.setup.after_migrate"
 
 # Request Events
 # ----------------
-before_request = ["opd_clinic_1.auth.redirect_guest_clinic"]
+# before_request = ["opd_clinic_1.utils.before_request"]
 # after_request = ["opd_clinic_1.utils.after_request"]
 
 # Job Events
