@@ -65,8 +65,9 @@
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 0 40px;
+        padding: 0 8px;
         box-sizing: border-box;
+        min-width: 0;
     }
 
     /* Maximized text styling with exact solid yellow and embossed 3D shadow effect */
@@ -75,9 +76,10 @@
     .jeevan-sub-title-2 {
         margin: 0;
         font-weight: 900;
-        letter-spacing: 2.5px;
-        line-height: 1.1;
+        letter-spacing: 1px;
+        line-height: 0.96;
         width: 100%;
+        white-space: nowrap;
         color: #f1c40f; /* Exact solid yellow color */
         text-shadow: 
             -1px -1px 0px #ffeaa7,
@@ -85,20 +87,20 @@
              2px  2px 5px rgba(0, 0, 0, 0.85);
     }
 
-    /* Substantially increased font sizes to completely fill the space */
+    /* Scaled to occupy the remaining area without increasing banner height */
     .jeevan-main-title {
-        font-size: calc(clamp(2rem, 5.5vw, 6rem) + 2pt);
-        margin-bottom: 2px;
+        font-size: clamp(2.4rem, 5.9vw, 6.2rem);
+        margin-bottom: 0;
     }
 
     .jeevan-sub-title-1 {
-        font-size: calc(clamp(1.4rem, 3.8vw, 4rem) + 2pt);
-        margin: 2px 0;
+        font-size: clamp(1.45rem, 3.7vw, 3.8rem);
+        margin: 0;
     }
 
     .jeevan-sub-title-2 {
-        font-size: calc(clamp(1.8rem, 5vw, 5.5rem) + 2pt);
-        margin-top: 2px;
+        font-size: clamp(2.3rem, 5.6vw, 5.9rem);
+        margin-top: 0;
     }
 
     /* Responsive adjustments for mobile and tablet screens */
@@ -113,21 +115,21 @@
             box-shadow: 2px 0px 12px rgba(0, 0, 0, 0.35);
         }
         .jeevan-title-box {
-            padding: 0 12px;
+            padding: 0 4px;
         }
         .jeevan-main-title {
-            font-size: calc(clamp(1.4rem, 4.5vw, 2.4rem) + 2pt);
-            letter-spacing: 1.5px;
+            font-size: clamp(1.8rem, 5.6vw, 2.85rem);
+            letter-spacing: 0.6px;
         }
         .jeevan-sub-title-1 {
-            font-size: calc(clamp(1rem, 3.2vw, 1.6rem) + 2pt);
-            margin: 1px 0;
-            letter-spacing: 1.5px;
+            font-size: clamp(1.12rem, 3.6vw, 1.8rem);
+            margin: 0;
+            letter-spacing: 0.6px;
         }
         .jeevan-sub-title-2 {
-            font-size: calc(clamp(1.3rem, 4.2vw, 2.2rem) + 2pt);
-            letter-spacing: 1.5px;
-            margin-top: 1px;
+            font-size: clamp(1.72rem, 5.4vw, 2.75rem);
+            letter-spacing: 0.6px;
+            margin-top: 0;
         }
     }
     @media (max-width: 480px) {
@@ -147,23 +149,23 @@
         .jeevan-title-box {
             width: 78%;
             flex: 0 0 78%;
-            padding: 0 6px;
+            padding: 0 2px;
         }
         .jeevan-main-title {
-            font-size: calc(clamp(1.1rem, 5.2vw, 1.45rem) + 2pt);
-            letter-spacing: 0.5px;
-            line-height: 1.15;
+            font-size: clamp(1.18rem, 5.8vw, 1.72rem);
+            letter-spacing: 0.25px;
+            line-height: 0.96;
             word-break: normal;
         }
         .jeevan-sub-title-1 {
-            font-size: calc(clamp(0.8rem, 3.5vw, 1.05rem) + 2pt);
-            margin: 1px 0;
-            letter-spacing: 0.5px;
+            font-size: clamp(0.8rem, 3.8vw, 1.15rem);
+            margin: 0;
+            letter-spacing: 0.25px;
         }
         .jeevan-sub-title-2 {
-            font-size: calc(clamp(1.05rem, 4.8vw, 1.4rem) + 2pt);
-            letter-spacing: 1px;
-            margin-top: 1px;
+            font-size: clamp(1.12rem, 5.5vw, 1.65rem);
+            letter-spacing: 0.4px;
+            margin-top: 0;
         }
     }
 </style>
