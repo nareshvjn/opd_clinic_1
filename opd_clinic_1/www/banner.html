@@ -16,21 +16,34 @@
 </div>
 
 <style>
+    .banner:has(.jeevan-banner-container) {
+        padding: 0 !important;
+        margin: 0 !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        background-color: #125c3a !important;
+    }
+
     .jeevan-banner-container {
         width: 100%;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
         background-color: #125c3a;
         padding: 0.2mm;
         box-sizing: border-box;
-        overflow: hidden;
+        overflow: visible;
         font-family: 'Cinzel', 'Montserrat', 'Helvetica Neue', sans-serif;
     }
 
     .jeevan-banner-content {
         display: flex;
-        align-items: stretch;
+        align-items: center;
         gap: 0.2mm;
         width: 100%;
         max-width: 100%;
+        height: auto !important;
         margin: 0 auto;
         position: relative;
     }
@@ -42,7 +55,7 @@
         background-color: #f1c40f; /* Exact solid yellow color */
         border-top-right-radius: 400px;
         border-bottom-right-radius: 400px;
-        padding: 0.2mm clamp(10px, 2.2vw, 34px) 0.2mm 0.2mm;
+        padding: clamp(4px, 0.8vw, 14px) clamp(12px, 2.2vw, 34px) clamp(4px, 0.8vw, 14px) clamp(4px, 0.8vw, 14px);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -53,6 +66,7 @@
     .jeevan-logo-img {
         width: 100%;
         height: auto;
+        max-height: 100%;
         object-fit: contain;
         display: block;
     }
@@ -65,20 +79,21 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: space-evenly;
+        justify-content: center;
+        gap: 0.2mm;
         text-align: center;
         padding: 0.2mm;
         box-sizing: border-box;
     }
 
-    /* Clean solid yellow typography sized to fill remaining space */
+    /* Clean solid yellow typography sized to fill remaining space without clipping */
     .jeevan-main-title,
     .jeevan-sub-title-1,
     .jeevan-sub-title-2 {
         margin: 0;
         font-weight: 900;
         letter-spacing: 0.5px;
-        line-height: 0.96;
+        line-height: 1.02;
         width: 100%;
         white-space: nowrap;
         color: #f1c40f; /* Exact solid yellow color */
@@ -86,16 +101,16 @@
     }
 
     .jeevan-main-title {
-        font-size: clamp(2.4rem, 6.7vw, 6.8rem);
+        font-size: clamp(2.2rem, 6.4vw, 6.4rem);
     }
 
     .jeevan-sub-title-1 {
-        font-size: clamp(1.6rem, 4.6vw, 4.5rem);
-        line-height: 0.92;
+        font-size: clamp(1.35rem, 3.8vw, 3.8rem);
+        line-height: 0.98;
     }
 
     .jeevan-sub-title-2 {
-        font-size: clamp(2.8rem, 8.4vw, 7.6rem);
+        font-size: clamp(2.2rem, 6.4vw, 6.4rem);
     }
 
     /* Responsive adjustments for tablet and mobile screens */
@@ -106,22 +121,22 @@
         .jeevan-logo-box {
             border-top-right-radius: 120px;
             border-bottom-right-radius: 120px;
-            padding: 0.2mm 10px 0.2mm 0.2mm;
+            padding: 4px 12px 4px 4px;
             box-shadow: 2px 0px 12px rgba(0, 0, 0, 0.35);
         }
         .jeevan-title-box {
             padding: 0.2mm;
         }
         .jeevan-main-title {
-            font-size: clamp(1.7rem, 6.5vw, 3.6rem);
+            font-size: clamp(1.6rem, 6.3vw, 3.5rem);
             letter-spacing: 0.4px;
         }
         .jeevan-sub-title-1 {
-            font-size: clamp(1.15rem, 4.4vw, 2.4rem);
+            font-size: clamp(1rem, 3.8vw, 2.1rem);
             letter-spacing: 0.4px;
         }
         .jeevan-sub-title-2 {
-            font-size: clamp(1.9rem, 8.1vw, 4.2rem);
+            font-size: clamp(1.6rem, 6.3vw, 3.5rem);
             letter-spacing: 0.6px;
         }
     }
@@ -137,7 +152,7 @@
             flex: 0 0 22%;
             border-top-right-radius: 70px;
             border-bottom-right-radius: 70px;
-            padding: 0.2mm 6px 0.2mm 0.2mm;
+            padding: 4px 8px 4px 4px;
         }
         .jeevan-title-box {
             width: 78%;
@@ -145,19 +160,19 @@
             padding: 0.2mm;
         }
         .jeevan-main-title {
-            font-size: clamp(1.25rem, 6.45vw, 2.1rem);
+            font-size: clamp(1.15rem, 6.2vw, 2rem);
             letter-spacing: 0.1px;
-            line-height: 0.96;
+            line-height: 1.02;
         }
         .jeevan-sub-title-1 {
-            font-size: clamp(1rem, 4.5vw, 1.5rem);
+            font-size: clamp(0.85rem, 3.6vw, 1.3rem);
             letter-spacing: 0.3px;
-            line-height: 0.92;
+            line-height: 0.98;
         }
         .jeevan-sub-title-2 {
-            font-size: clamp(1.55rem, 8vw, 2.7rem);
+            font-size: clamp(1.15rem, 6.2vw, 2rem);
             letter-spacing: 0.4px;
-            line-height: 0.96;
+            line-height: 1.02;
         }
     }
 </style>
