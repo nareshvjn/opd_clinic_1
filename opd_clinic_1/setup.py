@@ -78,19 +78,6 @@ def after_migrate():
             except Exception:
                 pass
 
-        # 4b. Sync global Website Settings banner_html from www/banner.html if present
-        try:
-            banner_path = frappe.get_app_path("opd_clinic_1", "www", "banner.html")
-            if os.path.exists(banner_path):
-                with open(banner_path, "r", encoding="utf-8") as fp:
-                    banner_html = fp.read()
-                cur_banner = frappe.db.get_single_value("Website Settings", "banner_html") or ""
-                if cur_banner != banner_html:
-                    frappe.db.set_single_value("Website Settings", "banner_html", banner_html, update_modified=False)
-                    frappe.db.commit()
-        except Exception:
-            pass
-
         # 5. Clear Frappe & Website caches so updated Web Pages serve immediately
         try:
             from frappe.website.utils import clear_website_cache

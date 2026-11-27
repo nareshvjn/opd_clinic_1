@@ -1,13 +1,13 @@
-<!-- ERPNext Banner HTML Snippet -->
-<div class="jeevan-banner-container" style="display:block;width:100%;position:relative;background-color:#125c3a;padding:2px;margin:0;box-sizing:border-box;overflow:hidden;">
-    <div class="jeevan-banner-content" style="display:flex;align-items:center;width:100%;max-width:100%;margin:0;">
-        <!-- Left Logo Section -->
-        <div class="jeevan-logo-box" style="flex:0 0 auto;background-color:#f1c40f;display:flex;align-items:center;justify-content:center;box-sizing:border-box;">
-            <img src="/files/logo.png" alt="Jeevan Logo" class="jeevan-logo-img" style="display:block;width:auto;">
+<!-- ERPNext Banner HTML Snippet (Maximum Text Size, Full Logo Background Coverage & Exact Yellow) -->
+<div class="jeevan-banner-container">
+    <div class="jeevan-banner-content">
+        <!-- Left Logo Section: 1/5th width with massive padding and curved right radius to fully enclose the logo -->
+        <div class="jeevan-logo-box">
+            <img src="/files/logo.png" alt="Jeevan Logo" class="jeevan-logo-img">
         </div>
 
-        <!-- Right Title Text Section -->
-        <div class="jeevan-title-box" style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-sizing:border-box;">
+        <!-- Right Title Text Section: Maximum possible font sizing to fill the entire remaining area -->
+        <div class="jeevan-title-box">
             <h1 class="jeevan-main-title">JEEVAN HEALTHCARE</h1>
             <h2 class="jeevan-sub-title-1">AND</h2>
             <h2 class="jeevan-sub-title-2">MEDICALS</h2>
@@ -17,162 +17,153 @@
 
 <style>
     .jeevan-banner-container {
-        display: block !important;
-        position: relative !important;
-        z-index: 1 !important;
-        width: 100% !important;
-        height: auto !important;
-        min-height: 0 !important;
-        max-height: none !important;
-        margin: 0 !important;
-        background-color: #125c3a !important;
-        padding: 2px 4px !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-        clear: both !important;
+        width: 100%;
+        background-color: #125c3a;
+        padding: 45px 0;
+        box-sizing: border-box;
+        overflow: visible;
         font-family: 'Cinzel', 'Montserrat', 'Helvetica Neue', sans-serif;
     }
 
     .jeevan-banner-content {
-        display: flex !important;
-        align-items: center !important;
-        gap: 4px !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
-        margin: 0 auto !important;
-        position: static !important;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        position: relative;
     }
 
+    /* Left logo container: 20% width with maximum curved radius and generous padding */
     .jeevan-logo-box {
-        width: auto !important;
-        flex: 0 0 auto !important;
-        max-width: 22% !important;
-        background-color: #f1c40f !important;
-        border-top-right-radius: 120px !important;
-        border-bottom-right-radius: 120px !important;
-        padding: 4px 24px 4px 6px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        box-sizing: border-box !important;
-        box-shadow: 3px 0px 14px rgba(0, 0, 0, 0.35) !important;
+        width: 20%;
+        flex: 0 0 20%;
+        background-color: #f1c40f; /* Exact solid yellow color */
+        border-top-right-radius: 400px;
+        border-bottom-right-radius: 400px;
+        padding: 30px 65px 30px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        box-shadow: 4px 0px 18px rgba(0, 0, 0, 0.45);
     }
 
     .jeevan-logo-img {
-        height: clamp(72px, 10vw, 118px) !important;
-        width: auto !important;
-        max-width: 100% !important;
-        object-fit: contain !important;
-        display: block !important;
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: block;
     }
 
+    /* Right typography layout occupying remaining 80% width */
     .jeevan-title-box {
-        width: auto !important;
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 2px !important;
-        text-align: center !important;
-        padding: 2px 8px !important;
-        box-sizing: border-box !important;
+        width: 80%;
+        flex: 0 0 80%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 0 40px;
+        box-sizing: border-box;
     }
 
+    /* Maximized text styling with exact solid yellow and embossed 3D shadow effect */
     .jeevan-main-title,
     .jeevan-sub-title-1,
     .jeevan-sub-title-2 {
-        margin: 0 !important;
-        padding: 0 !important;
-        font-weight: 900 !important;
-        letter-spacing: 1px;
-        line-height: 1.02 !important;
-        width: 100% !important;
-        white-space: nowrap !important;
-        color: #f1c40f !important;
-        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45) !important;
+        margin: 0;
+        font-weight: 900;
+        letter-spacing: 2.5px;
+        line-height: 1.1;
+        width: 100%;
+        color: #f1c40f; /* Exact solid yellow color */
+        text-shadow: 
+            -1px -1px 0px #ffeaa7,
+             1px  1px 0px #b7950b,
+             2px  2px 5px rgba(0, 0, 0, 0.85);
     }
 
+    /* Substantially increased font sizes to completely fill the space */
     .jeevan-main-title {
-        font-size: clamp(1.6rem, 4.8vw, 3.6rem) !important;
+        font-size: clamp(2rem, 5.5vw, 6rem);
+        margin-bottom: 2px;
     }
 
     .jeevan-sub-title-1 {
-        font-size: clamp(0.95rem, 2.5vw, 1.9rem) !important;
-        line-height: 0.96 !important;
+        font-size: clamp(1.4rem, 3.8vw, 4rem);
+        margin: 2px 0;
     }
 
     .jeevan-sub-title-2 {
-        font-size: clamp(1.6rem, 4.8vw, 3.6rem) !important;
-        letter-spacing: 1.4px;
+        font-size: clamp(1.8rem, 5vw, 5.5rem);
+        margin-top: 2px;
     }
 
+    /* Responsive adjustments for mobile and tablet screens */
     @media (max-width: 768px) {
         .jeevan-banner-container {
-            padding: 2px !important;
+            padding: 16px 0;
         }
         .jeevan-logo-box {
-            border-top-right-radius: 90px !important;
-            border-bottom-right-radius: 90px !important;
-            padding: 3px 14px 3px 4px !important;
-            box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.35) !important;
-        }
-        .jeevan-logo-img {
-            height: clamp(54px, 10.5vw, 76px) !important;
+            border-top-right-radius: 120px;
+            border-bottom-right-radius: 120px;
+            padding: 10px 18px 10px 10px;
+            box-shadow: 2px 0px 12px rgba(0, 0, 0, 0.35);
         }
         .jeevan-title-box {
-            padding: 1px 6px !important;
+            padding: 0 12px;
         }
         .jeevan-main-title {
-            font-size: clamp(1.2rem, 5vw, 2.5rem) !important;
-            letter-spacing: 0.5px;
+            font-size: clamp(1.4rem, 4.5vw, 2.4rem);
+            letter-spacing: 1.5px;
         }
         .jeevan-sub-title-1 {
-            font-size: clamp(0.75rem, 2.8vw, 1.4rem) !important;
-            letter-spacing: 0.4px;
+            font-size: clamp(1rem, 3.2vw, 1.6rem);
+            margin: 1px 0;
+            letter-spacing: 1.5px;
         }
         .jeevan-sub-title-2 {
-            font-size: clamp(1.2rem, 5vw, 2.5rem) !important;
-            letter-spacing: 0.8px;
+            font-size: clamp(1.3rem, 4.2vw, 2.2rem);
+            letter-spacing: 1.5px;
+            margin-top: 1px;
         }
     }
-
     @media (max-width: 480px) {
         .jeevan-banner-container {
-            padding: 1px 2px !important;
+            padding: 12px 0;
         }
         .jeevan-banner-content {
-            gap: 2px !important;
+            gap: 2px;
         }
         .jeevan-logo-box {
-            max-width: 24% !important;
-            border-top-right-radius: 50px !important;
-            border-bottom-right-radius: 50px !important;
-            padding: 2px 10px 2px 2px !important;
-        }
-        .jeevan-logo-img {
-            height: clamp(38px, 11.5vw, 46px) !important;
+            width: 22%;
+            flex: 0 0 22%;
+            border-top-right-radius: 70px;
+            border-bottom-right-radius: 70px;
+            padding: 6px 12px 6px 6px;
         }
         .jeevan-title-box {
-            padding: 1px 4px !important;
-            gap: 1px !important;
+            width: 78%;
+            flex: 0 0 78%;
+            padding: 0 6px;
         }
         .jeevan-main-title {
-            font-size: clamp(1rem, 5.1vw, 1.65rem) !important;
-            letter-spacing: 0.4px;
-            line-height: 0.94 !important;
+            font-size: clamp(1.1rem, 5.2vw, 1.45rem);
+            letter-spacing: 0.5px;
+            line-height: 1.15;
+            word-break: normal;
         }
         .jeevan-sub-title-1 {
-            font-size: clamp(0.62rem, 2.7vw, 0.95rem) !important;
-            letter-spacing: 0.4px;
-            line-height: 0.9 !important;
+            font-size: clamp(0.8rem, 3.5vw, 1.05rem);
+            margin: 1px 0;
+            letter-spacing: 0.5px;
         }
         .jeevan-sub-title-2 {
-            font-size: clamp(0.98rem, 4.9vw, 1.6rem) !important;
+            font-size: clamp(1.05rem, 4.8vw, 1.4rem);
             letter-spacing: 1px;
-            line-height: 0.94 !important;
+            margin-top: 1px;
         }
     }
 </style>
