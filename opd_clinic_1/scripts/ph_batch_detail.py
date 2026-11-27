@@ -609,6 +609,7 @@ sle_batch_cost = {}
 sle_item_cost = {}
 
 if si_names:
+    si_names_t = tuple(si_names)
     try:
         pm_rows = frappe.db.sql(
             """
@@ -617,7 +618,7 @@ if si_names:
             WHERE parent IN %(names)s AND amount != 0
             ORDER BY idx ASC
             """,
-            {"names": si_names},
+            {"names": si_names_t},
             as_dict=True,
         )
         for pm in pm_rows:
@@ -636,7 +637,7 @@ if si_names:
               AND is_cancelled = 0
               AND item_code = %(item_code)s
             """,
-            {"names": si_names, "item_code": item_code},
+            {"names": si_names_t, "item_code": item_code},
             as_dict=True,
         )
         for sl in sle_rows:
@@ -645,13 +646,9 @@ if si_names:
             aq = -num(sl.actual_qty)
             if sl.batch_no == bname:
                 prev = sle_batch_cost.get(vno) or {"cost": 0.0, "qty": 0.0}
-                prev["cost"] += vd
-                prev["qty"] += aq
-                sle_batch_cost[vno] = prev
+                sle_batch_cost[vno] = {"cost": prev["cost"] + vd, "qty": prev["qty"] + aq}
             prev_it = sle_item_cost.get(vno) or {"cost": 0.0, "qty": 0.0}
-            prev_it["cost"] += vd
-            prev_it["qty"] += aq
-            sle_item_cost[vno] = prev_it
+            sle_item_cost[vno] = {"cost": prev_it["cost"] + vd, "qty": prev_it["qty"] + aq}
     except Exception:
         pass
 
