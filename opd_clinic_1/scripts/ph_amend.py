@@ -52,7 +52,7 @@ if doc_date < today_date and not is_admin:
 # It will only be cancelled and amended when the replacement is saved.
 
 if doctype == "Sales Invoice":
-    mode = "Cash"
+    mode = "Cash" if doc.is_pos else "Credit"
     if doc.payments:
         mode = doc.payments[0].mode_of_payment
 

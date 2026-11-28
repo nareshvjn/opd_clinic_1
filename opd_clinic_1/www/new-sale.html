@@ -376,12 +376,13 @@ function call(method,params,post){
 }
 
 function localIso(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-var isAdmin=false, serverToday=localIso();
+var isAdmin=false, serverToday=localIso(), metaLoaded=false;
 function syncSaleDateLock(){
   var el=$('#sl-date');
-  if(!el) return;
+  if(!el || !metaLoaded) return;
   var t=serverToday||localIso();
   if(isAdmin){
+    el.min='';
     el.removeAttribute('min');
     el.readOnly=false;
   } else {
@@ -394,11 +395,11 @@ function syncSaleDateLock(){
 }
 $('#sl-date').value=localIso();
 $('#sl-date').onchange=syncSaleDateLock;
-syncSaleDateLock();
 
 call('ph_meta').then(function(m){
   csrf=m.csrf||'';wh=m.warehouse||'';
   isAdmin=!!m.is_admin;
+  metaLoaded=true;
   serverToday=m.today||localIso();
   if(!editingInvoice && (!m.today || $('#sl-date').value===localIso())) $('#sl-date').value=serverToday;
   $('#wh').innerHTML=m.warehouses.map(function(w){return '<option'+(w===wh?' selected':'')+'>'+esc(w)+'</option>'}).join('');
@@ -417,11 +418,12 @@ function checkEditMode(){
   var d=JSON.parse(raw);
   editingInvoice=d.name;
   $('#edit-banner').style.display='block';
-  $('#edit-banner-title').textContent='Editing bill '+d.name;
+  $('#edit-banner-title').textContent='Editing bill '+d.name+(d.date?' ('+d.date+')':'');
   $('#sl-done').textContent='Save';
   toast('Editing bill '+d.name+'. Original invoice stays active until you complete the sale.');
   if(d.customer)$('#sl-cust').value=d.customer;
-  if(d.date)$('#sl-date').value=d.date;
+  if(d.patient)sale.patient={id:d.patient,name:d.customer||d.patient};
+  if(d.date)$('#sl-date').value=String(d.date).slice(0,10);
   if(d.mode&&$('#sl-mode'))$('#sl-mode').value=d.mode;
   if(d.warehouse){wh=d.warehouse;$('#wh').value=wh}
   if(d.charge){$('#cc-amt').value=d.charge;$('#cc-show').textContent=inr(d.charge)}
@@ -834,8 +836,9 @@ $('#bd-apply').onclick=function(){
 $('#sl-done').onclick=function(){
   if(!sale.cart.length)return;
   if(!checkCart()){toast('Fix the lines marked in red before completing the sale.',1);return}
-  var sDate=$('#sl-date').value, tDate=serverToday||localIso();
-  if(sDate && sDate<tDate && !isAdmin){toast('Only admin accounts can create backdated sales entries.',1);return}
+  var sDate=($('#sl-date').value||'').trim(), tDate=serverToday||localIso();
+  if(!sDate){toast('Please select a valid sale date.',1);return}
+  if(sDate<tDate && !isAdmin){toast('Only admin accounts can create backdated sales entries.',1);return}
   var b=this;
   if(b.disabled)return;
   var origLbl=b.textContent;
@@ -851,7 +854,7 @@ $('#sl-done').onclick=function(){
     customer:$('#sl-cust').value,
     patient:sale.patient?sale.patient.id:'',
     mode:$('#sl-mode').value,
-    posting_date:$('#sl-date').value,
+    posting_date:sDate,
     warehouse:wh,
     charge:String(Math.max(0,n($('#cc-amt').value))),
     charge_name:$('#cc-name').value.trim()
@@ -868,6 +871,7 @@ $('#sl-done').onclick=function(){
     rc.innerHTML='<h2>Sale complete</h2>'+
       '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">'+
         '<div>Invoice <b>'+esc(r.invoice)+'</b></div>'+
+        '<div>Date <b>'+esc(r.posting_date||sDate)+'</b></div>'+
         '<div>Total <b>'+inr(r.total)+'</b>'+(r.paid?' <span class="badge" style="margin-left:6px">Paid</span>':'')+'</div>'+
       '</div>'+
       (r.note?'<p class="hint">'+esc(r.note)+'</p>':'')+

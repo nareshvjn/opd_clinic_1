@@ -39,8 +39,11 @@ charge_name = (f.get("charge_name") or "").strip()
 charge_amt = num(f.get("charge"))
 today_str = str(frappe.utils.today())
 today_date = frappe.utils.getdate(today_str)
-posting_date = (f.get("posting_date") or "").strip() or today_str
+raw_posting_date = (f.get("posting_date") or "").strip()
 amend_invoice = (f.get("amend_invoice") or "").strip()
+if amend_invoice and not raw_posting_date:
+    frappe.throw("Sale date is required when updating an invoice.")
+posting_date = raw_posting_date or today_str
 
 try:
     p_date = frappe.utils.getdate(posting_date)
@@ -224,6 +227,7 @@ si.insert(ignore_permissions=True)
 si.submit()
 frappe.response["message"] = {
     "invoice": si.name,
+    "posting_date": str(si.posting_date),
     "total": si.rounded_total or si.grand_total,
     "paid": bool(si.is_pos)
 }
